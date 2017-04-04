@@ -1,4 +1,6 @@
 import random
+import string
+import os
 
 class Expr:
     @staticmethod
@@ -133,4 +135,21 @@ class Program:
         return res
 
 if __name__ == "__main__":
-    print str(Program())
+    import sys
+    if len(sys.argv) < 2:
+        print 'Usage: python '+sys.argv[0]+' <num of programs to generate>'
+        sys.exit(0)
+    for j in range(int(sys.argv[1])):
+        filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))+'.c'
+        with open(filename,'w') as f:
+            f.write(str(Program()))
+        os.system('clang -S -emit-llvm '+filename)
+        filename = filename[:-1]+'ll'
+        with open(filename,'r') as f:
+            lines = [l.strip() for l in f.readlines()]
+        start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
+        end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
+        with open(filename, 'w') as f:
+            for i in range(start,end+1):
+                f.write(lines[i]+'\n')
+
