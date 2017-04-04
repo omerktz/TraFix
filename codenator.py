@@ -82,11 +82,7 @@ class Init:
     def __str__(self):
         if len(Var._vars) == 0:
             return ''
-        vars = reduce(lambda x,y:str(x)+','+str(y),Var._vars,'')
-        if vars[0] == ',':
-            vars = vars[1:]
-        if vars[-1] == ',':
-            vars = vars[:-1]
+        vars = ','.join(map(lambda x:str(x),Var._vars))
         return 'int '+vars+';\n'
 
 class Return:
@@ -132,7 +128,7 @@ class Program:
         self.statements.append(Return.getReturn())
     def __str__(self):
         res = self.statements[-1].getType()+' f() {\n\t'
-        res += reduce(lambda x,y:str(x)+'\t'+str(y),self.statements).strip()
+        res += '\t'.join(map(lambda x:str(x),self.statements)).strip()
         res += '\n}'
         return res
 
