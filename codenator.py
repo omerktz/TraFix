@@ -1,0 +1,140 @@
+import random
+
+class Expr:
+    @staticmethod
+    def isValid():
+        return True
+
+class Number(Expr):
+    _minNumber = 0
+    _maxNumber = 100
+    def __init__(self):
+        self._num = random.randint(Number._minNumber,Number._maxNumber)
+    def __str__(self):
+        return str(self._num)
+    def __eq__(self, other):
+        if not isinstance(other,Number):
+            return False
+        return other._num == self._num
+
+class Var(Expr):
+    _vars=[]
+    def __str__(self):
+        return self._name
+    def __eq__(self, other):
+        if not isinstance(other,Var):
+            return False
+        return other._name == self._name
+
+class SourceVar(Var):
+    def __init__(self):
+        self._name = Var._vars[random.randrange(0,len(Var._vars))]._name
+    @staticmethod
+    def isValid():
+        return len(Var._vars) > 0
+
+class TargetVar(Var):
+    _threshold = 0.8
+    def __init__(self):
+        if (random.uniform(0,1) <= TargetVar._threshold) or (len(Var._vars) == 0):
+            self._name = 'X'+str(len(Var._vars))
+            Var._vars.append(self)
+        else:
+            self._name = Var._vars[random.randrange(0, len(Var._vars))]._name
+
+class Op(Expr):
+    pass
+
+class BinaryOp(Op):
+    _Ops = ['+','-','*','/','%']
+    def __init__(self):
+        inner_weights = [2,2,1]
+        self._op1 = getExpr(inner_weights)
+        self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
+        self._op2 = getExpr(inner_weights)
+        while self._op2==self._op1:
+            self._op2 = getExpr(inner_weights)
+    def __str__(self):
+        res = ''
+        if isinstance(self._op1,Op):
+            res += '('+str(self._op1)+')'
+        else:
+            res += str(self._op1)
+        res += ' '+self._act+' '
+        if isinstance(self._op2,Op):
+            res += '('+str(self._op2)+')'
+        else:
+            res += str(self._op2)
+        return res
+    def __eq__(self, other):
+        if not isinstance(other,BinaryOp):
+            return False
+        return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2)
+
+class Assignment:
+    def __init__(self):
+        self.source = getExpr()
+        self.target = TargetVar()
+    def __str__(self):
+        return str(self.target)+' = '+str(self.source)+';\n'
+
+class Init:
+    def __str__(self):
+        if len(Var._vars) == 0:
+            return ''
+        vars = reduce(lambda x,y:str(x)+','+str(y),Var._vars,'')
+        if vars[0] == ',':
+            vars = vars[1:]
+        if vars[-1] == ',':
+            vars = vars[:-1]
+        return 'int '+vars+';\n'
+
+class Return:
+    _threshold = 0.1
+    @staticmethod
+    def getReturn():
+        if random.uniform(0,1) <= Return._threshold:
+            return ReturnVoid()
+        return ReturnInt()
+    def getType(self):
+        return ''
+
+class ReturnInt(Return):
+    def __str__(self):
+        return 'return ' + str(getExpr([2, 2, 1])) + ';\n'
+    def getType(self):
+        return 'int'
+
+class ReturnVoid(Return):
+    def __str__(self):
+        return ''
+    def getType(self):
+        return 'void'
+
+_exprs = [Number, SourceVar, BinaryOp]
+_weights = [1, 1, 3]
+def getExpr(weights = _weights):
+    assert len(weights) == len(_exprs)
+    exprs = []
+    for i in range(len(weights)):
+        exprs += [_exprs[i]] * weights[i]
+    expr = exprs[random.randrange(0, len(exprs))]
+    while not expr.isValid():
+        expr = exprs[random.randrange(0, len(exprs))]
+    return expr()
+
+class Program:
+    _threshold = 0.6
+    def __init__(self):
+        self.statements = [Init()]
+        while (random.uniform(0,1) <= Program._threshold) or (len(self.statements) == 1):
+            self.statements.append(Assignment())
+        self.statements.append(Return.getReturn())
+    def __str__(self):
+        res = self.statements[-1].getType()+' f() {\n\t'
+        res += reduce(lambda x,y:str(x)+'\t'+str(y),self.statements).strip()
+        res += '\n}'
+        return res
+
+if __name__ == "__main__":
+    print str(Program())
