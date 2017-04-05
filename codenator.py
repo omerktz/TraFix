@@ -110,8 +110,7 @@ class ReturnVoid(Return):
         return 'void'
 
 _exprs = [Number, SourceVar, BinaryOp]
-_weights = [1, 1, 3]
-def getExpr(weights = _weights):
+def getExpr(weights = [1, 1, 3]):
     assert len(weights) == len(_exprs)
     exprs = []
     for i in range(len(weights)):
@@ -122,7 +121,7 @@ def getExpr(weights = _weights):
     return expr()
 
 class Program:
-    _threshold = 0.6
+    _threshold = 0.75
     def __init__(self):
         self.statements = [Init()]
         while (random.uniform(0,1) <= Program._threshold) or (len(self.statements) == 1):
