@@ -54,7 +54,7 @@ class BinaryOp(Op):
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
         self._op2 = getExpr(inner_weights)
-        while self._op2==self._op1:
+        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)):
             self._op2 = getExpr(inner_weights)
     def __str__(self):
         res = ''
@@ -136,20 +136,45 @@ class Program:
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2:
-        print 'Usage: python '+sys.argv[0]+' <num of programs to generate>'
-        sys.exit(0)
-    for j in range(int(sys.argv[1])):
-        filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))+'.c'
-        with open(filename,'w') as f:
-            f.write(str(Program()))
-        os.system('clang -S -emit-llvm '+filename)
-        filename = filename[:-1]+'ll'
-        with open(filename,'r') as f:
+    limited = False
+    limit = 0
+    if len(sys.argv) > 1:
+        try:
+            limit = int(sys.argv[1])
+            limited = True
+        except:
+            pass
+    if limited:
+        print 'Generating '+str(limit)+' programs'
+    else:
+        print 'Generating programs until manually stopped (ctrl+C)'
+    j = 1
+    while (not limited) or (j <= limit):
+        filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+        while os.path.exists(filename+'.c'):
+            filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+        if limited:
+            print '\r\t' + filename + '\t\t' + str(j) + '/' + str(limit),
+        else:
+            print '\r\t' + filename + '\t\t' + str(j),
+        sys.stdout.flush()
+        done = False
+        while not done:
+            try :
+                p = Program()
+                done = True
+            except RuntimeError:
+                pass
+        with open(filename+'.c','w') as f:
+            f.write(str(p))
+        os.system('clang -S -emit-llvm '+filename+'.c > /dev/null 2>&1')
+        with open(filename+'.ll','r') as f:
             lines = [l.strip() for l in f.readlines()]
         start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
         end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
-        with open(filename, 'w') as f:
+        with open(filename+'.ll', 'w') as f:
             for i in range(start,end+1):
                 f.write(lines[i]+'\n')
+        j += 1
+    print '\nDone!'
 
