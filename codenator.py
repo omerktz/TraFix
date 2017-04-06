@@ -6,6 +6,8 @@ class Expr:
     @staticmethod
     def isValid():
         return True
+    def collectVars(self):
+        return set()
 
 class Number(Expr):
     _minNumber = 0
@@ -30,6 +32,8 @@ class Var(Expr):
         if not isinstance(other,Var):
             return False
         return other._name == self._name
+    def collectVars(self):
+        return set([self._name])
 
 class SourceVar(Var):
     def __init__(self):
@@ -57,7 +61,7 @@ class BinaryOp(Op):
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
         self._op2 = getExpr(inner_weights)
-        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)):
+        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or ((self._act == '-') and isinstance(self._op1,Number) and isinstance(self._op2,Number)):
             self._op2 = getExpr(inner_weights)
     def __str__(self):
         res = ''
@@ -75,6 +79,8 @@ class BinaryOp(Op):
         if not isinstance(other,BinaryOp):
             return False
         return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2)
+    def collectVars(self):
+        return self._op1.collectVars().union(self._op2.collectVars())
 
 class Assignment:
     def __init__(self):
@@ -82,6 +88,8 @@ class Assignment:
         self.target = TargetVar()
     def __str__(self):
         return str(self.target)+' = '+str(self.source)+';\n'
+    def collectVars(self):
+        return self.source.collectVars().union(self.target.collectVars())
 
 class Init:
     def __str__(self):
@@ -131,35 +139,45 @@ class Program:
         while (random.uniform(0,1) <= Program._threshold) or (len(self.statements) == 1):
             self.statements.append(Assignment())
         self.statements.append(Return.getReturn())
+    def getStatements(self):
+        return self.statements[1:-1]
     def __str__(self):
         res = self.statements[-1].getType()+' f() {\n\t'
         res += '\t'.join(map(lambda x:str(x),self.statements)).strip()
-        res += '\n}'
+        res += '\n}\n'
         return res
 
 if __name__ == "__main__":
-    outDir = 'out'
-    from cleanup import cleanup
-    cleanup(outDir)
-    os.mkdir(outDir)
     import sys
     limited = False
     limit = 0
+    outDir = 'out'
     if len(sys.argv) > 1:
         try:
             limit = int(sys.argv[1])
             limited = True
         except:
             pass
+        if len(sys.argv) > 2:
+            outDir = sys.argv[2]
+    #from cleanup import cleanup
+    #cleanup(outDir)
+    import shutil
+    shutil.rmtree(outDir)
+    os.mkdir(outDir)
+    os.mkdir(os.path.join(outDir,'block'))
+    os.mkdir(os.path.join(outDir,'line'))
     if limited:
         print 'Generating '+str(limit)+' programs'
     else:
         print 'Generating programs until manually stopped (ctrl+C)'
+    print 'Saving to folder: '+outDir
+    print ''
     j = 1
     while (not limited) or (j <= limit):
-        filename = os.path.join(outDir,''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
-        while os.path.exists(filename+'.c'):
-            filename = os.path.join(outDir,''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
+        filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+        while os.path.exists(os.path.join(outDir,filename+'.c')):
+            filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
         if limited:
             print '\r\t' + filename + '\t\t' + str(j) + '/' + str(limit),
         else:
@@ -172,16 +190,36 @@ if __name__ == "__main__":
                 done = True
             except RuntimeError:
                 pass
-        with open(filename+'.c','w') as f:
+        with open(os.path.join(outDir,'block',filename+'.c'),'w') as f:
             f.write(str(p))
-        os.system('clang -S -emit-llvm -o '+filename+'.ll '+filename+'.c > /dev/null 2>&1')
-        with open(filename+'.ll','r') as f:
+        os.system('clang -S -emit-llvm -o '+os.path.join(outDir,'block',filename+'.ll')+' '+os.path.join(outDir,'block',filename+'.c')+' > /dev/null 2>&1')
+        with open(os.path.join(outDir,'block',filename+'.ll'),'r') as f:
             lines = [l.strip() for l in f.readlines()]
         start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
         end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
-        with open(filename+'.ll', 'w') as f:
+        with open(os.path.join(outDir,'block',filename+'.ll'), 'w') as f:
             for i in range(start,end+1):
                 f.write(lines[i]+'\n')
+        os.mkdir(os.path.join(outDir, 'line',filename))
+        statements = p.getStatements()
+        for i in range(len(statements)):
+            s = statements[i]
+            v = s.collectVars()
+            with open(os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c'),'w') as f:
+                f.write('void f() {\n')
+                f.write('int '+','.join(v)+';\n')
+                f.write(str(s))
+                f.write('}\n')
+            os.system('clang -S -emit-llvm -o '+os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.ll')+' '+os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c')+' > /dev/null 2>&1')
+            with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.ll'), 'r') as f:
+                lines = [l.strip() for l in f.readlines()]
+            start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
+            end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
+            with open(os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c'),'w') as f:
+                f.write(str(s))
+            with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.ll'), 'w') as f:
+                for i in range(start + 1 + len(v), end - 1):
+                    f.write(lines[i] + '\n')
         j += 1
     print '\nDone!'
 
