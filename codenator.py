@@ -21,6 +21,9 @@ class Number(Expr):
 
 class Var(Expr):
     _vars=[]
+    @staticmethod
+    def clear():
+        Var._vars = []
     def __str__(self):
         return self._name
     def __eq__(self, other):
@@ -123,6 +126,7 @@ def getExpr(weights = [1, 1, 3]):
 class Program:
     _threshold = 0.75
     def __init__(self):
+        Var.clear()
         self.statements = [Init()]
         while (random.uniform(0,1) <= Program._threshold) or (len(self.statements) == 1):
             self.statements.append(Assignment())
