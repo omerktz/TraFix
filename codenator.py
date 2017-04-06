@@ -162,8 +162,9 @@ if __name__ == "__main__":
             outDir = sys.argv[2]
     #from cleanup import cleanup
     #cleanup(outDir)
-    import shutil
-    shutil.rmtree(outDir)
+    if os.path.exists(outDir):
+        import shutil
+        shutil.rmtree(outDir)
     os.mkdir(outDir)
     os.mkdir(os.path.join(outDir,'block'))
     os.mkdir(os.path.join(outDir,'line'))
