@@ -138,6 +138,10 @@ class Program:
         return res
 
 if __name__ == "__main__":
+    outDir = 'out'
+    from cleanup import cleanup
+    cleanup(outDir)
+    os.mkdir(outDir)
     import sys
     limited = False
     limit = 0
@@ -153,9 +157,9 @@ if __name__ == "__main__":
         print 'Generating programs until manually stopped (ctrl+C)'
     j = 1
     while (not limited) or (j <= limit):
-        filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+        filename = os.path.join(outDir,''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
         while os.path.exists(filename+'.c'):
-            filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+            filename = os.path.join(outDir,''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
         if limited:
             print '\r\t' + filename + '\t\t' + str(j) + '/' + str(limit),
         else:
@@ -170,7 +174,7 @@ if __name__ == "__main__":
                 pass
         with open(filename+'.c','w') as f:
             f.write(str(p))
-        os.system('clang -S -emit-llvm '+filename+'.c > /dev/null 2>&1')
+        os.system('clang -S -emit-llvm -o '+filename+'.ll '+filename+'.c > /dev/null 2>&1')
         with open(filename+'.ll','r') as f:
             lines = [l.strip() for l in f.readlines()]
         start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
