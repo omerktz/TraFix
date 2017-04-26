@@ -67,7 +67,7 @@ class BinaryOp(Op):
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
         self._op2 = getExpr(inner_weights)
-        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or ((self._act == '-') and isinstance(self._op1,Number) and isinstance(self._op2,Number)):
+        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
             self._op2 = getExpr(inner_weights)
     def __str__(self):
         res = ''
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                         for i in range(start + 1 + len(v), end - 1):
                             line = lines[i].strip().replace(',',' ,')
                             if line.endswith(', align 4'):
-                                line = line[:-len(', align 4')]
+                                line = line[:-len(', align 4')].strip()
                             f.write(line + ' ;\n')
                             vocabll.update(map(lambda x: x.strip(), line.split(' ')))
                             corpusll.write(line + ' ; ')
