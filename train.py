@@ -1,3 +1,8 @@
 import nematus.nmt as nmt
-nmt.train(saveto='model.ll-c.npz', datasets=['data/corpus.ll', 'data/corpus.c'], dictionaries=['data/vocab.ll.json', 'data/vocab.c.json'], valid_datasets=None, domain_interpolation_indomain_datasets=None)#, finish_after=10000000)
+import sys
+import os
+d = sys.argv[1]
+mdir = sys.argv[2]
+m = sys.argv[3]
+nmt.train(saveto=os.path.join(mdir,m), datasets=[os.path.join(d,'corpus.ll'), os.path.join(d,'corpus.c')], dictionaries=[os.path.join(d,'vocab.ll.json'), os.path.join(d,'vocab.c.json')], valid_datasets=None, domain_interpolation_indomain_datasets=None)#, finish_after=10000000)
           
