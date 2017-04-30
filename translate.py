@@ -6,7 +6,7 @@ def worker(p,m):
 	#print 'translating '+p
 	with open(p+'.ll','r') as fin:
 		with open(p+'.out','w') as fout:
-			translate([m],fin,fout,n_process=1)
+			translate([m],fin,fout,n_process=6)
 
 def main(dir):
 	for d in os.listdir(os.path.join(dir,'line')):
