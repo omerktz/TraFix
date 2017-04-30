@@ -187,6 +187,11 @@ if __name__ == "__main__":
     j = 1
     vocabc = set()
     vocabll = set()
+    first = True
+    minC = None
+    maxC = None
+    minLL = None
+    maxLL = None
     with open(os.path.join(outDir, 'corpus.c'), 'w') as corpusc:
         with open(os.path.join(outDir, 'corpus.ll'), 'w') as corpusll:
             while (not limited) or (j <= limit):
@@ -235,11 +240,14 @@ if __name__ == "__main__":
                         lines = [l.strip() for l in f.readlines()]
                     start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
                     end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
+                    lenC = 0
                     with open(os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c'),'w') as f:
                         line = str(s)
                         f.write(line)
                         corpusc.write(line)
                         vocabc.update(map(lambda x:x.strip(),line.split(' ')))
+                        lenC = line.strip().count(' ')+1
+                	lenLL = 0
                     with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.ll'), 'w') as f:
                         for i in range(start + 1 + len(v), end - 1):
                             line = lines[i].strip().replace(',',' ,')
@@ -248,7 +256,19 @@ if __name__ == "__main__":
                             f.write(line + ' ;\n')
                             vocabll.update(map(lambda x: x.strip(), line.split(' ')))
                             corpusll.write(line + ' ; ')
+                            lenLL += line.strip().count(' ')+2
                         corpusll.write('\n')
+                    if first:
+                    	minC = lenC
+                    	maxC = lenC
+                    	minLL = lenLL
+                    	maxLL = lenLL
+                    	first = False
+                    else:
+                    	minC = min(minC,lenC)
+                    	maxC = max(maxC,lenC)
+                    	minLL = min(minLL,lenLL)
+                    	maxLL = max(maxLL,lenLL)
                 j += 1
     with open(os.path.join(outDir, 'vocab.c.json'),'w') as f:
         f.write('{\n')
@@ -272,5 +292,6 @@ if __name__ == "__main__":
                 f.write(', ')
             f.write('\n')
         f.write('}')
-    print '\nDone!'
-
+    print '\nDone!\n'
+    print 'input lengths (ll): '+str(minLL)+'-'+str(maxLL)
+    print 'output lengths (ll): '+str(minC)+'-'+str(maxC)
