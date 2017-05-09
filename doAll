@@ -1,6 +1,0 @@
-#!/bin/bash
-./generate
-mkdir model
-python train.py train model model.ll-c.npz
-python translate.py test model/model.ll-c.npz
-python evaluate.py test

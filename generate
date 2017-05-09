@@ -1,3 +1,0 @@
-#!/bin/bash
-screen -d -m -S train notify python codenator.py 100000 train
-screen -d -m -S test notify python codenator.py 10000 test

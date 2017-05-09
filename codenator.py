@@ -28,6 +28,13 @@ class Var(Expr):
     @staticmethod
     def clear():
         Var._vars = []
+    @staticmethod
+    def populate(num):
+        def createVar(i):
+            v = Var()
+            v._name = 'X'+str(i)
+            return v
+        Var._vars = map(createVar,range(num))
     def __str__(self):
         return self._name
     def __eq__(self, other):
@@ -157,7 +164,8 @@ class Program:
         res += '\n}\n'
         return res
 
-if __name__ == "__main__":
+
+def generatePrograms():
     import sys
     limited = False
     limit = 0
@@ -170,19 +178,19 @@ if __name__ == "__main__":
             pass
         if len(sys.argv) > 2:
             outDir = sys.argv[2]
-    #from cleanup import cleanup
-    #cleanup(outDir)
+    # from cleanup import cleanup
+    # cleanup(outDir)
     if os.path.exists(outDir):
         import shutil
         shutil.rmtree(outDir)
     os.mkdir(outDir)
-    os.mkdir(os.path.join(outDir,'block'))
-    os.mkdir(os.path.join(outDir,'line'))
+    os.mkdir(os.path.join(outDir, 'block'))
+    os.mkdir(os.path.join(outDir, 'line'))
     if limited:
-        print 'Generating '+str(limit)+' programs'
+        print 'Generating ' + str(limit) + ' programs'
     else:
         print 'Generating programs until manually stopped (ctrl+C)'
-    print 'Saving to folder: '+outDir
+    print 'Saving to folder: ' + outDir
     print ''
     j = 1
     vocabc = set()
@@ -196,7 +204,7 @@ if __name__ == "__main__":
         with open(os.path.join(outDir, 'corpus.ll'), 'w') as corpusll:
             while (not limited) or (j <= limit):
                 filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
-                while os.path.exists(os.path.join(outDir,filename+'.c')):
+                while os.path.exists(os.path.join(outDir, filename + '.c')):
                     filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
                 if limited:
                     print '\r\t' + filename + '\t\t' + str(j) + '/' + str(limit),
@@ -205,93 +213,221 @@ if __name__ == "__main__":
                 sys.stdout.flush()
                 done = False
                 while not done:
-                    try :
+                    try:
                         p = Program()
                         done = True
                     except RuntimeError:
                         pass
-                with open(os.path.join(outDir,'block',filename+'.c'),'w') as f:
+                with open(os.path.join(outDir, 'block', filename + '.c'), 'w') as f:
                     f.write(str(p))
-                os.system('clang -S -emit-llvm -o '+os.path.join(outDir,'block',filename+'.ll')+' '+os.path.join(outDir,'block',filename+'.c')+' > /dev/null 2>&1')
-                with open(os.path.join(outDir,'block',filename+'.ll'),'r') as f:
+                os.system(
+                    'clang -S -emit-llvm -o ' + os.path.join(outDir, 'block', filename + '.ll') + ' ' + os.path.join(
+                        outDir, 'block', filename + '.c') + ' > /dev/null 2>&1')
+                with open(os.path.join(outDir, 'block', filename + '.ll'), 'r') as f:
                     lines = [l.strip() for l in f.readlines()]
-                start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
-                end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
-                with open(os.path.join(outDir,'block',filename+'.ll'), 'w') as f:
-                    for i in range(start,end+1):
-                        f.write(lines[i]+'\n')
-                os.mkdir(os.path.join(outDir, 'line',filename))
+                start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+                end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
+                with open(os.path.join(outDir, 'block', filename + '.ll'), 'w') as f:
+                    for i in range(start, end + 1):
+                        f.write(lines[i] + '\n')
+                os.mkdir(os.path.join(outDir, 'line', filename))
                 statements = p.getStatements()
                 for i in range(len(statements)):
                     s = statements[i]
                     s._target._name = 'Y'
                     k = 0
                     for v in s.collectVars():
-                        v._name = 'X'+str(k)
+                        v._name = 'X' + str(k)
                         k += 1
                     v = s.collectVarNames()
-                    with open(os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c'),'w') as f:
+                    with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.c'), 'w') as f:
                         f.write('void f() {\n')
-                        f.write('int '+','.join(v)+';\n')
+                        f.write('int ' + ','.join(v) + ';\n')
                         f.write(str(s))
                         f.write('}\n')
-                    os.system('clang -S -emit-llvm -o '+os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.ll')+' '+os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c')+' > /dev/null 2>&1')
+                    os.system('clang -S -emit-llvm -o ' + os.path.join(outDir, 'line', filename, filename + '_' + str(
+                        i) + '.ll') + ' ' + os.path.join(outDir, 'line', filename,
+                                                         filename + '_' + str(i) + '.c') + ' > /dev/null 2>&1')
                     with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.ll'), 'r') as f:
                         lines = [l.strip() for l in f.readlines()]
-                    start = min(filter(lambda i:lines[i].startswith('define') and 'f()' in lines[i],range(len(lines))))
-                    end = min(filter(lambda i:lines[i] == '}' and i> start,range(len(lines))))
+                    start = min(
+                        filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+                    end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
                     lenC = 0
-                    with open(os.path.join(outDir,'line',filename,filename+'_'+str(i)+'.c'),'w') as f:
+                    with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.c'), 'w') as f:
                         line = str(s)
                         f.write(line)
                         corpusc.write(line)
-                        vocabc.update(map(lambda x:x.strip(),line.split(' ')))
-                        lenC = line.strip().count(' ')+1
-                	lenLL = 0
+                        vocabc.update(map(lambda x: x.strip(), line.split(' ')))
+                        lenC = line.strip().count(' ') + 1
+                        lenLL = 0
                     with open(os.path.join(outDir, 'line', filename, filename + '_' + str(i) + '.ll'), 'w') as f:
                         for i in range(start + 1 + len(v), end - 1):
-                            line = lines[i].strip().replace(',',' ,')
+                            line = lines[i].strip().replace(',', ' ,')
                             if line.endswith(', align 4'):
                                 line = line[:-len(', align 4')].strip()
                             f.write(line + ' ;\n')
                             vocabll.update(map(lambda x: x.strip(), line.split(' ')))
                             corpusll.write(line + ' ; ')
-                            lenLL += line.strip().count(' ')+2
+                            lenLL += line.strip().count(' ') + 2
                         corpusll.write('\n')
                     if first:
-                    	minC = lenC
-                    	maxC = lenC
-                    	minLL = lenLL
-                    	maxLL = lenLL
-                    	first = False
+                        minC = lenC
+                        maxC = lenC
+                        minLL = lenLL
+                        maxLL = lenLL
+                        first = False
                     else:
-                    	minC = min(minC,lenC)
-                    	maxC = max(maxC,lenC)
-                    	minLL = min(minLL,lenLL)
-                    	maxLL = max(maxLL,lenLL)
+                        minC = min(minC, lenC)
+                        maxC = max(maxC, lenC)
+                        minLL = min(minLL, lenLL)
+                        maxLL = max(maxLL, lenLL)
                 j += 1
-    with open(os.path.join(outDir, 'vocab.c.json'),'w') as f:
+    with open(os.path.join(outDir, 'vocab.c.json'), 'w') as f:
         f.write('{\n')
         i = 0
         n = len(vocabc)
         for w in vocabc:
-            f.write('  "'+w+'": '+str(i))
+            f.write('  "' + w + '": ' + str(i))
             i += 1
             if i != n:
                 f.write(', ')
             f.write('\n')
         f.write('}')
-    with open(os.path.join(outDir, 'vocab.ll.json'),'w') as f:
+    with open(os.path.join(outDir, 'vocab.ll.json'), 'w') as f:
         f.write('{\n')
         i = 0
         n = len(vocabll)
         for w in vocabll:
-            f.write('  "'+w+'": '+str(i))
+            f.write('  "' + w + '": ' + str(i))
             i += 1
             if i != n:
                 f.write(', ')
             f.write('\n')
         f.write('}')
     print '\nDone!\n'
-    print 'input lengths (ll): '+str(minLL)+'-'+str(maxLL)
-    print 'output lengths (ll): '+str(minC)+'-'+str(maxC)
+    print 'input lengths (ll): ' + str(minLL) + '-' + str(maxLL)
+    print 'output lengths (ll): ' + str(minC) + '-' + str(maxC)
+
+def generateStatements():
+    import sys
+    limited = False
+    limit = 0
+    outFile = 'out'
+    varCount = 10
+    if len(sys.argv) > 1:
+        try:
+            limit = int(sys.argv[1])
+            limited = True
+        except:
+            pass
+        if len(sys.argv) > 2:
+            outFile = sys.argv[2]
+            if len(sys.argv) > 3:
+                varCount = int(sys.argv[3])
+    # from cleanup import cleanup
+    # cleanup(outDir)
+    if limited:
+        print 'Generating ' + str(limit) + ' statements'
+    else:
+        print 'Generating statements until manually stopped (ctrl+C)'
+    print 'Saving to files: '+outFile+'.corpus.c, '+outFile+'.corpus.ll'
+    print ''
+    j = 1
+    vocabc = set()
+    vocabll = set()
+    first = True
+    minC = None
+    maxC = None
+    minLL = None
+    maxLL = None
+    with open(outFile+'.corpus.c', 'w') as corpusc:
+        with open(outFile+'.corpus.ll', 'w') as corpusll:
+            Var.clear()
+            Var.populate(varCount)
+            statements = set()
+            while (not limited) or (j <= limit):
+                if limited:
+                    print '\r\t' + str(j) + '/' + str(limit),
+                else:
+                    print '\r\t' + str(j),
+                sys.stdout.flush()
+                done = False
+                while not done:
+                    try:
+                        s = getExpr()
+                        k = 0
+                        for v in s.collectVars():
+                            v._name = 'X' + str(k)
+                            k += 1
+                        if str(s) not in statements:
+                            done = True
+                    except RuntimeError:
+                        pass
+                statements.add(str(s))
+                v = s.collectVarNames()
+                with open('tmp.c', 'w') as f:
+                    f.write('void f() {\n')
+                    f.write('int Y' + ','.join(['']+list(v)) + ';\n')
+                    f.write('Y = '+str(s)+' ;\n')
+                    f.write('}\n')
+                os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
+                with open('tmp.ll', 'r') as f:
+                    lines = [l.strip() for l in f.readlines()]
+                start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+                end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
+                line = 'Y = '+str(s)+' ;\n'
+                corpusc.write(line)
+                vocabc.update(map(lambda x: x.strip(), line.split(' ')))
+                lenC = line.strip().count(' ') + 1
+                lenLL = 0
+                for i in range(start + 1 + len(v), end - 1):
+                    line = lines[i].strip().replace(',', ' ,')
+                    if line.endswith(', align 4'):
+                        line = line[:-len(', align 4')].strip()
+                    vocabll.update(map(lambda x: x.strip(), line.split(' ')))
+                    corpusll.write(line + ' ; ')
+                    lenLL += line.strip().count(' ') + 2
+                corpusll.write('\n')
+                if first:
+                    minC = lenC
+                    maxC = lenC
+                    minLL = lenLL
+                    maxLL = lenLL
+                    first = False
+                else:
+                    minC = min(minC, lenC)
+                    maxC = max(maxC, lenC)
+                    minLL = min(minLL, lenLL)
+                    maxLL = max(maxLL, lenLL)
+                os.remove('tmp.c')
+                os.remove('tmp.ll')
+                j += 1
+    with open(outFile+'.vocab.c.json', 'w') as f:
+        f.write('{\n')
+        i = 0
+        n = len(vocabc)
+        for w in vocabc:
+            f.write('  "' + w + '": ' + str(i))
+            i += 1
+            if i != n:
+                f.write(', ')
+            f.write('\n')
+        f.write('}')
+    with open(outFile+'.vocab.ll.json', 'w') as f:
+        f.write('{\n')
+        i = 0
+        n = len(vocabll)
+        for w in vocabll:
+            f.write('  "' + w + '": ' + str(i))
+            i += 1
+            if i != n:
+                f.write(', ')
+            f.write('\n')
+        f.write('}')
+    print '\nDone!\n'
+    print 'input lengths (ll): ' + str(minLL) + '-' + str(maxLL)
+    print 'output lengths (ll): ' + str(minC) + '-' + str(maxC)
+
+if __name__ == "__main__":
+    generateStatements()

@@ -1,0 +1,4 @@
+#!/bin/bash
+python train.py train . model.ll-c.npz
+python translate.py test . model.ll-c.npz
+python evaluate.py test
