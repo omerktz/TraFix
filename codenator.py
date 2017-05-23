@@ -2,6 +2,9 @@ import random
 import string
 import os
 
+__REMOVE_ALIGN4 = False
+__SIMPLIFY_VARS = False
+
 class Expr:
     @staticmethod
     def isValid():
@@ -356,10 +359,11 @@ def generateStatements():
                 while not done:
                     try:
                         s = getExpr()
-                        k = 0
-                        for v in s.collectVars():
-                            v._name = 'X' + str(k)
-                            k += 1
+                        if __SIMPLIFY_VARS:
+                            k = 0
+                            for v in s.collectVars():
+                                v._name = 'X' + str(k)
+                                k += 1
                         if str(s) not in statements:
                             done = True
                     except RuntimeError:
@@ -383,8 +387,9 @@ def generateStatements():
                 lenLL = 0
                 for i in range(start + 1 + len(v), end - 1):
                     line = lines[i].strip().replace(',', ' ,')
-                    if line.endswith(', align 4'):
-                        line = line[:-len(', align 4')].strip()
+                    if __REMOVE_ALIGN4:
+                        if line.endswith(', align 4'):
+                            line = line[:-len(', align 4')].strip()
                     vocabll.update(map(lambda x: x.strip(), line.split(' ')))
                     corpusll.write(line + ' ; ')
                     lenLL += line.strip().count(' ') + 2
