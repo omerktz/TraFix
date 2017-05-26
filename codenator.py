@@ -73,7 +73,7 @@ class Op(Expr):
 class BinaryOp(Op):
     _Ops = ['+','-','*','/','%']
     def __init__(self):
-        inner_weights = [2,2,1]
+        inner_weights = [2,2,1,1]
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
         self._op2 = getExpr(inner_weights)
@@ -99,6 +99,29 @@ class BinaryOp(Op):
         return self._op1.collectVarNames().union(self._op2.collectVarNames())
     def collectVars(self):
         return self._op1.collectVars().union(self._op2.collectVars())
+
+class UnaryOp(Op):
+    _Ops = ['++','--']
+    def __init__(self):
+        self._op = SourceVar()
+        self._act = UnaryOp._Ops[random.randint(0,1)]
+        self._position = (random.randint(0,1) == 1)
+    def __str__(self):
+        res = ''
+        if self._position:
+            res += self._act+' '
+        res += str(self._op)
+        if not self._position:
+            res += ' '+self._act
+        return '( '+res+' )'
+    def __eq__(self, other):
+        if not isinstance(other,UnaryOp):
+            return False
+        return (other._act == self._act) and (other._op == self._op)
+    def collectVarNames(self):
+        return self._op.collectVarNames()
+    def collectVars(self):
+        return self._op.collectVars()
 
 class Assignment:
     def __init__(self):
@@ -130,7 +153,7 @@ class Return:
 
 class ReturnInt(Return):
     def __str__(self):
-        return 'return ' + str(getExpr([2, 2, 1])) + ' ;\n'
+        return 'return ' + str(getExpr([2, 2, 1,1])) + ' ;\n'
     def getType(self):
         return 'int'
 
@@ -140,8 +163,8 @@ class ReturnVoid(Return):
     def getType(self):
         return 'void'
 
-_exprs = [Number, SourceVar, BinaryOp]
-def getExpr(weights = [1, 1, 3]):
+_exprs = [Number, SourceVar, BinaryOp, UnaryOp]
+def getExpr(weights = [1, 1, 3, 1]):
     assert len(weights) == len(_exprs)
     exprs = []
     for i in range(len(weights)):
@@ -372,7 +395,7 @@ def generateStatements():
                 v = s.collectVarNames()
                 with open('tmp.c', 'w') as f:
                     f.write('void f() {\n')
-                    f.write('int Y' + ','.join(['']+list(v)) + ';\n')
+                    f.write('int Y' + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
                     f.write('Y = '+str(s)+' ;\n')
                     f.write('}\n')
                 os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
@@ -385,7 +408,7 @@ def generateStatements():
                 vocabc.update(map(lambda x: x.strip(), line.split(' ')))
                 lenC = line.strip().count(' ') + 1
                 lenLL = 0
-                for i in range(start + 1 + len(v), end - 1):
+                for i in range(start + 2 + varCount, end - 1):
                     line = lines[i].strip().replace(',', ' ,')
                     if __REMOVE_ALIGN4:
                         if line.endswith(', align 4'):
