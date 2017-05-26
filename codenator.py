@@ -372,6 +372,7 @@ def generateStatements():
             Var.clear()
             Var.populate(varCount)
             statements = set()
+            num_statements_weights = [1,1,1,1,1,2,2,2,3,3] # 0.5 chance for 1 statement, 0.3 chance for 2 statements, 0.2 chance for 3 statements
             while (not limited) or (j <= limit):
                 if limited:
                     print '\r\t' + str(j) + '/' + str(limit),
@@ -379,31 +380,36 @@ def generateStatements():
                     print '\r\t' + str(j),
                 sys.stdout.flush()
                 done = False
+                num_statements = num_statements_weights[random.randrange(0,len(num_statements_weights))]
                 while not done:
                     try:
-                        s = getExpr()
+                        s = map(lambda i:getExpr(),range(num_statements))
                         if __SIMPLIFY_VARS:
-                            k = 0
-                            for v in s.collectVars():
-                                v._name = 'X' + str(k)
-                                k += 1
-                        if str(s) not in statements:
+                            for x in s:
+                                k = 0
+                                for v in x.collectVars():
+                                    v._name = 'X' + str(k)
+                                    k += 1
+                        if ' '.join(map(lambda x:str(x),s)) not in statements:
                             done = True
                     except RuntimeError:
                         pass
-                statements.add(str(s))
-                v = s.collectVarNames()
+                statements.add(' '.join(map(lambda x:str(x),s)))
                 with open('tmp.c', 'w') as f:
                     f.write('void f() {\n')
                     f.write('int Y' + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
-                    f.write('Y = '+str(s)+' ;\n')
+                    for x in s:
+                        f.write('Y = '+str(x)+' ;\n')
                     f.write('}\n')
                 os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
                 with open('tmp.ll', 'r') as f:
                     lines = [l.strip() for l in f.readlines()]
                 start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
                 end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
-                line = 'Y = '+str(s)+' ;\n'
+                line = ''
+                for x in s:
+                    line += 'Y = '+str(x)+' ; '
+                line += '\n'
                 corpusc.write(line)
                 vocabc.update(map(lambda x: x.strip(), line.split(' ')))
                 lenC = line.strip().count(' ') + 1
@@ -413,7 +419,7 @@ def generateStatements():
                     if __REMOVE_ALIGN4:
                         if line.endswith(', align 4'):
                             line = line[:-len(', align 4')].strip()
-                    vocabll.update(map(lambda x: x.strip(), line.split(' ')))
+                    vocabll.update(map(lambda y: y.strip(), line.split(' ')))
                     corpusll.write(line + ' ; ')
                     lenLL += line.strip().count(' ') + 2
                 corpusll.write('\n')
