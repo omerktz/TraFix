@@ -1,11 +1,9 @@
 import sys
 import os
-from nematus.translate import main as translate
 
 def main(f,m):
-	with open(f+'.corpus.ll','r') as fin:
-		with open(f+'.corpus.out','w') as fout:
-			translate([m],fin,fout,n_process=6)#suppress_unk=True)
+	decode_command = 'python nematus/nematus/translate.py -m {} -i {} -o {} -a {} -k 12 -p 5 --suppress-unk'.format(m, f+'.corpus.ll', f+'.corpus.out', f+'.alignment')
+	os.system(decode_command)
 
 if __name__ == "__main__":
 	main(sys.argv[1],os.path.join(sys.argv[2],sys.argv[3]))

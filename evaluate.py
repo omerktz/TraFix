@@ -74,7 +74,7 @@ def main(f):
 					with open(f+'.corpus.c','r') as fc:
 						with open(f+'.corpus.ll', 'r') as fll:
 							with open(f+'.corpus.out', 'r') as fout:
-								(nidentical,nsuccess,nparse,nfail) = evaluate(fc,fll,fout,fidentical,fsuccess,ffail,fpass)
+								(nidentical,nsuccess,nparse,nfail) = evaluate(fc,fll,fout,fidentical,fsuccess,ffail,fparse)
 	print str(nidentical)+' statements translated identically'
 	print str(nsuccess)+' statements translated equivalently'
 	print str(nparse)+' translated statements failed to parse'
