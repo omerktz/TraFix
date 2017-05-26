@@ -1,0 +1,15 @@
+[global]
+mode=FAST_RUN
+floatX=float32
+device=cuda
+on_unused_inpus=warn
+
+[lib]
+cnmem=0.1
+
+[cuda]
+root=/usr/local/cuda
+
+[dnn]
+include_path=/usr/local/cuda/include
+library_path=/usr/local/cuda/lib64
