@@ -93,6 +93,10 @@ def evaluate(fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	cs = [l.strip() for l in fc.readlines()]
 	lls = [l.strip() for l in fll.readlines()]
 	outs = [l.strip() for l in fout.readlines()]
+	max_len = max(len(cs),len(lls),len(outs))
+	cs = cs + ['']*(max_len-len(cs))
+	lls = lls + ['']*(max_len-len(lls))
+	outs = outs + ['']*(max_len-len(outs))
 	pool = multiprocessing.Pool(processes=5)
 	results = pool.map(evaluateProg,map(lambda i:(cs[i],lls[i],outs[i]),range(len(cs))))
 	for x in results:
