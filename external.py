@@ -25,7 +25,7 @@ with open(v+'.corpus.c','r') as fc:
 	with open(v+'.corpus.ll', 'r') as fll:
 		with open(v+'.corpus.out', 'r') as fout:
 			(ni,ns,np,nf,nt) = evaluate(fc,fll,fout)
-			print 'external progress: '+str((ni,ns,np,nf))
+			print 'external progress: '+str((ni,ns,np,nf,nt))
 
 vals = None
 if os.path.exists(h):
