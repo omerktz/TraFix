@@ -103,7 +103,7 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	lls = lls + ['']*(max_len-len(lls))
 	outs = outs + ['']*(k*max_len-len(outs))
 	pool = multiprocessing.Pool(processes=k)
-	results = map(lambda i: evaluateProg(str(i+1).zfill(4)+'/'+str(max_len),cs[i],lls[i],outs[k*i:k*(i+1)],pool),range(len(cs)))
+	results = map(lambda i: evaluateProg(str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],outs[k*i:k*(i+1)],pool),range(len(cs)))
 	print ''
 	for x in results:
 		if x[3] == 0:
