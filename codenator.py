@@ -1,9 +1,11 @@
 import random
 import string
 import os
+import ConfigParser
+import ast
 
-__REMOVE_ALIGN4 = False
-__SIMPLIFY_VARS = False
+config = ConfigParser.ConfigParser()
+config.read('codenator.config')
 
 class Expr:
     @staticmethod
@@ -15,8 +17,8 @@ class Expr:
         return set()
 
 class Number(Expr):
-    _minNumber = 0
-    _maxNumber = 100
+    _minNumber = config.getint('Number','MinValue')
+    _maxNumber = config.getint('Number','MaxValue')
     def __init__(self):
         self._num = random.randint(Number._minNumber,Number._maxNumber)
     def __str__(self):
@@ -73,7 +75,7 @@ class Op(Expr):
 class BinaryOp(Op):
     _Ops = ['+','-','*','/','%']
     def __init__(self):
-        inner_weights = [2,2,1,1]
+        inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
         self._op2 = getExpr(inner_weights)
@@ -142,7 +144,7 @@ class Init:
         return 'int '+vars+' ;\n'
 
 class Return:
-    _threshold = 0.1
+    _threshold = config.getfloat('Return','Threshold')
     @staticmethod
     def getReturn():
         if random.uniform(0,1) <= Return._threshold:
@@ -164,7 +166,9 @@ class ReturnVoid(Return):
         return 'void'
 
 _exprs = [Number, SourceVar, BinaryOp, UnaryOp]
-def getExpr(weights = [1, 1, 3, 1]):
+_weights = map(lambda e: config.getint(e.__name__, 'Weight'), _exprs)
+_inner_weights = map(lambda e: config.getint(e.__name__, 'InnerWeight'), _exprs)
+def getExpr(weights = _weights):
     assert len(weights) == len(_exprs)
     exprs = []
     for i in range(len(weights)):
@@ -175,7 +179,7 @@ def getExpr(weights = [1, 1, 3, 1]):
     return expr()
 
 class Program:
-    _threshold = 0.75
+    _threshold = config.getfloat('Program','StatementThreshold')
     def __init__(self):
         Var.clear()
         self.statements = [Init()]
@@ -190,6 +194,81 @@ class Program:
         res += '\n}\n'
         return res
 
+class Stats:
+    class OperatorCount:
+        def __init__(self, name, op):
+            self._name = name
+            self._op = op
+            self._total = 0
+            self._statements = 0
+            self._inputs = 0
+        def updateCounts(self, s):
+            self._total += sum(map(lambda o: s.count(' '+o+' '), self._op))
+            self._statements += sum(map(lambda x: 1 if len(filter(lambda o: ' '+o+' ' in x, self._op))>0 else 0, s.split(';')))
+            self._inputs += 1 if len(filter(lambda o: ' '+o+' ' in s, self._op))>0 else 0
+        def toString(self, count_inputs, count_statemtns, count_total):
+            return self._name + '\t' + str(self._inputs) + '\t' + "{0:.2f}".format(100.0*self._inputs/float(count_inputs)) + '\t' + str(self._statements) + '\t' + "{0:.2f}".format(100.0*self._statements/float(count_statemtns)) + '\t' + str(self._total) + '\t' + "{0:.2f}".format(100.0*self._total/float(count_total))
+    class Counter:
+        def __init__(self, f):
+            self._f = f
+            self._min = None
+            self._max = None
+        def updateCounts(self, s):
+            val = self._f(s)
+            if self._min:
+                self._min = min(self._min,val)
+            else:
+                self._min = val
+            if self._max:
+                self._max = max(self._max,val)
+            else:
+                self._max = val
+        def __str__(self):
+            return str(self._min)+'\t'+str(self._max)
+    class LengthCounter(Counter):
+        def __init__(self):
+            Stats.Counter.__init__(self, lambda x: len(x.strip()))
+    class WordCounter(Counter):
+        def __init__(self):
+            Stats.Counter.__init__(self, lambda x: x.strip().count(' ')+1)
+    def __init__(self):
+        self._num_inputs = 0
+        self._num_statements = 0
+        self._statement_count = dict(map(lambda x: (x+1,0), range(config.getint('Statement', 'MaxStatements'))))
+        self._ops = [Stats.OperatorCount('+', ['+']), Stats.OperatorCount('-', ['-']), Stats.OperatorCount('*', ['*']), Stats.OperatorCount('/', ['/']), Stats.OperatorCount('%', ['%']), Stats.OperatorCount('++', ['++']), Stats.OperatorCount('--', ['--']), Stats.OperatorCount('Binary', ['+','-','*','/','%']), Stats.OperatorCount('Unary', ['++','--']), Stats.OperatorCount('All', ['+','-','*','/','%','++','--'])]
+        self._c_statement_length = Stats.LengthCounter()
+        self._ll_statement_length = Stats.LengthCounter()
+        self._c_word_count = Stats.WordCounter()
+        self._ll_word_count = Stats.WordCounter()
+    def updateStats(self, c, ll):
+        self._num_inputs += 1
+        self._num_statements += c.count(';')
+        self._statement_count[c.count(';')] += 1
+        map(lambda o: o.updateCounts(c), self._ops)
+        self._c_statement_length.updateCounts(c)
+        self._ll_statement_length.updateCounts(ll)
+        self._c_word_count.updateCounts(c)
+        self._ll_word_count.updateCounts(ll)
+    def __str__(self):
+        res = ''
+        res += '[General]\n'
+        res += 'Inputs\t'+str(self._num_inputs)+'\n'
+        res += 'Statements\t'+str(self._num_statements)+'\n'
+        res += '\n[Lengths]\n'
+        res += '\tMin\tMax\n'
+        res += 'Input\t'+str(self._c_statement_length)+'\n'
+        res += 'Output\t'+str(self._ll_statement_length)+'\n'
+        res += '\n[Word Counts]\n'
+        res += '\tMin\tMax\n'
+        res += 'Input\t'+str(self._c_word_count)+'\n'
+        res += 'Output\t'+str(self._ll_word_count)+'\n'
+        res += '\n[Operators]\n'
+        res += '\tInputs\t%\tStatements\t%\tTotal\t%\n'
+        res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total), self._ops[:-1]))
+        res += '\n[Statements]\n'
+        res += 'Num\tCount\t%\n'
+        res += '\n'.join(map(lambda x: str(x)+'\t'+str(self._statement_count[x])+'\t'+"{0:.2f}".format(100.0*self._statement_count[x]/float(self._num_inputs)),range(1,config.getint('Statement', 'MaxStatements')+1)))
+        return res
 
 def generatePrograms():
     import sys
@@ -362,17 +441,18 @@ def generateStatements():
     j = 1
     vocabc = set()
     vocabll = set()
-    first = True
-    minC = None
-    maxC = None
-    minLL = None
-    maxLL = None
+    max_statements = config.getint('Statement', 'MaxStatements')
+    statements_weights = ast.literal_eval(config.get('Statement', 'Weights'))
+    assert len(statements_weights) >= max_statements
+    num_statements_weights = []
+    for i in range(max_statements):
+        num_statements_weights += [i+1] * statements_weights[i]
+    stats = Stats()
     with open(outFile+'.corpus.c', 'w') as corpusc:
         with open(outFile+'.corpus.ll', 'w') as corpusll:
             Var.clear()
             Var.populate(varCount)
             statements = set()
-            num_statements_weights = [1,1,1,1,1,2,2,2,3,3] # 0.5 chance for 1 statement, 0.3 chance for 2 statements, 0.2 chance for 3 statements
             while (not limited) or (j <= limit):
                 if limited:
                     print '\r\t' + str(j) + '/' + str(limit),
@@ -384,7 +464,7 @@ def generateStatements():
                 while not done:
                     try:
                         s = map(lambda i:getExpr(),range(num_statements))
-                        if __SIMPLIFY_VARS:
+                        if config.getboolean('General', 'SimplifyVars'):
                             for x in s:
                                 k = 0
                                 for v in x.collectVars():
@@ -411,29 +491,18 @@ def generateStatements():
                     line += 'Y = '+str(x)+' ; '
                 line += '\n'
                 corpusc.write(line)
+                cline = line
                 vocabc.update(map(lambda x: x.strip(), line.split(' ')))
-                lenC = line.strip().count(' ') + 1
-                lenLL = 0
+                llline = ''
                 for i in range(start + 2 + varCount, end - 1):
                     line = lines[i].strip().replace(',', ' ,')
-                    if __REMOVE_ALIGN4:
+                    if config.getboolean('General', 'SimplifyVars'):
                         if line.endswith(', align 4'):
                             line = line[:-len(', align 4')].strip()
                     vocabll.update(map(lambda y: y.strip(), line.split(' ')))
-                    corpusll.write(line + ' ; ')
-                    lenLL += line.strip().count(' ') + 2
-                corpusll.write('\n')
-                if first:
-                    minC = lenC
-                    maxC = lenC
-                    minLL = lenLL
-                    maxLL = lenLL
-                    first = False
-                else:
-                    minC = min(minC, lenC)
-                    maxC = max(maxC, lenC)
-                    minLL = min(minLL, lenLL)
-                    maxLL = max(maxLL, lenLL)
+                    llline += line + ' ; '
+                corpusll.write(llline+'\n')
+                stats.updateStats(cline, llline)
                 os.remove('tmp.c')
                 os.remove('tmp.ll')
                 j += 1
@@ -459,9 +528,9 @@ def generateStatements():
                 f.write(', ')
             f.write('\n')
         f.write('}')
+    with open(outFile+'.stats.tsv', 'w') as f:
+        f.write(str(stats))
     print '\nDone!\n'
-    print 'input lengths (ll): ' + str(minLL) + '-' + str(maxLL)
-    print 'output lengths (ll): ' + str(minC) + '-' + str(maxC)
 
 if __name__ == "__main__":
     generateStatements()

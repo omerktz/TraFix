@@ -126,11 +126,11 @@ def evaluate(fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	return (nidentical,nsuccess,nparse,nfail,ntimeout)
 
 def main(f):
-	with open(f+'.identical.out','w') as fidentical:
-		with open(f+'.equivalent.out','w') as fsuccess:
-			with open(f+'.fail.out', 'w') as ffail:
-				with open(f+'.parse.out', 'w') as fparse:
-					with open(f+'.timeout.out', 'w') as ftimeout:
+	with open(f+'.identical.tsv','w') as fidentical:
+		with open(f+'.equivalent.tsv','w') as fsuccess:
+			with open(f+'.fail.tsv', 'w') as ffail:
+				with open(f+'.parse.tsv', 'w') as fparse:
+					with open(f+'.timeout.tsv', 'w') as ftimeout:
 						fidentical.write('c\tll\tout\n')
 						fsuccess.write('c\tll\tout\n')
 						ffail.write('c\tll\tout\n')
