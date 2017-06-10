@@ -227,7 +227,7 @@ class Stats:
             return str(self._min)+'\t'+str(self._max)
     class LengthCounter(Counter):
         def __init__(self):
-            Stats.Counter.__init__(self, lambda x: len(x.strip()))
+            Stats.Counter.__init__(self, lambda x: len(filter(lambda x: x!=' ', list(x.strip()))))
     class WordCounter(Counter):
         def __init__(self):
             Stats.Counter.__init__(self, lambda x: x.strip().count(' ')+1)
