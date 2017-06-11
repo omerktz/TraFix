@@ -65,29 +65,29 @@ def compareProgs((c,out)):
 	os.remove('cbmc'+str(os.getpid())+'.c')
 	return ret
 
-def evaluateProg(p,c,ll,out,pool):
+def evaluateProg(i,p,c,ll,out,pool):
 	print '\r'+p,
 	sys.stdout.flush()
 	if len(filter(lambda x:len(x)>0,out)) == 0:
-		return (c,ll,out,3) #fail
+		return (i,c,ll,out,3) #fail
 	else:
 		if c in out:
-			return (c,ll,out,0) #identical
+			return (i,c,ll,out,0) #identical
 		else:
 			res = pool.map(compareProgs,map(lambda x:(c,x),out))
 			for f in os.listdir('.'):
 				if f.startswith('cbmc') and f.endswith('.c'):
 					os.remove(f)
 			if 0 in res:
-				return (c,ll,out,1) #equivalent
+				return (i,c,ll,out,1) #equivalent
 			else:
 				if 2 in res:
-					return (c,ll,out,3) #fail
+					return (i,c,ll,out,3) #fail
 				else:
 					if 1 in res:
-						return (c,ll,out,2) #parse
+						return (i,c,ll,out,2) #parse
 					else:
-						return (c,ll,out,4) #timeout
+						return (i,c,ll,out,4) #timeout
 
 def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	nidentical = 0
@@ -103,31 +103,31 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	lls = lls + ['']*(max_len-len(lls))
 	outs = outs + ['']*(k*max_len-len(outs))
 	pool = multiprocessing.Pool(processes=k)
-	results = map(lambda i: evaluateProg(str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],outs[k*i:k*(i+1)],pool),range(len(cs)))
+	results = map(lambda i: evaluateProg(i,str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],outs[k*i:k*(i+1)],pool),range(len(cs)))
 	print ''
 	for x in results:
-		if x[3] == 0:
+		if x[4] == 0:
 			if fi:
-				fi.write(x[0]+'\t'+x[1]+'\t'+'\t'.join(x[2])+'\n')
+				fi.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
 			nidentical += 1
 		else:
-			if x[3] == 1:
+			if x[4] == 1:
 				if fs:
-					fs.write(x[0]+'\t'+x[1]+'\t'+'\t'.join(x[2])+'\n')
+					fs.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
 				nsuccess += 1
 			else:
-				if x[3] == 2:
+				if x[4] == 2:
 					if fp:
-						fp.write(x[0]+'\t'+x[1]+'\t'+'\t'.join(x[2])+'\n')
+						fp.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
 					nparse += 1
 				else:
-					if x[3] == 3:
+					if x[4] == 3:
 						if ff:
-							ff.write(x[0]+'\t'+x[1]+'\t'+'\t'.join(x[2])+'\n')
+							ff.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
 						nfail += 1
 					else:
 						if ft:
-							ft.write(x[0]+'\t'+x[1]+'\t'+'\t'.join(x[2])+'\n')
+							ft.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
 						ntimeout += 1
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):
@@ -140,11 +140,11 @@ def main(f,k):
 			with open(f+'.fail.tsv'+str(k), 'w') as ffail:
 				with open(f+'.parse.tsv'+str(k), 'w') as fparse:
 					with open(f+'.timeout.tsv'+str(k), 'w') as ftimeout:
-						fidentical.write('c\tll'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fsuccess.write('c\tll'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ffail.write('c\tll'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fparse.write('c\tll'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ftimeout.write('c\tll'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						fidentical.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						fsuccess.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						ffail.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						fparse.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						ftimeout.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
 						with open(f+'.corpus.c','r') as fc:
 							with open(f+'.corpus.ll', 'r') as fll:
 								with open(f+'.corpus.out'+str(k), 'r') as fout:
