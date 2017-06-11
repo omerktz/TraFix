@@ -135,11 +135,11 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	return (nidentical,nsuccess,nparse,nfail,ntimeout)
 
 def main(f,k):
-	with open(f+'.identical.tsv'+str(k),'w') as fidentical:
-		with open(f+'.equivalent.tsv'+str(k),'w') as fsuccess:
-			with open(f+'.fail.tsv'+str(k), 'w') as ffail:
-				with open(f+'.parse.tsv'+str(k), 'w') as fparse:
-					with open(f+'.timeout.tsv'+str(k), 'w') as ftimeout:
+	with open(f+'.identical.'+str(k)+'.tsv','w') as fidentical:
+		with open(f+'.equivalent.'+str(k)+'.tsv','w') as fsuccess:
+			with open(f+'.fail.'+str(k)+'.tsv', 'w') as ffail:
+				with open(f+'.parse.'+str(k)+'.tsv', 'w') as fparse:
+					with open(f+'.timeout.'+str(k)+'.tsv', 'w') as ftimeout:
 						fidentical.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
 						fsuccess.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
 						ffail.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
