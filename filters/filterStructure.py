@@ -20,8 +20,8 @@ def filter(c,ll,out):
     	return False
     if len(out) == 0:
     	return False
-    c = normalize(c)
-    out = map(normalize,out)
-    if c in out:
+    if normalize(c) in map(normalize,out):
     	return True
+    with open('structurallyDifferent.tsv','a') as f:
+    	f.write(c+'\t'+ll+'\t'+'\t'.join(out)+'\n')
     return False
