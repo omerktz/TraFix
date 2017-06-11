@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="data.js"></script>
+<script>
+$(document).ready(function() {
+	document.title = title;
+	trg_i = 0;
+	trg.forEach(function(x) {
+		$("#trg").append("<td class=\"trg\" id=\"trg"+trg_i+"\">"+trg[trg_i]+"</td>");
+		trg_i++;
+	});
+	src_i = 0;
+	src.forEach(function(x) {
+		$("#src").append("<td class=\"src\" id=\"src"+src_i+"\">"+src[src_i]+"</td>");
+		$("#aux").append("<td class=\"aux\" id=\"aux"+src_i+"\">&nbsp;</td>");
+		src_i++;
+	});
+    $(".trg").hover(function(self){
+    	i = $(this).attr('id').substring(3)
+    	arr = matrix[i].slice();
+   		l = 1;
+    	if ($('input[name=flag]:checked').val() == "count") {
+    		count = parseInt($('input[name=count]').val());
+	    	for (k = 0; k < count; k++) {
+				j = arr.indexOf(Math.max.apply(null,arr));
+				arr[j] = -1;
+		        $("#src"+j).css('background-color', 'red');
+		        $("#aux"+j).text(l++);	        
+		        $("#aux"+j).css('background-color', 'red');
+		    }
+		} else {
+	    	tmp_sum = 0;
+    		sum = parseFloat($('input[name=sum]').val());
+	    	while (tmp_sum < sum) {
+				j = arr.indexOf(Math.max.apply(null,arr));
+				tmp_sum += arr[j];
+				arr[j] = -1;
+		        $("#src"+j).css('background-color', 'red');
+		        $("#aux"+j).text(l++);	        
+		        $("#aux"+j).css('background-color', 'red');
+		    }
+		}
+    },
+    function(){
+    	i = $(this).attr('id').substring(3)
+    	arr = matrix[i].slice();
+    	if ($('input[name=flag]:checked').val() == "count") {
+    		count = parseInt($('input[name=count]').val());
+	    	for (k = 0; k < count; k++) {
+				j = arr.indexOf(Math.max.apply(null,arr));
+				arr[j] = -1;
+		        $("#src"+j).css('background-color', '');
+		        $("#aux"+j).html("&nbsp;");
+		        $("#aux"+j).css('background-color', '');
+		    }
+		} else {
+	    	tmp_sum = 0;
+    		sum = parseFloat($('input[name=sum]').val());
+	    	while (tmp_sum < sum) {
+				j = arr.indexOf(Math.max.apply(null,arr));
+				tmp_sum += arr[j];
+				arr[j] = -1;
+		        $("#src"+j).css('background-color', '');
+		        $("#aux"+j).html("&nbsp;");
+		        $("#aux"+j).css('background-color', '');
+		    }
+		}
+    }); 
+	row = '<tr><td style="border-right: 1px solid black; border-bottom: 1px solid black;"></td>';
+	src.forEach(function(y) {row += '<td style="border-bottom: 1px solid black;">'+y+'</td>';});
+	row += '</tr>'
+    $("#raw").append(row);
+    i = 0;
+    trg.forEach(function(x) {
+    	row = '<tr><td style="border-right: 1px solid black;">'+x+'</td>';
+    	m = Math.max.apply(null,matrix[i])
+		matrix[i].forEach(function(y) {
+			if (y == m) {
+				row += '<td style="background-color: yellow;">'+y+'</td>';
+			} else {
+				row += '<td>'+y+'</td>';
+			}
+		});
+		row += '</tr>'
+    	$("#raw").append(row);
+    	i++;
+    });
+});
+</script>
+</head>
+<body>
+<div>
+	<table style="border-spacing: 2px 0;">
+		<tr id="src">
+		<td><u>Input:<u></td><td>&nbsp;</td>
+		</tr>
+		<tr id="aux">
+			<td>&nbsp;</td><td>&nbsp;</td>
+		</tr>
+		<tr><td>&nbsp;</td></tr>
+	</table>
+</div>
+<div>
+	<table style="border-spacing: 2px 0;">
+		<tr id="trg">
+		<td><u>Output:<u></td><td>&nbsp;</td>
+		</tr>
+	</table>
+</div>
+<br/><br/>
+<div>
+	<input type="radio" name="flag" value="count">count <input type="text" name="count" value="5">
+	<input type="radio" name="flag" value="sum" checked>sum <input type="text" name="sum" value="0.9">
+</div>
+<br/><br/>
+<div>
+	<table id="raw">
+	</table>
+</div>
+</body>
+</html>
