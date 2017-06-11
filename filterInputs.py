@@ -16,6 +16,9 @@ if len(args.filters) > 1:
 if not args.dataset and not args.file:
     parser.error('Must choose either a dataset (-d) or a file (-f) as input')
 
+import sys
+sys.path.insert(0,'filters')
+
 def load_filter(f):
     if f.endswith('.py'):
         f = f[:-3]
