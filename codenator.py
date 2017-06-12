@@ -490,7 +490,10 @@ def generateStatements():
                 for x in s:
                     line += 'Y = '+str(x)+' ; '
                 line += '\n'
-                corpusc.write(line)
+                if config.getboolean('General', 'ReplaceMinus'):
+                    corpusc.write(line.replace(' - ', ' '+config.get('General', 'MinusReplacement')+' '))
+                else:
+                    corpusc.write(line)
                 cline = line
                 vocabc.update(map(lambda x: x.strip(), line.split(' ')))
                 llline = ''
