@@ -6,6 +6,13 @@
 <script>
 $(document).ready(function() {
 	document.title = title;
+	$('input[name=count]').attr("max",src.length);
+	$('input[name=count]').on('input', function() {
+	    $("#countVal").text($('input[name=count]').val())
+	});
+	$('input[name=sum]').on('input', function() {
+	    $("#sumVal").text($('input[name=sum]').val())
+	});
 	trg_i = 0;
 	trg.forEach(function(x) {
 		$("#trg").append("<td class=\"trg\" id=\"trg"+trg_i+"\">"+trg[trg_i]+"</td>");
@@ -21,6 +28,7 @@ $(document).ready(function() {
     	i = $(this).attr('id').substring(3)
     	arr = matrix[i].slice();
    		l = 1;
+        $("#tr_"+i).css('background-color', 'yellow');
     	if ($('input[name=flag]:checked').val() == "count") {
     		count = parseInt($('input[name=count]').val());
 	    	for (k = 0; k < count; k++) {
@@ -29,6 +37,7 @@ $(document).ready(function() {
 		        $("#src"+j).css('background-color', 'red');
 		        $("#aux"+j).text(l++);	        
 		        $("#aux"+j).css('background-color', 'red');
+		        $("#td_"+i+"_"+j).css('border-color', 'red');
 		    }
 		} else {
 	    	tmp_sum = 0;
@@ -40,12 +49,14 @@ $(document).ready(function() {
 		        $("#src"+j).css('background-color', 'red');
 		        $("#aux"+j).text(l++);	        
 		        $("#aux"+j).css('background-color', 'red');
+		        $("#td_"+i+"_"+j).css('border-color', 'red');
 		    }
 		}
     },
     function(){
     	i = $(this).attr('id').substring(3)
     	arr = matrix[i].slice();
+        $("#tr_"+i).css('background-color', '');
     	if ($('input[name=flag]:checked').val() == "count") {
     		count = parseInt($('input[name=count]').val());
 	    	for (k = 0; k < count; k++) {
@@ -54,6 +65,7 @@ $(document).ready(function() {
 		        $("#src"+j).css('background-color', '');
 		        $("#aux"+j).html("&nbsp;");
 		        $("#aux"+j).css('background-color', '');
+	        	$("#td_"+i+"_"+j).css('border-color', 'white');
 		    }
 		} else {
 	    	tmp_sum = 0;
@@ -65,6 +77,7 @@ $(document).ready(function() {
 		        $("#src"+j).css('background-color', '');
 		        $("#aux"+j).html("&nbsp;");
 		        $("#aux"+j).css('background-color', '');
+	        	$("#td_"+i+"_"+j).css('border-color', 'white');
 		    }
 		}
     }); 
@@ -74,14 +87,16 @@ $(document).ready(function() {
     $("#raw").append(row);
     i = 0;
     trg.forEach(function(x) {
-    	row = '<tr><td style="border-right: 1px solid black;">'+x+'</td>';
+    	row = '<tr id="tr_'+i+'"><td style="border-right: 1px solid black;">'+x+'</td>';
     	m = Math.max.apply(null,matrix[i])
+    	j = 0;
 		matrix[i].forEach(function(y) {
 			if (y == m) {
-				row += '<td style="background-color: yellow;">'+y+'</td>';
+				row += '<td id="td_'+i+'_'+j+'" style="border: 2px solid white; background-color: yellow;">'+y+'</td>';
 			} else {
-				row += '<td>'+y+'</td>';
+				row += '<td id="td_'+i+'_'+j+'" style="border: 2px solid white;">'+y+'</td>';
 			}
+			j++;
 		});
 		row += '</tr>'
     	$("#raw").append(row);
@@ -111,12 +126,20 @@ $(document).ready(function() {
 </div>
 <br/><br/>
 <div>
-	<input type="radio" name="flag" value="count">count <input type="text" name="count" value="5">
-	<input type="radio" name="flag" value="sum" checked>sum <input type="text" name="sum" value="0.9">
+	<table>
+		<tr>
+			<td width="250px">
+				<input type="radio" name="flag" value="count">count&nbsp;&nbsp;<input type="range" name="count" value="5" min="0">&nbsp;&nbsp;<span id="countVal">5</span>
+			</td>
+			<td>
+				<input type="radio" name="flag" value="sum" checked>sum&nbsp;&nbsp;<input type="range" name="sum" value="0.9" min="0" max="1" step="0.01">&nbsp;&nbsp;<span id="sumVal">0.9</span>
+			</td>
+		</tr>
+	</table>
 </div>
 <br/><br/>
 <div>
-	<table id="raw">
+	<table id="raw" style="border-spacing: 0;">
 	</table>
 </div>
 </body>
