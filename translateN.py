@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy
+import re
 
 def copy_unknown_words(filename, out_filename, unk_token = 'UNK'):
 	for line in filename:
@@ -19,6 +20,9 @@ def copy_unknown_words(filename, out_filename, unk_token = 'UNK'):
 			for i, word in enumerate(target):
 				if word == unk_token:
 					target[i] = src[alignments[i]]
+					if target[i].startswith('%'):
+						if not re.match('^\d+$',target[i]):
+							target[i] = target[i][1:]
 			out_filename.write(index+' ||| '+' '.join(target) + ' ||| \n')
 
 def main(f,m,k):
