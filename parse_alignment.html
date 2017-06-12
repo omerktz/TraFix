@@ -81,6 +81,18 @@ $(document).ready(function() {
 		    }
 		}
     }); 
+    $(".src").hover(function(self){
+    	j = $(this).attr('id').substring(3)
+    	for (i = 0; i < trg.length; i++) {
+	        $("#td_"+i+"_"+j).css('border-color', 'yellow');
+    	}
+    },
+    function(){
+    	j = $(this).attr('id').substring(3)
+    	for (i = 0; i < trg.length; i++) {
+	        $("#td_"+i+"_"+j).css('border-color', 'white');
+    	}
+    }); 
 	row = '<tr><td style="border-right: 1px solid black; border-bottom: 1px solid black;"></td>';
 	src.forEach(function(y) {row += '<td style="border-bottom: 1px solid black;">'+y+'</td>';});
 	row += '</tr>'
