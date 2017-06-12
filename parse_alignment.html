@@ -25,7 +25,8 @@ $(document).ready(function() {
 		src_i++;
 	});
     $(".trg").hover(function(self){
-    	i = $(this).attr('id').substring(3)
+    	$(this).css('background-color', 'red');
+    	i = $(this).attr('id').substring(3);
     	arr = matrix[i].slice();
    		l = 1;
         $("#tr_"+i).css('background-color', 'yellow');
@@ -54,7 +55,8 @@ $(document).ready(function() {
 		}
     },
     function(){
-    	i = $(this).attr('id').substring(3)
+    	$(this).css('background-color', '');
+    	i = $(this).attr('id').substring(3);
     	arr = matrix[i].slice();
         $("#tr_"+i).css('background-color', '');
     	if ($('input[name=flag]:checked').val() == "count") {
@@ -82,13 +84,13 @@ $(document).ready(function() {
 		}
     }); 
     $(".src").hover(function(self){
-    	j = $(this).attr('id').substring(3)
+    	j = $(this).attr('id').substring(3);
     	for (i = 0; i < trg.length; i++) {
 	        $("#td_"+i+"_"+j).css('border-color', 'yellow');
     	}
     },
     function(){
-    	j = $(this).attr('id').substring(3)
+    	j = $(this).attr('id').substring(3);
     	for (i = 0; i < trg.length; i++) {
 	        $("#td_"+i+"_"+j).css('border-color', 'white');
     	}
@@ -104,9 +106,9 @@ $(document).ready(function() {
     	j = 0;
 		matrix[i].forEach(function(y) {
 			if (y == m) {
-				row += '<td id="td_'+i+'_'+j+'" style="border: 2px solid white; background-color: yellow;">'+y+'</td>';
+				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white; background-color: yellow;">'+y+'</td>';
 			} else {
-				row += '<td id="td_'+i+'_'+j+'" style="border: 2px solid white;">'+y+'</td>';
+				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white;">'+y+'</td>';
 			}
 			j++;
 		});
@@ -114,6 +116,28 @@ $(document).ready(function() {
     	$("#raw").append(row);
     	i++;
     });
+    $(".td").hover(function(self){
+    	i = $(this).attr('id').substring(3);
+    	j = i.substring(i.indexOf('_')+1);
+    	i = i.substring(0,i.indexOf('_'));
+        $("#tr_"+i).css('background-color', 'yellow');
+        for (k = 0; k < trg.length; k++) {
+        	$("#td_"+k+"_"+j).css('border-color', 'yellow');
+    	}
+    	$("#src"+j).css('background-color', 'yellow');
+    	$("#trg"+i).css('background-color', 'yellow');
+    },
+    function(){
+    	i = $(this).attr('id').substring(3);
+    	j = i.substring(i.indexOf('_')+1);
+    	i = i.substring(0,i.indexOf('_'));
+		$("#tr_"+i).css('background-color', '');
+        for (k = 0; k < trg.length; k++) {
+        	$("#td_"+k+"_"+j).css('border-color', 'white');
+    	}
+    	$("#src"+j).css('background-color', '');
+    	$("#trg"+i).css('background-color', '');
+     }); 
 });
 </script>
 </head>
