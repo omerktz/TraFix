@@ -149,7 +149,7 @@ def main(f,k):
 						ftimeout.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
 						with open(f+'.corpus.c','r') as fc:
 							with open(f+'.corpus.ll', 'r') as fll:
-								with open(f+'.corpus.out'+str(k), 'r') as fout:
+								with open(f+'.corpus.'+str(k)+'.out', 'r') as fout:
 									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,fidentical,fsuccess,ffail,fparse,ftimeout)
 	print str(nidentical)+' statements translated identically'
 	print str(nsuccess)+' statements translated equivalently'
@@ -159,4 +159,7 @@ def main(f,k):
 
 if __name__ == "__main__":
 	main(sys.argv[1],int(sys.argv[2]))
+	for f in os.listdir('.'):
+		if f.startswith('cbmc') and f.endswith('.c'):
+			os.remove(f)
  

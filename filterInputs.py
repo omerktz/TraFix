@@ -16,9 +16,6 @@ if len(args.filters) > 1:
 if not args.dataset and not args.file:
     parser.error('Must choose either a dataset (-d) or a file (-f) as input')
 
-import sys
-sys.path.insert(0,'filters')
-
 def load_filter(f):
     if f.endswith('.py'):
         f = f[:-3]
@@ -54,6 +51,7 @@ def handleDataset(d, filters):
         else:
             if len(filter(lambda f: f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < (len(outs)/args.n) else None), filters)) > 0:
                 count += 1
+    print 'DATASET '+d+': '+str(count)+'/'+str(total)+' lines matched filter(s)'
     return (count,total)
 
 def handleFile(f, filters):
@@ -77,6 +75,7 @@ def handleFile(f, filters):
                         else:
                             if len(filter(lambda f: f(l[0],l[1],l[2:]), filters)) > 0:
                                 count += 1
+        print 'FILE '+f+': '+str(count)+'/'+str(total)+' lines matched filter(s)'
         return (count,total)
 
 total = 0
@@ -92,5 +91,5 @@ if args.file:
     count += sum(map(lambda x: x[0], results))
     total += sum(map(lambda x: x[1], results))
 
-print str(count)+'/'+str(total)+' lines matched filter(s)'
+print 'TOTAL: '+str(count)+'/'+str(total)+' lines matched filter(s)'
 

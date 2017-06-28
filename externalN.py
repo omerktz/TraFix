@@ -24,7 +24,7 @@ def cleanup():
 translate(v, os.path.join(mdir,m+'.npz.dev.npz'),k)
 with open(v+'.corpus.c','r') as fc:
 	with open(v+'.corpus.ll', 'r') as fll:
-		with open(v+'.corpus.out', 'r') as fout:
+		with open(v+'.corpus.'+str(k)+'.out', 'r') as fout:
 			(ni,ns,np,nf,nt) = evaluate(k,fc,fll,fout)
 			print 'external progress: '+str((ni,ns,np,nf,nt))
 
@@ -78,5 +78,9 @@ else:
 		shutil.copy(os.path.join(mdir,m+'.npz.dev.npz.json'),os.path.join(mdir,m+'.npz.best.npz.json'))
 		history.write(str(ni)+'\t'+str(ns)+'\t'+str(np)+'\t'+str(nf)+'\t'+str(nt)+'\t0\n')
 
-os.remove(v+'.corpus.out')
-os.remove(v+'.alignment')
+os.remove(v+'.corpus.'+str(k)+'.out')
+os.remove(v+'.'+str(k)+'.alignment')
+for f in os.listdir('.'):
+	if f.startswith('cbmc') and f.endswith('.c'):
+		os.remove(f)
+
