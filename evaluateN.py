@@ -110,26 +110,26 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	for x in results:
 		if x[4] == 0:
 			if fi:
-				fi.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
+				fi.write(str(x[0])+','+x[1]+','+x[2]+','+','.join(x[3])+'\n')
 			nidentical += 1
 		else:
 			if x[4] == 1:
 				if fs:
-					fs.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
+					fs.write(str(x[0])+','+x[1]+','+x[2]+','+','.join(x[3])+'\n')
 				nsuccess += 1
 			else:
 				if x[4] == 2:
 					if fp:
-						fp.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
+						fp.write(str(x[0])+','+x[1]+','+x[2]+','+','.join(x[3])+'\n')
 					nparse += 1
 				else:
 					if x[4] == 3:
 						if ff:
-							ff.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
+							ff.write(str(x[0])+','+x[1]+','+x[2]+','+','.join(x[3])+'\n')
 						nfail += 1
 					else:
 						if ft:
-							ft.write(str(x[0])+'\t'+x[1]+'\t'+x[2]+'\t'+'\t'.join(x[3])+'\n')
+							ft.write(str(x[0])+','+x[1]+','+x[2]+','+','.join(x[3])+'\n')
 						ntimeout += 1
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):
@@ -137,16 +137,16 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	return (nidentical,nsuccess,nparse,nfail,ntimeout)
 
 def main(f,k):
-	with open(f+'.identical.'+str(k)+'.tsv','w') as fidentical:
-		with open(f+'.equivalent.'+str(k)+'.tsv','w') as fsuccess:
-			with open(f+'.fail.'+str(k)+'.tsv', 'w') as ffail:
-				with open(f+'.parse.'+str(k)+'.tsv', 'w') as fparse:
-					with open(f+'.timeout.'+str(k)+'.tsv', 'w') as ftimeout:
-						fidentical.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fsuccess.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ffail.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fparse.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ftimeout.write('line\tc\tll'+'\tout'+'\tout'.join([]+map(lambda i:str(i),range(k)))+'\n')
+	with open(f+'.identical.'+str(k)+'.csv','w') as fidentical:
+		with open(f+'.equivalent.'+str(k)+'.csv','w') as fsuccess:
+			with open(f+'.fail.'+str(k)+'.csv', 'w') as ffail:
+				with open(f+'.parse.'+str(k)+'.csv', 'w') as fparse:
+					with open(f+'.timeout.'+str(k)+'.csv', 'w') as ftimeout:
+						fidentical.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						fsuccess.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						ffail.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						fparse.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						ftimeout.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
 						with open(f+'.corpus.c','r') as fc:
 							with open(f+'.corpus.ll', 'r') as fll:
 								with open(f+'.corpus.'+str(k)+'.out', 'r') as fout:

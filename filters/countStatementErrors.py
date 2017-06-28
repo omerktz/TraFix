@@ -4,14 +4,14 @@ import os
 count_only_first_error = False
 
 def load():
-    if os.path.exists('statementErrors.tsv'):
-        with open('statementErrors.tsv','r') as f:
+    if os.path.exists('statementErrors.csv'):
+        with open('statementErrors.csv','r') as f:
             res = {}
             l = f.readline().strip()
             while len(l) > 0:
                 n = int(l)
                 f.readline()
-                counts = map(lambda x: int(x.strip()), f.readline().strip().split('\t'))
+                counts = map(lambda x: int(x.strip()), f.readline().strip().split(','))
                 res[n] = dict(map(lambda i: (i+1,counts[i]), range(len(counts))))
                 f.readline()
                 l = f.readline().strip()
@@ -20,11 +20,11 @@ def load():
         return {}
 
 def store(data):
-    with open('statementErrors.tsv','w') as f:
+    with open('statementErrors.csv','w') as f:
         for n in sorted(data.keys()):
             f.write(str(n)+'\n')
-            f.write('\t'.join(map(lambda i: str(i+1), range(n)))+'\n')
-            f.write('\t'.join(map(lambda i: str(data[n][i+1]), range(n)))+'\n')
+            f.write(','.join(map(lambda i: str(i+1), range(n)))+'\n')
+            f.write(','.join(map(lambda i: str(data[n][i+1]), range(n)))+'\n')
             f.write('\n')
 
 def filter(c,ll,out):

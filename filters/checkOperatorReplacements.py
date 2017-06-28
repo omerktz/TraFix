@@ -17,17 +17,17 @@ def normalize(x):
 def load():
 	bops = ['+', '-', '*', '/', '%']
 	uops = ['++', '--']
-	if os.path.exists('operatorRepalcements.tsv'):
-		with open('operatorRepalcements.tsv','r') as f:
+	if os.path.exists('operatorRepalcements.csv'):
+		with open('operatorRepalcements.csv','r') as f:
 			res = {}
 			l = f.readline()
 			for op in bops:
-				l = f.readline().strip().split('\t')[1:]
+				l = f.readline().strip().split(',')[1:]
 				res[op] = dict(map(lambda i:(bops[i],int(l[i])), range(len(bops))))
 			l = f.readline()
 			l = f.readline()
 			for op in uops:
-				l = f.readline().strip().split('\t')[1:]
+				l = f.readline().strip().split(',')[1:]
 				res[op] = dict(map(lambda i:(uops[i],int(l[i])), range(len(uops))))
 			return res
 	else:
@@ -41,14 +41,14 @@ def load():
 def store(stats):
 	bops = ['+', '-', '*', '/', '%']
 	uops = ['++', '--']
-	with open('operatorRepalcements.tsv','w') as f:
-		f.write('orig\t'+'\t'.join(bops)+'\n')
+	with open('operatorRepalcements.ctsv','w') as f:
+		f.write('orig,'+','.join(bops)+'\n')
 		for op in bops:
-			f.write(op+'\t'+'\t'.join(map(lambda o: str(stats[op][o]), bops))+'\n')
+			f.write(op+','+','.join(map(lambda o: str(stats[op][o]), bops))+'\n')
 		f.write('\n')
-		f.write('orig\t'+'\t'.join(uops)+'\n')
+		f.write('orig,'+','.join(uops)+'\n')
 		for op in uops:
-			f.write(op+'\t'+'\t'.join(map(lambda o: str(stats[op][o]), uops))+'\n')
+			f.write(op+','+','.join(map(lambda o: str(stats[op][o]), uops))+'\n')
 		f.write('\n')
 
 def filter(c,ll,out):

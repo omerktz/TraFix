@@ -207,7 +207,7 @@ class Stats:
             self._statements += sum(map(lambda x: 1 if len(filter(lambda o: ' '+o+' ' in x, self._op))>0 else 0, s.split(';')))
             self._inputs += 1 if len(filter(lambda o: ' '+o+' ' in s, self._op))>0 else 0
         def toString(self, count_inputs, count_statemtns, count_total):
-            return self._name + '\t' + str(self._inputs) + '\t' + "{0:.2f}".format(100.0*self._inputs/float(count_inputs)) + '\t' + str(self._statements) + '\t' + "{0:.2f}".format(100.0*self._statements/float(count_statemtns)) + '\t' + str(self._total) + '\t' + "{0:.2f}".format(100.0*self._total/float(count_total))
+            return self._name + ',' + str(self._inputs) + ',' + "{0:.2f}".format(100.0*self._inputs/float(count_inputs)) + ',' + str(self._statements) + ',' + "{0:.2f}".format(100.0*self._statements/float(count_statemtns)) + ',' + str(self._total) + ',' + "{0:.2f}".format(100.0*self._total/float(count_total))
     class Counter:
         def __init__(self, f):
             self._f = f
@@ -224,7 +224,7 @@ class Stats:
             else:
                 self._max = val
         def __str__(self):
-            return str(self._min)+'\t'+str(self._max)
+            return str(self._min)+','+str(self._max)
     class LengthCounter(Counter):
         def __init__(self):
             Stats.Counter.__init__(self, lambda x: len(filter(lambda x: x!=' ', list(x.strip()))))
@@ -252,22 +252,22 @@ class Stats:
     def __str__(self):
         res = ''
         res += '[General]\n'
-        res += 'Inputs\t'+str(self._num_inputs)+'\n'
-        res += 'Statements\t'+str(self._num_statements)+'\n'
+        res += 'Inputs,'+str(self._num_inputs)+'\n'
+        res += 'Statements,'+str(self._num_statements)+'\n'
         res += '\n[Lengths]\n'
-        res += '\tMin\tMax\n'
-        res += 'Input\t'+str(self._c_statement_length)+'\n'
-        res += 'Output\t'+str(self._ll_statement_length)+'\n'
+        res += ',Min,Max\n'
+        res += 'Input,'+str(self._c_statement_length)+'\n'
+        res += 'Output,'+str(self._ll_statement_length)+'\n'
         res += '\n[Word Counts]\n'
-        res += '\tMin\tMax\n'
-        res += 'Input\t'+str(self._c_word_count)+'\n'
-        res += 'Output\t'+str(self._ll_word_count)+'\n'
+        res += ',Min,Max\n'
+        res += 'Input,'+str(self._c_word_count)+'\n'
+        res += 'Output,'+str(self._ll_word_count)+'\n'
         res += '\n[Operators]\n'
-        res += '\tInputs\t%\tStatements\t%\tTotal\t%\n'
-        res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total), self._ops[:-1]))
+        res += ',Inputs,%,Statements,%,Total,t%\n'
+        res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total), self._ops[:-1]))+'\n'
         res += '\n[Statements]\n'
-        res += 'Num\tCount\t%\n'
-        res += '\n'.join(map(lambda x: str(x)+'\t'+str(self._statement_count[x])+'\t'+"{0:.2f}".format(100.0*self._statement_count[x]/float(self._num_inputs)),range(1,config.getint('Statement', 'MaxStatements')+1)))
+        res += 'Num,Count,%\n'
+        res += '\n'.join(map(lambda x: str(x)+','+str(self._statement_count[x])+','+"{0:.2f}".format(100.0*self._statement_count[x]/float(self._num_inputs)),range(1,config.getint('Statement', 'MaxStatements')+1)))
         return res
 
 def generatePrograms():

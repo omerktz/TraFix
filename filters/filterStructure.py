@@ -22,6 +22,6 @@ def filter(c,ll,out):
     	return False
     if normalize(c) in map(normalize,out):
     	return True
-    with open('structurallyDifferent.tsv','a') as f:
-    	f.write(c+'\t'+ll+'\t'+'\t'.join(out)+'\n')
+    with open('structurallyDifferent.csv','a') as f:
+    	f.write(c+','+ll+','+','.join(out)+'\n')
     return False
