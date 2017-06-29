@@ -20,11 +20,11 @@ if len(sys.argv) == 4:
   with open(sys.argv[2]+'.csv','w') as f:
     f.write('Word,Raw,,Parsed\n')
     for i in range(len(vocab)):
-      f.write(vocab[i].replace(',','","')+','+embeddings[i].replace(',','","')+',,'+embeddings[i].replace(',','","').replace(' ',',')+'\n')
+      f.write('"'+vocab[i].replace('"','""')+'","'+embeddings[i].replace('"','""')+'",,"'+embeddings[i].replace('"','""').replace(' ','","')+'"\n')
   os.remove(sys.argv[2])
   with open(sys.argv[2]+'.dist.csv', 'w') as f:
-    f.write(','+','.join(map(lambda i:vocab[i].replace(',','","'), range(len(vocab))))+'\n')
+    f.write(','+','.join(map(lambda i:vocab[i].replace('"','""'), range(len(vocab))))+'\n')
     for i in range(len(embeddings)):
       embeddings[i] = map(lambda y: float(y), filter(lambda x: len(x)>0, embeddings[i].split(' ')))
     for i in range(len(vocab)):
-      f.write(vocab[i].replace(',','","')+','+','.join(map(lambda j:str(embedding_distance(embeddings[j], embeddings[i])), range(len(vocab))))+'\n')
+      f.write('"'+vocab[i].replace('"','""')+'","'+'","'.join(map(lambda j:str(embedding_distance(embeddings[j], embeddings[i])), range(len(vocab))))+'"\n')

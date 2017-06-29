@@ -14,11 +14,11 @@ if not args.reverse:
     with open(f+'.tsv','r') as fin:
         with open(f+'.csv','w') as fout:
             for l in fin.readlines():
-                fout.write(l.replace(',','","').replace('\t',','))
+                fout.write('"'+l.replace('"','""').replace('\t','","').replace('\r','').replace('\n','"\n'))
     os.remove(f+'.tsv')
 else:
     with open(f+'.csv','r') as fin:
         with open(f+'.tsv','w') as fout:
             for l in fin.readlines():
-                fout.write(l.replace('\t',' ').replace('","','~_~').replace(',','\t').replace('~_~',','))
+                fout.write(l[1:].replace('\t',' ').replace(' , ','~_~').replace('","','\t').replace('~_~',' , ').replace('""','"').replace('"\n','\n'))
     os.remove(f+'.csv')
