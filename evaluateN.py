@@ -110,26 +110,26 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	for x in results:
 		if x[4] == 0:
 			if fi:
-				fi.write(str(x[0]).repalce(',','","')+','+x[1].repalce(',','","')+','+x[2].repalce(',','","')+','+','.join(map(lambda y:y.repalce(',','","'), x[3]))+'\n')
+				fi.write(str(x[0]).replace(',','","')+','+x[1].replace(',','","')+','+x[2].replace(',','","')+','+','.join(map(lambda y:y.replace(',','","'), x[3]))+'\n')
 			nidentical += 1
 		else:
 			if x[4] == 1:
 				if fs:
-					fs.write(str(x[0]).repalce(',','","')+','+x[1].repalce(',','","')+','+x[2].repalce(',','","')+','+','.join(map(lambda y:y.repalce(',','","'), x[3]))+'\n')
+					fs.write(str(x[0]).replace(',','","')+','+x[1].replace(',','","')+','+x[2].replace(',','","')+','+','.join(map(lambda y:y.replace(',','","'), x[3]))+'\n')
 				nsuccess += 1
 			else:
 				if x[4] == 2:
 					if fp:
-						fp.write(str(x[0]).repalce(',','","')+','+x[1].repalce(',','","')+','+x[2].repalce(',','","')+','+','.join(map(lambda y:y.repalce(',','","'), x[3]))+'\n')
+						fp.write(str(x[0]).replace(',','","')+','+x[1].replace(',','","')+','+x[2].replace(',','","')+','+','.join(map(lambda y:y.replace(',','","'), x[3]))+'\n')
 					nparse += 1
 				else:
 					if x[4] == 3:
 						if ff:
-							ff.write(str(x[0]).repalce(',','","')+','+x[1].repalce(',','","')+','+x[2].repalce(',','","')+','+','.join(map(lambda y:y.repalce(',','","'), x[3]))+'\n')
+							ff.write(str(x[0]).replace(',','","')+','+x[1].replace(',','","')+','+x[2].replace(',','","')+','+','.join(map(lambda y:y.replace(',','","'), x[3]))+'\n')
 						nfail += 1
 					else:
 						if ft:
-							ft.write(str(x[0]).repalce(',','","')+','+x[1].repalce(',','","')+','+x[2].repalce(',','","')+','+','.join(map(lambda y:y.repalce(',','","'), x[3]))+'\n')
+							ft.write(str(x[0]).replace(',','","')+','+x[1].replace(',','","')+','+x[2].replace(',','","')+','+','.join(map(lambda y:y.replace(',','","'), x[3]))+'\n')
 						ntimeout += 1
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):

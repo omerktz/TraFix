@@ -17,8 +17,8 @@ def normalize(x):
 def load():
 	bops = ['+', '-', '*', '/', '%']
 	uops = ['++', '--']
-	if os.path.exists('operatorRepalcements.csv'):
-		with open('operatorRepalcements.csv','r') as f:
+	if os.path.exists('operatorreplacements.csv'):
+		with open('operatorreplacements.csv','r') as f:
 			res = {}
 			l = f.readline()
 			for op in bops:
@@ -41,7 +41,7 @@ def load():
 def store(stats):
 	bops = ['+', '-', '*', '/', '%']
 	uops = ['++', '--']
-	with open('operatorRepalcements.csv','w') as f:
+	with open('operatorreplacements.csv','w') as f:
 		f.write('orig,'+','.join(bops)+'\n')
 		for op in bops:
 			f.write(op+','+','.join(map(lambda o: str(stats[op][o]), bops))+'\n')
