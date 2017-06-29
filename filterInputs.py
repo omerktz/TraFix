@@ -19,6 +19,8 @@ if not args.dataset and not args.file:
 def load_filter(f):
     if f.endswith('.py'):
         f = f[:-3]
+    if f.endswith('.pyc'):
+        f = f[:-4]
     return __import__(f).filter
 
 filters = map(load_filter,args.filters)
@@ -66,7 +68,7 @@ def handleFile(f, filters):
                 if first:
                     first = False
                 else:
-                    l = filter(lambda y: len(y)>0, map(lambda x: x.strip().replace('~_~,',','), l.strip().replace('","','~_~').split(',')))
+                    l = filter(lambda y: len(y)>0, map(lambda x: x.strip().replace('~_~',' , '), l.strip().replace(' , ','~_~').split(',')))
                     if len(l) > 0:
                         total += 1
                         if args.a:
