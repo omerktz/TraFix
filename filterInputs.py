@@ -66,7 +66,7 @@ def handleFile(f, filters):
                 if first:
                     first = False
                 else:
-                    l = filter(lambda y: len(y)>0, map(lambda x: x.strip(), l.strip().split('\t')))
+                    l = filter(lambda y: len(y)>0, map(lambda x: x.strip().replace('~_~,',','), l.strip().replace('","','~_~').split(',')))
                     if len(l) > 0:
                         total += 1
                         if args.a:

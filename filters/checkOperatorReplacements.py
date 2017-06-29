@@ -65,7 +65,7 @@ def filter(c,ll,out):
     out = out.split(' ')
     data = load()
     for i in range(len(c)):
-    	if c[i] in ['+', '-', '*', '/', '%']:
+    	if c[i] in ['+', '-', '*', '/', '%', '++', '--']:
     		if c[i] != out[i]:
     			data[c[i]][out[i]] += 1
     store(data)
