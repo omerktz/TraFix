@@ -23,5 +23,5 @@ def filter(c,ll,out):
     if normalize(c) in map(normalize,out):
     	return True
     with open('structurallyDifferent.csv','a') as f:
-    	f.write(c+','+ll+','+','.join(out)+'\n')
+    	f.write(c.repalce(',','","')+','+ll.repalce(',','","')+','+','.join(map(lambda x:x.repalce(',','","'),out))+'\n')
     return False

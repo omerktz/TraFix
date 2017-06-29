@@ -41,7 +41,7 @@ def load():
 def store(stats):
 	bops = ['+', '-', '*', '/', '%']
 	uops = ['++', '--']
-	with open('operatorRepalcements.ctsv','w') as f:
+	with open('operatorRepalcements.csv','w') as f:
 		f.write('orig,'+','.join(bops)+'\n')
 		for op in bops:
 			f.write(op+','+','.join(map(lambda o: str(stats[op][o]), bops))+'\n')
