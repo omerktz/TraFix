@@ -1,7 +1,7 @@
 import re
 import os
 
-count_only_first_error = False
+count_only_first_error = True
 
 def load():
     if os.path.exists('statementErrors.csv'):
@@ -34,12 +34,11 @@ def filter(c,ll,out):
         return False
     if len(out) == 0:
         return False
-    out = out[0]
+    out = out[0]  # only count best translation
     n = c.count(';')
-    if out.count(';') != n:
-        return False
+    out = out+';'*(n-out.count(';'))
     data = load()
-    if n not in data .keys():
+    if n not in data.keys():
         data[n] = {}
         for i in range(n):
             data[n][i+1] = 0

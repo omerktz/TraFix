@@ -5,7 +5,7 @@ parser.add_argument('-d', '--dataset', type=str, help="filter a dataset file", a
 parser.add_argument('-f', '--file', type=str, help="filter a tab seperated file", action='append', metavar="FFF", required=False)
 parser.add_argument('-a', '--and', dest='a', help="inputs must match all filters", action='count')
 parser.add_argument('-o', '--or', dest='o', help="inputs need only match one filter", action='count')
-parser.add_argument('-n', help="number of translations per input (default: 1)", required=False, default=1, type=int)
+parser.add_argument('-n', help="number of translations per input (default: 1)", required=False, default=5, type=int)
 parser.add_argument('filters', help="list of filter files, separated by whitespace", nargs='+')
 args = parser.parse_args()
 
@@ -48,7 +48,7 @@ def handleDataset(d, filters):
     count = 0
     for i in range(total):
         if args.a:
-            if len(filter(lambda f: not f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < len(outs) else None), filters)) == 0:
+            if len(filter(lambda f: not f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < (len(outs)/args.n) else None), filters)) == 0:
                 count += 1
         else:
             if len(filter(lambda f: f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < (len(outs)/args.n) else None), filters)) > 0:
@@ -71,6 +71,7 @@ def handleFile(f, filters):
                     l = map(lambda x: x.strip().replace('~_~',' , ').replace('""','"'), l.strip()[1:-1].strip().replace(' , ','~_~').split('","'))
                     if len(l[-1].strip()) == 0:
                         l = l[:-1]
+                    l=l[1:]
                     if len(l) > 0:
                         total += 1
                         if args.a:

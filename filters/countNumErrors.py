@@ -1,6 +1,6 @@
 import re
 
-def normalizeWvar(x):
+def normalizeWnum(x):
 	x = x.split(' ')
 	for i in range(len(x)):
 		if x[i].startswith('X'):
@@ -13,11 +13,11 @@ def normalizeWvar(x):
 			x[i] = 'UNARY'
 	return ' '.join(x)
 
-def normalizeWOvar(x):
+def normalizeWOnum(x):
 	x = x.split(' ')
 	for i in range(len(x)):
-		if re.match("^[-+]?\d+$",x[i]):
-			x[i] = 'NUM'
+		if x[i].startswith('X'):
+			x[i] = 'VAR'
 		if x[i] in ['+', '-', '*', '/', '%']:
 			x[i] = 'BINARY'
 		if x[i] in ['++', '--']:
@@ -31,6 +31,6 @@ def filter(c,ll,out):
     	return False
     if len(out) == 0:
     	return False
-    if normalizeWvar(c) not in map(normalizeWvar,out):
+    if normalizeWnum(c) not in map(normalizeWnum,out):
     	return False
-    return normalizeWOvar(c) not in map(normalizeWOvar,out)
+    return normalizeWOnum(c) not in map(normalizeWOnum,out)

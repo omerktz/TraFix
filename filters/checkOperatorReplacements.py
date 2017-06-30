@@ -58,7 +58,7 @@ def filter(c,ll,out):
     	return False
     if len(out) == 0:
     	return False
-    out = out[0]
+    out = out[0]  # only count best translation
     if normalize(c) != normalize(out):
     	return False
     c = c.split(' ')
@@ -66,7 +66,7 @@ def filter(c,ll,out):
     data = load()
     for i in range(len(c)):
     	if c[i] in ['+', '-', '*', '/', '%', '++', '--']:
-    		if c[i] != out[i]:
-    			data[c[i]][out[i]] += 1
+			if c[i] != out[i]:
+				data[c[i]][out[i]] += 1
     store(data)
     return True
