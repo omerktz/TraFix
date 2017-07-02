@@ -38,8 +38,8 @@ def handleDataset(d, filters):
             lls = [l.strip() for l in f.readlines()]
     else:
         lls = []
-    if os.path.exists(d+'.corpus.out'):
-        with open(d+'.corpus.out','r') as f:
+    if os.path.exists(d+'.corpus.'+str(args.n)+'.out'):
+        with open(d+'.corpus.'+str(args.n)+'.out','r') as f:
             outs = [l.strip() for l in f.readlines()]
     else:
         outs = []
@@ -48,10 +48,10 @@ def handleDataset(d, filters):
     count = 0
     for i in range(total):
         if args.a:
-            if len(filter(lambda f: not f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < (len(outs)/args.n) else None), filters)) == 0:
+            if len(filter(lambda f: not f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i*args.n:(i+1)*args.n] if i < (len(outs)/args.n) else None), filters)) == 0:
                 count += 1
         else:
-            if len(filter(lambda f: f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i:i+args.n] if i < (len(outs)/args.n) else None), filters)) > 0:
+           if len(filter(lambda f: f(cs[i] if i < len(cs) else None, lls[i] if i < len(lls) else None, outs[i*args.n:(i+1)*args.n] if i < (len(outs)/args.n) else None), filters)) > 0:
                 count += 1
     print 'DATASET '+d+': '+str(count)+'/'+str(total)+' lines matched filter(s)'
     return (count,total)
