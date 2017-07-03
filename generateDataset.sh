@@ -1,4 +1,4 @@
 #!/bin/bash
-python codenator.py 100000 train
-python codenator.py 10000 test
-python codenator.py 1000 validate
+python codenator.py -n 100000 -o train
+python codenator.py -n 10000 -o test
+python codenator.py -n 1000 -o validate
