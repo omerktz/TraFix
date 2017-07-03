@@ -1,4 +1,3 @@
-import sys
 import os
 import numpy
 
@@ -30,4 +29,11 @@ def main(f,m,k):
 	os.remove(f+'.corpus.'+str(k)+'.tmp')
 
 if __name__ == "__main__":
-	main(sys.argv[1],os.path.join(sys.argv[2],sys.argv[3]),int(sys.argv[4]))
+	import argparse
+	parser = argparse.ArgumentParser(description="Transalte dataset")
+	parser.add_argument('dataset', type=str, help="dataset to translate")
+	parser.add_argument('model_directory', type=str, help="directory in which to save trained model")
+	parser.add_argument('model_name', type=str, help="name of trained model")
+	parser.add_argument('num_tranlations', type=int, help="number of top translations to output for each input")
+	args = parser.parse_args()
+	main(args.dataset,os.path.join(args.model_directory,args.model_name),args.num_translations)

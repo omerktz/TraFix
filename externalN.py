@@ -5,12 +5,23 @@ import sys
 import shutil
 import psutil
 
-v = sys.argv[1]
-mdir = sys.argv[2]
-m = sys.argv[3]
-p = int(sys.argv[4])
-h = sys.argv[5]
-k = int(sys.argv[6])
+import argparse
+
+parser = argparse.ArgumentParser(description="Train translation model")
+parser.add_argument('dataset', type=str, help="validation dataset to use")
+parser.add_argument('model_directory', type=str, help="directory in which to save trained model")
+parser.add_argument('model_name', type=str, help="name of trained model")
+parser.add_argument('patience', type=int, help="number of validations without improvement before training is stopped")
+parser.add_argument('history', type=str, help="file used to store validation history")
+parser.add_argument('num_tranlations', type=int, help="number of translations for each input")
+args = parser.parse_args()
+
+v = args.dataset
+mdir = args.model_directory
+m = args.model_name
+p = args.patience
+h = args.history
+k = args.num_translations
 
 def cleanup():
 	reserveFiles = [m+'.npz.best.npz',m+'.npz.best.npz.json']
