@@ -190,20 +190,53 @@ class Condition:
     def collectVars(self):
         return self._op1.collectVars().union(self._op2.collectVars())
 
+class Assignments:
+    _max_statements = config.getint('Assignments', 'MaxAssignments')
+    _statements_weights = ast.literal_eval(config.get('Assignments', 'Weights'))
+
+    @staticmethod
+    def getAssignments(max_statements = _max_statements, statements_weights = _statements_weights):
+        num_statements_weights = reduce(lambda x, y: x+y, map(lambda i: [i + 1] * statements_weights[i], range(max_statements)), [])
+        num_statements = num_statements_weights[random.randrange(0, len(num_statements_weights))]
+        return map(lambda i: Assignment(), range(num_statements))
+
+class Statements:
+    _branchRatio = config.getfloat('Statements', 'BranchRatio')
+
+    @staticmethod
+    def getStatements(max_statements = Assignments._max_statements, statements_weights = Assignments._statements_weights):
+        if random.random() >= Statements._branchRatio:
+            return Assignments.getAssignments(max_statements, statements_weights)
+        else:
+            return [Branch()]
+
 class Branch:
     _elseRatio = config.getfloat('Branch', 'ElseRatio')
     _max_inner_statements = config.getint('Branch', 'MaxInnerAssignments')
     _inner_statements_weights = ast.literal_eval(config.get('Branch', 'InnerWeights'))
+    _allow_nested = config.getboolean('Branch', 'AllowNested')
 
     def __init__(self):
         self._cond = Condition()
-        self._if = Assignments.getAssignments(Branch._max_inner_statements, Branch._inner_statements_weights)
+        def body_generator():
+            return Statements.getStatements(Branch._max_inner_statements, Branch._inner_statements_weights) if Branch._allow_nested else Assignments.getAssignments(Branch._max_inner_statements, Branch._inner_statements_weights)
+        self._if = body_generator()
         if random.random() > Branch._elseRatio:
-            self._else = Assignments.getAssignments(Branch._max_inner_statements, Branch._inner_statements_weights)
+            self._else = body_generator()
             while (self._else == self._if):
-                self._else = Assignments.getAssignments(Branch._max_inner_statements, Branch._inner_statements_weights)
+                self._else = body_generator()
         else:
             self._else = None
+    def __eq__(self, other):
+        if not isinstance(other,Branch):
+            return False
+        if (other._cond != self._cond) or (other._if != self._if):
+            return False
+        if (other._else and not self._else) or (self._else and not other._else):
+            return False
+        if other._else and self._else:
+            return other._else == self._else
+        return True
     def __str__(self):
         res = 'if ( '+str(self._cond)+' ) { '+' '.join(map(lambda x:str(x),self._if))+' } '
         if self._else:
@@ -259,26 +292,6 @@ def getExpr(weights = _weights):
     while not expr.isValid():
         expr = exprs[random.randrange(0, len(exprs))]
     return expr()
-
-class Assignments:
-    _max_statements = config.getint('Assignments', 'MaxAssignments')
-    _statements_weights = ast.literal_eval(config.get('Assignments', 'Weights'))
-
-    @staticmethod
-    def getAssignments(max_statements = _max_statements, statements_weights = _statements_weights):
-        num_statements_weights = reduce(lambda x, y: x+y, map(lambda i: [i + 1] * statements_weights[i], range(max_statements)), [])
-        num_statements = num_statements_weights[random.randrange(0, len(num_statements_weights))]
-        return map(lambda i: Assignment(), range(num_statements))
-
-class Statements:
-    _branchRatio = config.getfloat('Statements', 'BranchRatio')
-
-    @staticmethod
-    def getStatements():
-        if random.random() >= Statements._branchRatio:
-            return Assignments.getAssignments()
-        else:
-            return [Branch()]
 
 class Stats:
     class OperatorCount:
