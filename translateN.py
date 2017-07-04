@@ -34,6 +34,6 @@ if __name__ == "__main__":
 	parser.add_argument('dataset', type=str, help="dataset to translate")
 	parser.add_argument('model_directory', type=str, help="directory in which to save trained model")
 	parser.add_argument('model_name', type=str, help="name of trained model")
-	parser.add_argument('num_tranlations', type=int, help="number of top translations to output for each input")
+	parser.add_argument('num_translations', type=int, help="number of top translations to output for each input")
 	args = parser.parse_args()
 	main(args.dataset,os.path.join(args.model_directory,args.model_name),args.num_translations)

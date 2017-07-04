@@ -161,7 +161,7 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description="Transalte dataset")
 	parser.add_argument('dataset', type=str, help="dataset to translate")
-	parser.add_argument('num_tranlations', type=int, help="number of translations in output for each input")
+	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
 	args = parser.parse_args()
 	main(args.dataset,args.num_translations)
 	for f in os.listdir('.'):

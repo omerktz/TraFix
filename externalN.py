@@ -13,7 +13,7 @@ parser.add_argument('model_directory', type=str, help="directory in which to sav
 parser.add_argument('model_name', type=str, help="name of trained model")
 parser.add_argument('patience', type=int, help="number of validations without improvement before training is stopped")
 parser.add_argument('history', type=str, help="file used to store validation history")
-parser.add_argument('num_tranlations', type=int, help="number of translations for each input")
+parser.add_argument('num_translations', type=int, help="number of translations for each input")
 args = parser.parse_args()
 
 v = args.dataset
