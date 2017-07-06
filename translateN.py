@@ -17,7 +17,12 @@ def copy_unknown_words(filename, out_filename, unk_token = 'UNK'):
 			#print alignments
 			for i, word in enumerate(target):
 				if word == unk_token:
-					target[i] = src[alignments[i]]
+					j = alignments[i]
+					if j < len(src):
+						target[i] = src[alignments[i]]
+					else:
+						if j == len(src):
+							target[i] = '$'
 			out_filename.write(index+' ||| '+' '.join(target) + ' ||| \n')
 
 def main(f,m,k):
