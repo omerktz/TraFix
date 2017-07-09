@@ -9,7 +9,8 @@ import numpy as np
 
 parser = argparse.ArgumentParser(description="Train a tagging model")
 parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to use for training", required=True)
-parser.add_argument('-m', '--model', dest='m', type=str, help="output model file name", required=True)
+parser.add_argument('-m', '--model', dest='m', type=str, default='model', help="output model file name (default: \'%(default)s\')")
+parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabs', help="output file for vocabularies (default: \'%(default)s\')")
 parser.add_argument('-e', '--epochs', dest='e', type=int, default=100, help="max number of epochs (default: %(default)s)")
 parser.add_argument('-f', '--validation', dest='f', type=None, default=None, help="name of dataset to use for validation (validation disabled if no dataset is given)")
 parser.add_argument('-p', '--patience', dest='p', type=int, default=10, help="number of validations with no improvement before training is halted (default: %(default)s)")
@@ -47,6 +48,10 @@ class Vocabulary:
         for w in corpus:
             v.add(w)
         return v
+    def save(self,f):
+        for i in sorted(self.i2w.keys()):
+            f.write(self.i2w[i]+'\t'+str(i)+'\n')
+        f.write('\n')
 
 if (not os.path.exists(args.d+'.words')) or (not os.path.exists(args.d+'.tags')):
     parser.error('train dataset is missing essential files')
@@ -131,6 +136,16 @@ def validate(words,expected):
         wbad += wvalidate.count(False)
     return (good,bad,wgood,wbad)
 
+def save():
+    try:
+        os.remove(args.m)
+    except OSError:
+        pass
+    model.save_all(args.m)
+    with open(args.w,'w') as f:
+        vw.save(f)
+        vt.save(f)
+
 words_tagged = 0.0
 total_loss = 0.0
 indexes = range(len(trainWords))
@@ -165,11 +180,7 @@ for j in xrange(args.e):
                         patience = 0
                     else:
                         patience += 1
-                    try:
-                        os.remove(args.m)
-                    except OSError:
-                        pass
-                    model.save_all(args.m)
+                    save()
                 else:
                     patience += 1
                 if patience >= args.p:
@@ -188,11 +199,7 @@ for j in xrange(args.e):
         print "epoch %r finished" % j
     trainer.update_epoch(1.0)
     if not args.f:
-        try:
-            os.remove(args.m)
-        except OSError:
-            pass
-        model.save_all(args.m)
+        save()
 
 if args.v:
     print 'Reached max epochs. Training stopped'
@@ -200,10 +207,6 @@ if args.v:
 if args.f:
     good, bad, wgood, wbad = validate(validationWords, validationTags)
     if (wgood > best_wgood) or ((wgood == best_wgood) and (good > best_good)):
-        try:
-            os.remove(args.m)
-        except OSError:
-            pass
-        model.save_all(args.m)
+        save()
 
 print 'Done!'
