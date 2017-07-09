@@ -66,7 +66,6 @@ if args.v:
 
 words = list(reduce(lambda x,y: x.union(y), map(lambda w:set(w), trainWords), set()))
 tags = list(reduce(lambda x, y: x.union(y), map(lambda t:set(t), trainTags), set()))
-chars = list(set(map(lambda i: str(i), range(10))+['=',';','+','-','*','/','%','(',')','X','Y']+['!','>','<','{','}']+list('if')+list('else')))
 
 wordCount = {}
 for t in trainWords:
@@ -78,7 +77,6 @@ for t in trainWords:
 
 vw = Vocabulary.from_corpus(words)
 vt = Vocabulary.from_corpus(tags)
-vc = Vocabulary.from_corpus(chars)
 
 if args.v:
     print 'Vocabularies created'
@@ -87,26 +85,12 @@ model = dy.Model()
 trainer = dy.AdamTrainer(model)
 
 wordsLookup = model.add_lookup_parameters((vw.size(),config.getint('Model', 'WordEmbeddingSize')))
-charsLookup = model.add_lookup_parameters((vc.size(),config.getint('Model', 'CharEmbeddingSize')))
-
-def word_rep(w, cfwdi, cbwdi):
-    if wordCount[w] > config.getint('Vocabulary', 'WordCountThreshold'):
-        return wordsLookup[vw.geti(w)]
-    else:
-        char_ids = [vc.geti(c) for c in w]
-        char_embs = [charsLookup[cid] for cid in char_ids]
-        fexps = cfwdi.transduce(char_embs)
-        bexps = cbwdi.transduce(reversed(char_embs))
-        return dy.concatenate([fexps[-1], bexps[-1]])
 
 pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerHalfSize')*2))
 pO = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 
-cfwd = dy.LSTMBuilder(1, config.getint('Model', 'CharEmbeddingSize'), config.getint('Model', 'WordEmbeddingSize')/2, model)
-cbwd = dy.LSTMBuilder(1, config.getint('Model', 'CharEmbeddingSize'), config.getint('Model', 'WordEmbeddingSize')/2, model)
-
-wfwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
-wbwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
+fwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
+bwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
 
 if args.v:
     print 'Training'
@@ -115,13 +99,11 @@ def get_graph(ws):
     dy.renew_cg()
     h = dy.parameter(pH)
     o = dy.parameter(pO)
-    wfi = wfwd.initial_state()
-    wbi = wbwd.initial_state()
-    cfi = cfwd.initial_state()
-    cbi = cbwd.initial_state()
-    word_embs = [word_rep(w,cfi,cbi) for w in ws]
-    fexps = wfi.transduce(word_embs)
-    bexps = wfi.transduce(reversed(word_embs))
+    fi = fwd.initial_state()
+    bi = bwd.initial_state()
+    word_embs = [wordsLookup[vw.geti(w)] for w in ws]
+    fexps = fi.transduce(word_embs)
+    bexps = bi.transduce(reversed(word_embs))
     exps = [dy.concatenate([f,b]) for f,b in zip(fexps,reversed(bexps))]
     return map(lambda x: o*dy.tanh(h*x), exps)
 
@@ -181,6 +163,8 @@ for j in xrange(args.e):
                         best_good = good
                         best_bad = bad
                         patience = 0
+                    else:
+                        patience += 1
                     try:
                         os.remove(args.m)
                     except OSError:
@@ -188,7 +172,7 @@ for j in xrange(args.e):
                     model.save_all(args.m)
                 else:
                     patience += 1
-                if patience > args.p:
+                if patience >= args.p:
                     print 'No progress for the last '+str(args.p)+' validations. Training stopped'
                     print 'Done!'
                     sys.exit(0)
