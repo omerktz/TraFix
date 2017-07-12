@@ -1,10 +1,6 @@
 import os
-import random
 import argparse
 import ConfigParser
-
-import dynet as dy
-import numpy as np
 
 parser = argparse.ArgumentParser(description="Tag sentences")
 parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to tag", required=True)
@@ -13,6 +9,9 @@ parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabs'
 parser.add_argument('-c', '--config', dest='c', type=str, default='seqTagger.config', help="configuration file (default: \'%(default)s\')")
 parser.add_argument('-v', '--verbose', dest='v', help="print progress information during training", action='count')
 args = parser.parse_args()
+
+import dynet as dy
+import numpy as np
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)

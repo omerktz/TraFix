@@ -4,9 +4,6 @@ import random
 import argparse
 import ConfigParser
 
-import dynet as dy
-import numpy as np
-
 parser = argparse.ArgumentParser(description="Train a tagging model")
 parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to use for training", required=True)
 parser.add_argument('-m', '--model', dest='m', type=str, default='model', help="output model file name (default: \'%(default)s\')")
@@ -22,6 +19,9 @@ args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)
+
+import dynet as dy
+import numpy as np
 
 class Vocabulary:
     def __init__(self):
