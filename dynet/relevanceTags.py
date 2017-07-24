@@ -17,7 +17,7 @@ with open(sys.argv[1]+'.words','r') as fin:
             temps = {}
             lengths = {}
             dependencies = {}
-            counter = 0
+            counter = 1
             finals = {}
             index = 0
             for inst in instructions:

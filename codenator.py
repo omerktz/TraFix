@@ -258,28 +258,6 @@ class Init:
         vars = ','.join(map(lambda x:str(x),Var._vars))
         return 'int '+vars+' ;\n'
 
-class Return:
-    _threshold = config.getfloat('Return','Threshold')
-    @staticmethod
-    def getReturn():
-        if random.uniform(0,1) <= Return._threshold:
-            return ReturnVoid()
-        return ReturnInt()
-    def getType(self):
-        return ''
-
-class ReturnInt(Return):
-    def __str__(self):
-        return 'return ' + str(getExpr([2, 2, 1,1])) + ' ;\n'
-    def getType(self):
-        return 'int'
-
-class ReturnVoid(Return):
-    def __str__(self):
-        return ''
-    def getType(self):
-        return 'void'
-
 _exprs = [Number, SourceVar, BinaryOp, UnaryOp]
 _weights = map(lambda e: config.getint(e.__name__, 'Weight'), _exprs)
 _inner_weights = map(lambda e: config.getint(e.__name__, 'InnerWeight'), _exprs)
@@ -306,7 +284,7 @@ class Stats:
             self._statements += sum(map(lambda x: 1 if len(filter(lambda o: ' '+o+' ' in x, self._op))>0 else 0, s.split(';')))
             self._inputs += 1 if len(filter(lambda o: ' '+o+' ' in s, self._op))>0 else 0
         def toString(self, count_inputs, count_statemtns, count_total):
-            return self._name + ',' + str(self._inputs) + ',' + "{0:.2f}".format(100.0*self._inputs/float(count_inputs)) + ',' + str(self._statements) + ',' + "{0:.2f}".format(100.0*self._statements/float(count_statemtns)) + ',' + str(self._total) + ',' + "{0:.2f}".format(100.0*self._total/float(count_total))
+            return self._name + ',' + str(self._inputs) + ',' + "{0:.2f}".format(100.0*self._inputs/float(count_inputs) if count_inputs>0 else 0.0) + ',' + str(self._statements) + ',' + "{0:.2f}".format(100.0*self._statements/float(count_statemtns) if count_statemtns>0 else 0.0) + ',' + str(self._total) + ',' + "{0:.2f}".format(100.0*self._total/float(count_total) if count_total>0 else 0.0)
     class Counter:
         def __init__(self, f):
             self._f = f
@@ -380,7 +358,7 @@ class Stats:
         res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total), self._ops[:-1]))+'\n'
         res += '\n[Statements]\n'
         res += 'Num,Count,%\n'
-        res += '\n'.join(map(lambda x: str(x)+','+str(self._statement_count[x])+','+"{0:.2f}".format(100.0*self._statement_count[x]/float(self._num_inputs)),range(1,config.getint('Assignments', 'MaxAssignments')+1)))
+        res += '\n'.join(map(lambda x: str(x)+','+str(self._statement_count[x])+','+"{0:.2f}".format(100.0*self._statement_count[x]/float(self._num_inputs) if self._num_inputs>0 else 0.0),range(1,config.getint('Assignments', 'MaxAssignments')+1)))
         return res
 
 def generateStatements():
@@ -651,3 +629,26 @@ if __name__ == "__main__":
 #     print '\nDone!\n'
 #     print 'input lengths (ll): ' + str(minLL) + '-' + str(maxLL)
 #     print 'output lengths (ll): ' + str(minC) + '-' + str(maxC)
+#
+# class Return:
+#     _threshold = config.getfloat('Return','Threshold')
+#     @staticmethod
+#     def getReturn():
+#         if random.uniform(0,1) <= Return._threshold:
+#             return ReturnVoid()
+#         return ReturnInt()
+#     def getType(self):
+#         return ''
+#
+# class ReturnInt(Return):
+#     def __str__(self):
+#         return 'return ' + str(getExpr([2, 2, 1,1])) + ' ;\n'
+#     def getType(self):
+#         return 'int'
+#
+# class ReturnVoid(Return):
+#     def __str__(self):
+#         return ''
+#     def getType(self):
+#         return 'void'
+#
