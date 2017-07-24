@@ -2,10 +2,7 @@ import sys
 import os
 import re
 if not os.path.exists(sys.argv[1]+'.words'):
-    if os.path.exists(sys.argv[1]+'.ll'):
-        os.rename(sys.argv[1]+'.corpus.ll',sys.argv[1]+'.words')
-    else:
-        print 'Dataset input missing'
+    print 'Dataset input missing'
 def propogateRelevance(inst, dependencies, temps, i, relevance):
     if i in relevance[inst]:
         return
