@@ -188,7 +188,8 @@ for j in xrange(args.e):
                     patience += 1
                 if patience >= args.p:
                     print 'No progress for the last '+str(args.p)+' validations. Training stopped'
-                    print 'Done!'
+                    end = timeit.default_timer()
+                    print 'Done!\t('+"{0:.2f}".format(end-start)+' seconds)'
                     sys.exit(0)
         words = trainWords[s]
         expected = trainTags[s]
