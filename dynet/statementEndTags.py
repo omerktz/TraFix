@@ -9,17 +9,21 @@ with open(sys.argv[1]+'.words','r') as fin:
     with open(sys.argv[1]+'.tags','w') as fout:
         for l in fin.readlines():
             w = l.strip().split(' ')
-            flag = False
+            flag = 0
             res = ''
             for x in w:
                 if x == ';':
-                    if flag:
+                    if flag == 2:
                         res += 'END '
-                        flag = False
                     else:
                         res +='HIDDEN '
+                    flag = 0
                 else:
                     res += 'NONE '
-                    if x.lower() == 'store':
-                        flag = True
+                    if x == 'store':
+                        flag = 1
+                    else:
+                        if x == '%Y':
+                            if flag == 1:
+                                flag == 2
             fout.write(res.strip()+'\n')

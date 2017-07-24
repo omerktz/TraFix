@@ -1,3 +1,6 @@
+import timeit
+start = timeit.default_timer()
+
 import os
 import sys
 import random
@@ -6,13 +9,13 @@ import ConfigParser
 
 parser = argparse.ArgumentParser(description="Train a tagging model")
 parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to use for training", required=True)
-parser.add_argument('-m', '--model', dest='m', type=str, default='model', help="output model file name (default: \'%(default)s\')")
-parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabs', help="output file for vocabularies (default: \'%(default)s\')")
+parser.add_argument('-m', '--model', dest='m', type=str, default='modelTagger', help="output model file name (default: \'%(default)s\')")
+parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabsTagger', help="output file for vocabularies (default: \'%(default)s\')")
 parser.add_argument('-e', '--epochs', dest='e', type=int, default=100, help="max number of epochs (default: %(default)s)")
 parser.add_argument('-f', '--validation', dest='f', type=None, default=None, help="name of dataset to use for validation (validation disabled if no dataset is given)")
 parser.add_argument('-p', '--patience', dest='p', type=int, default=10, help="number of validations with no improvement before training is halted (default: %(default)s)")
 parser.add_argument('-i', '--intervals', dest='i', type=int, default=1000, help="number of trained samples between validations (default: %(default)s)")
-parser.add_argument('-c', '--config', dest='c', type=str, default='seqTagger.config', help="configuration file (default: \'%(default)s\')")
+parser.add_argument('-c', '--config', dest='c', type=str, default='tagger.config', help="configuration file (default: \'%(default)s\')")
 parser.add_argument('-v', '--verbose', dest='v', help="print progress information during training", action='count')
 parser.add_argument('-r', '--report', dest='r', type=int, default=1000, help="number of samples between progress reports (default: %(default)s)")
 args = parser.parse_args()
@@ -66,11 +69,11 @@ if args.f:
         validationWords = [l.strip().split(' ') for l in f.readlines()]
     with open(args.f + '.tags', 'r') as f:
         validationTags = [l.strip().split(' ') for l in f.readlines()]
-if args.v:
-    print 'Loaded datasets'
-
 words = list(reduce(lambda x,y: x.union(y), map(lambda w:set(w), trainWords), set()))
 tags = list(reduce(lambda x, y: x.union(y), map(lambda t:set(t), trainTags), set()))
+
+if args.v:
+    print 'Loaded datasets'
 
 wordCount = {}
 for t in trainWords:
@@ -190,9 +193,8 @@ for j in xrange(args.e):
         words = trainWords[s]
         expected = trainTags[s]
         loss = train(words, expected)
-        if args.v:
-            total_loss += loss.scalar_value()
-            words_tagged += len(words)
+        total_loss += loss.scalar_value()
+        words_tagged += len(words)
         loss.backward()
         trainer.update()
     if args.v:
@@ -209,4 +211,6 @@ if args.f:
     if (wgood > best_wgood) or ((wgood == best_wgood) and (good > best_good)):
         save()
 
-print 'Done!'
+end = timeit.default_timer()
+
+print 'Done!\t('+"{0:.2f}".format(end-start)+' seconds)'

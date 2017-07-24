@@ -1,12 +1,15 @@
+import timeit
+start = timeit.default_timer()
+
 import os
 import argparse
 import ConfigParser
 
-parser = argparse.ArgumentParser(description="Tag sentences")
-parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to tag", required=True)
-parser.add_argument('-m', '--model', dest='m', type=str, default='model', help="output model file name (default: \'%(default)s\')")
-parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabs', help="output file for vocabularies (default: \'%(default)s\')")
-parser.add_argument('-c', '--config', dest='c', type=str, default='seqTagger.config', help="configuration file (default: \'%(default)s\')")
+parser = argparse.ArgumentParser(description="Classify sentences")
+parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to classify", required=True)
+parser.add_argument('-m', '--model', dest='m', type=str, default='modelClassifier', help="model file name (default: \'%(default)s\')")
+parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabsClassifier', help="vocabularies file name(default: \'%(default)s\')")
+parser.add_argument('-c', '--config', dest='c', type=str, default='classifier.config', help="configuration file (default: \'%(default)s\')")
 parser.add_argument('-v', '--verbose', dest='v', help="print progress information during training", action='count')
 args = parser.parse_args()
 
@@ -67,36 +70,44 @@ model = dy.Model()
 
 wordsLookup = model.add_lookup_parameters((vw.size(),config.getint('Model', 'WordEmbeddingSize')))
 
-pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerHalfSize')*2))
+pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerSize')*2))
 pO = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 
-fwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
-bwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
+# for classify we want summary of sentence, not context of word in sentence, so backward lstm is not needed
+lstm = dy.LSTMBuilder(layers=1, input_dim=config.getint('Model', 'WordEmbeddingSize'), hidden_dim=config.getint('Model', 'HiddenLayerSize'), model=model)
 
 model.load_all(args.m)
 if args.v:
     print 'Loaded model'
 
 if args.v:
-    print 'Translating'
+    print 'Classifying'
 
 def get_graph(ws):
     dy.renew_cg()
     h = dy.parameter(pH)
     o = dy.parameter(pO)
-    fi = fwd.initial_state()
-    bi = bwd.initial_state()
+    l = lstm.initial_state()
     word_embs = [wordsLookup[vw.geti(w)] for w in ws]
-    fexps = fi.transduce(word_embs)
-    bexps = bi.transduce(reversed(word_embs))
-    exps = [dy.concatenate([f,b]) for f,b in zip(fexps,reversed(bexps))]
-    return map(lambda x: o*dy.tanh(h*x), exps)
+    exps = l.transduce(word_embs)
+    # only use summary of sentence (last value from transduce)
+    return o*dy.tanh(h*exps[-1])
 
 def tag(words):
-    return [vt.getw(np.argmax(dy.softmax(w).npvalue())) for w in (get_graph(words))]
+    return vt.getw(np.argmax(dy.softmax(get_graph(words)).npvalue()))
 
 with open(args.d+'.out','w') as f:
+    i = 1
+    l = len(words)
+    s  = str(l)
     for w in words:
-        f.write(' '.join(tag(w))+'\n')
+        if args.v:
+            print '\r\t' + str(i).zfill(len(s)) + '/' + s + '  (' + "{0:.2f}".format(100.0 * i / l) + '%)',
+        f.write(tag(w)+'\n')
+        i += 1
+    if args.v:
+        print ''
 
-print 'Done!'
+end = timeit.default_timer()
+
+print 'Done!\t('+"{0:.2f}".format(end-start)+' seconds)'
