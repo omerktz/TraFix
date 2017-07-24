@@ -93,9 +93,5 @@ data/
 *.diff
 *.tags
 *.out
-dynet/model
-dynet/vocabs
-dynet/modelClassifier
-dynet/vocabsClassifier
-dynet/modelTagger
-dynet/vocabsTagger
+dynet/model*
+dynet/vocabs*
