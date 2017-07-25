@@ -89,9 +89,11 @@ ENV/
 .ropeproject
 .idea/
 data/
-*.words
-*.diff
-*.tags
-*.out
+dynet/*.words
+dynet/*.diff
+dynet/*.tags
+dynet/*.out
 dynet/model*
 dynet/vocabs*
+dynet/*.corpus.c
+dynet/*.counts
