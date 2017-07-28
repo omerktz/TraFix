@@ -10,9 +10,9 @@ n = int(sys.argv[2])
 
 with open(sys.argv[1]+'.counts','r') as fcounts:
     counts = [int(l.strip()) for l in fcounts.readlines()]
-with open(sys.argv[1]+'1.corpus.out','r') as fout:
+with open(sys.argv[1]+'1.'+str(n)+'.corpus.out','r') as fout:
     lines = [l.strip() for l in fout.readlines()]
-with open(sys.argv[1]+'.corpus.out','w') as fout:
+with open(sys.argv[1]+'.'+str(n*n)+'.corpus.out','w') as fout:
     i = 0;
     count = 0
     for k in counts:
