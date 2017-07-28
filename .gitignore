@@ -96,4 +96,6 @@ dynet/*.out
 dynet/model*
 dynet/vocabs*
 dynet/*.corpus.c
+dynet/*.corpus.ll
+dynet/*.corpus.out
 dynet/*.counts

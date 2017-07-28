@@ -11,7 +11,7 @@ with open(sys.argv[1]+'.words','r') as fwords:
 with open(sys.argv[1]+'.tags','r') as ftags:
     lines = [l.strip().split(' ') for l in ftags.readlines()]
     tags = map(lambda l: map(lambda x:ast.literal_eval(x), l), lines)
-with open(sys.argv[1]+'.corpus.c','w') as fc:
+with open(sys.argv[1]+'1.corpus.ll','w') as fc:
     with open(sys.argv[1] + '.counts', 'w') as fcount:
         for i in range(len(words)):
             w = words[i]
