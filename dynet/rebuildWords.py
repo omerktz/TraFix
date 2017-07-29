@@ -1,18 +1,19 @@
 import sys
 import os
 import itertools
-if not os.path.exists(sys.argv[1]+'.counts'):
-    print 'Dataset counts missing'
-if not os.path.exists(sys.argv[1]+'.corpus.out'):
-    print 'Dataset translation missing'
 
 n = int(sys.argv[2])
 
+if not os.path.exists(sys.argv[1]+'.counts'):
+    print 'Dataset counts missing'
+if not os.path.exists(sys.argv[1]+'1.corpus.'+str(n)+'.out'):
+    print 'Dataset translation missing'
+
 with open(sys.argv[1]+'.counts','r') as fcounts:
     counts = [int(l.strip()) for l in fcounts.readlines()]
-with open(sys.argv[1]+'1.'+str(n)+'.corpus.out','r') as fout:
-    lines = [l.strip() for l in fout.readlines()]
-with open(sys.argv[1]+'.'+str(n*n)+'.corpus.out','w') as fout:
+with open(sys.argv[1]+'1.corpus.'+str(n)+'.out','r') as fout:
+    lines = [l.strip().split('|||')[1].strip() for l in fout.readlines()]
+with open(sys.argv[1]+'.corpus.'+str(n)+'.out','w') as fout:
     i = 0;
     count = 0
     for k in counts:

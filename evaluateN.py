@@ -3,6 +3,7 @@ import os
 import subprocess
 import multiprocessing
 import time
+import itertools
 
 def runCbmc(timeout):
 	with open(os.devnull,'w') as fnull:
@@ -97,13 +98,17 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	ntimeout = 0
 	cs = [l.strip() for l in fc.readlines()]
 	lls = [l.strip() for l in fll.readlines()]
-	outs = [l[l.index('|||')+3:l.rindex('|||')].strip() for l in fout.readlines()]
-	max_len = max(len(cs),len(lls),len(outs)/k)
+	outs = [map(lambda x: x.strip(), l.strip().split('|||')[0:2]) for l in fout.readlines()]
+	groups = {}
+	for (n,g) in itertools.groupby(outs, lambda x: x[0]):
+		groups[int(n)] = [x[1] for x in g]
+	max_len = max(len(cs),len(lls),len(groups.keys()))
 	cs = cs + ['']*(max_len-len(cs))
 	lls = lls + ['']*(max_len-len(lls))
-	outs = outs + ['']*(k*max_len-len(outs))
+	for i in filter(lambda x: x not in groups.keys(), range(max_len)):
+		groups[i] = []
 	pool = multiprocessing.Pool(processes=k)
-	results = map(lambda i: evaluateProg(i,str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],outs[k*i:k*(i+1)],pool),range(len(cs)))
+	results = map(lambda i: evaluateProg(i,str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],groups[i],pool),range(len(cs)))
 	pool.close()
 	pool.join()
 	print ''
