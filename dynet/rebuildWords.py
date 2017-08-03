@@ -46,12 +46,12 @@ with open(sys.argv[1]+'.corpus.'+str(n)+'.out','w') as fout:
     i = 0;
     count = 0
     for k in counts:
+        print '\r'+str(count),
+        sys.stdout.flush()
         trans = []
         for j in range(k):
             current = []
             current_id = lines[i][0].strip()
-            print '\r'+current_id,
-            sys.stdout.flush()
             while lines[i][0].strip() == current_id:
                 current.append(lines[i][1].strip())
                 i += 1
