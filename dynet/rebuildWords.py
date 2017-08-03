@@ -16,15 +16,17 @@ def filterTranslation(tran, source):
         f.write(tran.strip() + '\n')
         f.write('}\n')
     os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
+    if not os.path.exists('tmp.ll'):
+    	return False
     with open('tmp.ll', 'r') as f:
         lines = [l.strip() for l in f.readlines()]
     start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
     end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
     ll = ''
     for i in range(start + 12, end - 1):
-        line = lines[i].strip().replace(',', ' ,')
-        ll += line + ' ; '
-    ll = ll + '\n'
+        line = lines[i].strip()
+        ll += line + ';'
+    ll = ll.strip().replace(' ','')
     return ll == source
 
 
@@ -48,10 +50,13 @@ with open(sys.argv[1]+'.corpus.'+str(n)+'.out','w') as fout:
         for j in range(k):
             current = []
             current_id = lines[i][0].strip()
+            print '\r'+current_id,
+            sys.stdout.flush()
             while lines[i][0].strip() == current_id:
                 current.append(lines[i][1].strip())
                 i += 1
-            trans.append(filterTranslations(current, sources[current_id]))
+            trans.append(filterTranslations(current, sources[int(current_id)]))
         for p in itertools.product(*trans):
             fout.write(str(count)+' ||| '+' '.join(p).strip()+' ||| \n')
         count += 1
+print ''
