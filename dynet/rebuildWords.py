@@ -52,7 +52,7 @@ with open(sys.argv[1]+'.corpus.'+str(n)+'.out','w') as fout:
         for j in range(k):
             current = []
             current_id = lines[i][0].strip()
-            while (len(lines[i]) == 2) and (lines[i][0].strip() == current_id):
+            while (i < len(lines)) and (lines[i][0].strip() == current_id):
                 current.append(lines[i][1].strip())
                 i += 1
             trans.append(filterTranslations(current, sources[int(current_id)]))
