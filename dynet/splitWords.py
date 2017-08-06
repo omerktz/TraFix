@@ -23,7 +23,7 @@ def normalize_ll(words):
     return res
 
 with open(sys.argv[1]+'.words','r') as fwords:
-    words = [l.strip().split(' ') for l in fwords.readlines()]
+    words = [l.strip().replace(';',' ;').split(' ') for l in fwords.readlines()]
 with open(sys.argv[1]+'.tags','r') as ftags:
     lines = [l.strip().split(' ') for l in ftags.readlines()]
     tags = map(lambda l: map(lambda x:ast.literal_eval(x), l), lines)
