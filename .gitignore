@@ -99,3 +99,4 @@ dynet/*.corpus.c
 dynet/*.corpus.ll
 dynet/*.corpus.out
 dynet/*.counts
+dynet/*.csv

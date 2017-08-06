@@ -27,6 +27,8 @@ def filterTranslation(tran, source):
         line = lines[i].strip()
         ll += line + ';'
     ll = ll.strip().replace(' ','')
+    os.remove('tmp.c')
+    os.remove('tmp.ll')
     return ll == source
 
 
