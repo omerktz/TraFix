@@ -440,10 +440,12 @@ def generateStatements():
                 j += 1
     with open(outFile+'.vocab.c.json', 'w') as f:
         f.write('{\n')
+        f.write('  "eos": 0, \n')
+        f.write('  "UNK": 1, \n')
         i = 0
         n = len(vocabc)
         for w in vocabc:
-            f.write('  "' + w + '": ' + str(i))
+            f.write('  "' + w + '": ' + str(i+2))
             i += 1
             if i != n:
                 f.write(', ')
@@ -451,10 +453,12 @@ def generateStatements():
         f.write('}')
     with open(outFile+'.vocab.ll.json', 'w') as f:
         f.write('{\n')
+        f.write('  "eos": 0, \n')
+        f.write('  "UNK": 1, \n')
         i = 0
         n = len(vocabll)
         for w in vocabll:
-            f.write('  "' + w + '": ' + str(i))
+            f.write('  "' + w + '": ' + str(i+2))
             i += 1
             if i != n:
                 f.write(', ')
