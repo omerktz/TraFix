@@ -413,7 +413,7 @@ def generateStatements():
                     for x in s:
                         f.write(str(x)+'\n')
                     f.write('}\n')
-                os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
+                os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
                 with open('tmp.ll', 'r') as f:
                     lines = [l.strip() for l in f.readlines()]
                 start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))

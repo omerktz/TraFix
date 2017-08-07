@@ -1,6 +1,7 @@
 import sys
 import os
 import itertools
+import ConfigParser
 
 n = int(sys.argv[2])
 
@@ -9,13 +10,16 @@ if not os.path.exists(sys.argv[1]+'.counts'):
 if not os.path.exists(sys.argv[1]+'1.corpus.'+str(n)+'.out'):
     print 'Dataset translation missing'
 
+config = ConfigParser.ConfigParser()
+config.read('rebuild.config')
+
 def filterTranslation(tran, source):
     with open('tmp.c', 'w') as f:
         f.write('void f() {\n')
-        f.write('int Y' + ','.join([''] + map(lambda i: 'X'+str(i), range(10))) + ';\n')
+        f.write('int Y' + ','.join([''] + map(lambda i: 'X'+str(i), range(config.getint('General', 'NumVars')))) + ';\n')
         f.write(tran.strip() + '\n')
         f.write('}\n')
-    os.system('clang -S -emit-llvm -o tmp.ll tmp.c > /dev/null 2>&1')
+    os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
     if not os.path.exists('tmp.ll'):
     	return False
     with open('tmp.ll', 'r') as f:
