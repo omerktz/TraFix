@@ -89,7 +89,7 @@ def get_graph(ws):
     o = dy.parameter(pO)
     fi = fwd.initial_state()
     bi = bwd.initial_state()
-    word_embs = [wordsLookup[vw.geti(w)] for w in ws]
+    word_embs = [dy.lookup(wordsLookup, vw.geti(w), update=False) for w in ws]
     fexps = fi.transduce(word_embs)
     bexps = bi.transduce(reversed(word_embs))
     exps = [dy.concatenate([f,b]) for f,b in zip(fexps,reversed(bexps))]

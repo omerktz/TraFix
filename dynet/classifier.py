@@ -88,7 +88,7 @@ def get_graph(ws):
     h = dy.parameter(pH)
     o = dy.parameter(pO)
     l = lstm.initial_state()
-    word_embs = [wordsLookup[vw.geti(w)] for w in ws]
+    word_embs = [dy.lookup(wordsLookup, vw.geti(w), update=False) for w in ws]
     exps = l.transduce(word_embs)
     # only use summary of sentence (last value from transduce)
     return o*dy.tanh(h*exps[-1])
