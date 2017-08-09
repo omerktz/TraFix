@@ -90,26 +90,17 @@ if args.v:
 model = dy.Model()
 trainer = dy.AdamTrainer(model)
 
-#wordsLookup = model.add_lookup_parameters((vw.size(),config.getint('Model', 'WordEmbeddingSize')))
-
-pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerSize')))
-pO = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
-
-# for classify we want summary of sentence, not context of word in sentence, so backward lstm is not needed
-lstm = dy.LSTMBuilder(layers=1, input_dim=config.getint('Model', 'WordEmbeddingSize'), hidden_dim=config.getint('Model', 'HiddenLayerSize'), model=model)
+pW = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'WordEmbeddingSize')))
+pU = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 
 if args.v:
     print 'Training'
 
 def get_graph(ws):
     dy.renew_cg()
-    h = dy.parameter(pH)
-    o = dy.parameter(pO)
-    l = lstm.initial_state()
-    #word_embs = [wordsLookup[vw.geti(w)] for w in ws]
-    exps = l.transduce(ws)
-    # only use summary of sentence (last value from transduce)
-    return o*dy.tanh(h*exps[-1])
+    w = dy.parameter(pW)
+    u = dy.parameter(pU)
+    return u*dy.tanh(w*ws)
 
 def train(words,tag):
     return dy.pickneglogsoftmax(get_graph(words),vt.geti(tag))
