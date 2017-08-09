@@ -49,6 +49,12 @@ ref = data[args.r]
 reference = map(lambda f: f.process(ref[1],ref[2],ref[4:]), filters)
 referenceIndexes = range(len(reference))
 
+summarize = None
+if (args.a) or (len(filters) == 1):
+    summarize = all
+if args.o:
+    summarize = any
+
 count = 0
 with open(args.output, 'w') as f:
     writer = csv.writer(f)
@@ -62,7 +68,7 @@ with open(args.output, 'w') as f:
         if k != args.r:
             l = data[k]
             summary = map(lambda f: f.process(l[1],l[2],l[4:]), filters)
-            if all(map(lambda i: filters[i].compare(reference[i], summary[i]), referenceIndexes)):
+            if summarize(map(lambda i: filters[i].compare(reference[i], summary[i]), referenceIndexes)):
                 count += 1
                 writer.writerow(l)
 
