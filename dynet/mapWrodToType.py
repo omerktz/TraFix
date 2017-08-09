@@ -1,9 +1,11 @@
 import re
 
 import enum
-Types = enum.Enum('Types', 'Var TmpVar Num Op Assign Other')
+Types = enum.Enum('Types', 'Var Tmp Num Op Assign Other Model')
 
 def getType(w):
+	if w in ['eos', 'UNK']:
+		return Types.Model
 	if w == '=':
 		return Types.Assign
 	if w.startswith('%'):

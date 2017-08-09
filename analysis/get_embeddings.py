@@ -6,6 +6,26 @@ from scipy.spatial import distance
 def embedding_distance(x,y):
   return distance.euclidean(x,y)
 
+import re
+
+import enum
+Types = enum.Enum('Types', 'Var Tmp Num Op Assign Other Model')
+
+def getType(w):
+  if w in ['eos', 'UNK']:
+    return Types.Model
+  if w == '=':
+    return Types.Assign
+  if w.startswith('%'):
+    if re.match('%[0-9]+$',w):
+      return Types.TmpVar
+    return Types.Var
+  if re.match('^\-?[0-9]+$',w):
+    return Types.Num
+  if w in ['add','sub','load','store','sdiv','mul','srem']:
+    return Types.Op
+  return Types.Other
+
 if (len(sys.argv) < 3) or (len(sys.argv) > 4):
   print 'Usage: python '+sys.argv[0]+' <model npz file> <output file> [<vocabulary file>]'
   sys.exit(1)
@@ -28,3 +48,13 @@ if len(sys.argv) == 4:
       embeddings[i] = map(lambda y: float(y), filter(lambda x: len(x)>0, embeddings[i].split(' ')))
     for i in range(len(vocab)):
       f.write('"'+vocab[i].replace('"','""')+'","'+'","'.join(map(lambda j:str(embedding_distance(embeddings[j], embeddings[i])), range(len(vocab))))+'"\n')
+  with open('embeddings.js', 'w') as fjs:
+    fjs.write('var vocab = [' + ','.join(map(lambda x: '"' + x + '"', vocab)) + '];\n')
+    fjs.write('var types = [' + ','.join(map(lambda x: '"' + getType(x).name + '"', vocab)) + '];\n')
+    fjs.write('var title = "' + sys.argv[1] + ' embeddings";\n')
+    fjs.write('var matrix = [')
+    for i in range(len(vocab)):
+      if i > 0:
+        fjs.write(',')
+      fjs.write('[' + ','.join(map(lambda j: str(embedding_distance(embeddings[i], embeddings[j])), range(len(vocab)))) + ']')
+    fjs.write('];\n')
