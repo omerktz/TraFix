@@ -18,7 +18,7 @@ def getType(w):
     return Types.Assign
   if w.startswith('%'):
     if re.match('%[0-9]+$',w):
-      return Types.TmpVar
+      return Types.Tmp
     return Types.Var
   if re.match('^\-?[0-9]+$',w):
     return Types.Num
