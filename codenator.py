@@ -135,7 +135,7 @@ class UnaryOp(Op):
         res += str(self._op)
         if not self._position:
             res += ' '+self._act
-        return '( '+res+' )'
+        return res
     def __eq__(self, other):
         if not isinstance(other,UnaryOp):
             return False
