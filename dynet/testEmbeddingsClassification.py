@@ -171,6 +171,16 @@ for i in range(len(data)):
 print ''
 print str(total_passed)+' out of '+str(len(data))+' tests passed ('+"{0:.2f}".format(100*total_passed/float(len(data)))+'%)'
 
+with open('failures.csv', 'w') as fout:
+    first = True
+    for d in os.listdir(args.o):
+        with open(os.path.join(args.o,d,'failures.csv'), 'r') as fin:
+            lines = fin.readlines()
+            if first:
+                fout.write(lines[0])
+                first = False
+            fout.write(lines[1])
+
 end = timeit.default_timer()
 
 print 'Done!\t('+"{0:.2f}".format(end-start)+' seconds)'
