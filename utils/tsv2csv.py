@@ -1,5 +1,6 @@
 import argparse
 import os
+import csv
 
 parser = argparse.ArgumentParser(description="convert TSV file to CSV")
 parser.add_argument('-r', '--reverse', help="reverse conversion", action='count', required=False, default=False)
@@ -13,12 +14,14 @@ if f.endswith('.tsv') or f.endswith('.csv'):
 if not args.reverse:
     with open(f+'.tsv','r') as fin:
         with open(f+'.csv','w') as fout:
+            csvout = csv.write(fout)
             for l in fin.readlines():
-                fout.write('"'+l.replace('"','""').replace('\t','","').replace('\r','').replace('\n','"\n'))
+                csvout.writerow(l.strip().split('\t'))
     os.remove(f+'.tsv')
 else:
     with open(f+'.csv','r') as fin:
+        csvin = csv.reader(fin)
         with open(f+'.tsv','w') as fout:
-            for l in fin.readlines():
-                fout.write(l[1:].replace('\t',' ').replace(' , ','~_~').replace('","','\t').replace('~_~',' , ').replace('""','"').replace('"\n','\n'))
+            for l in list(csvin):
+                fout.write('\t'.join(l)+'\n')
     os.remove(f+'.csv')

@@ -4,6 +4,7 @@ import subprocess
 import multiprocessing
 import time
 import itertools
+import csv
 
 def runCbmc(timeout):
 	with open(os.devnull,'w') as fnull:
@@ -115,26 +116,26 @@ def evaluate(k,fc,fll,fout,fi=None,fs=None,ff=None,fp=None,ft=None):
 	for x in results:
 		if x[4] == 0:
 			if fi:
-				fi.write('"'+str(x[0]).replace('"','""')+'","'+x[1].replace('"','""')+'","'+x[2].replace('"','""')+'","'+'","'.join(map(lambda y:y.replace('"','""'), x[3]))+'"\n')
+				fi.writerow([str(x[0]),x[1],x[2]]+x[3])
 			nidentical += 1
 		else:
 			if x[4] == 1:
 				if fs:
-					fs.write('"'+str(x[0]).replace('"','""')+'","'+x[1].replace('"','""')+'","'+x[2].replace('"','""')+'","'+'","'.join(map(lambda y:y.replace('"','""'), x[3]))+'"\n')
+					fs.writerow([str(x[0]),x[1],x[2]]+x[3])
 				nsuccess += 1
 			else:
 				if x[4] == 2:
 					if fp:
-						fp.write('"'+str(x[0]).replace('"','""')+'","'+x[1].replace('"','""')+'","'+x[2].replace('"','""')+'","'+'","'.join(map(lambda y:y.replace('"','""'), x[3]))+'"\n')
+						fp.writerow([str(x[0]),x[1],x[2]]+x[3])
 					nparse += 1
 				else:
 					if x[4] == 3:
 						if ff:
-							ff.write('"'+str(x[0]).replace('"','""')+'","'+x[1].replace('"','""')+'","'+x[2].replace('"','""')+'","'+'","'.join(map(lambda y:y.replace('"','""'), x[3]))+'"\n')
+							ff.writerow([str(x[0]),x[1],x[2]]+x[3])
 						nfail += 1
 					else:
 						if ft:
-							ft.write('"'+str(x[0]).replace('"','""')+'","'+x[1].replace('"','""')+'","'+x[2].replace('"','""')+'","'+'","'.join(map(lambda y:y.replace('"','""'), x[3]))+'"\n')
+							ft.writerow([str(x[0]),x[1],x[2]]+x[3])
 						ntimeout += 1
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):
@@ -147,15 +148,15 @@ def main(f,k):
 			with open(f+'.fail.'+str(k)+'.csv', 'w') as ffail:
 				with open(f+'.parse.'+str(k)+'.csv', 'w') as fparse:
 					with open(f+'.timeout.'+str(k)+'.csv', 'w') as ftimeout:
-						fidentical.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fsuccess.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ffail.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						fparse.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
-						ftimeout.write('line,c,ll'+',out'+',out'.join([]+map(lambda i:str(i),range(k)))+'\n')
+						csv.writer(fidentical).writerow(['line','c','ll']+map(lambda i:'out'+str(i),range(k)))
+						csv.writer(fsuccess).writerow(['line','c','ll']+map(lambda i:'out'+str(i),range(k)))
+						csv.writer(ffail).writerow(['line','c','ll']+map(lambda i:'out'+str(i),range(k)))
+						csv.writer(fparse).writerow(['line','c','ll']+map(lambda i:'out'+str(i),range(k)))
+						csv.writer(ftimeout).writerow(['line','c','ll']+map(lambda i:'out'+str(i),range(k)))
 						with open(f+'.corpus.c','r') as fc:
 							with open(f+'.corpus.ll', 'r') as fll:
 								with open(f+'.corpus.'+str(k)+'.out', 'r') as fout:
-									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,fidentical,fsuccess,ffail,fparse,ftimeout)
+									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,csv.writer(fidentical),csv.writer(fsuccess),csv.writer(ffail),csv.writer(fparse),csv.writer(ftimeout))
 	print str(nidentical)+' statements translated identically'
 	print str(nsuccess)+' statements translated equivalently'
 	print str(nparse)+' translated statements failed to parse'

@@ -1,4 +1,3 @@
-import re
 import os
 
 count_only_first_error = True

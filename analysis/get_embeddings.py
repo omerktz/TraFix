@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy
+import csv
 
 from scipy.spatial import distance
 def embedding_distance(x,y):
@@ -38,16 +39,18 @@ if len(sys.argv) == 4:
     vocab = [l.strip() for l in f.readlines()][1:-1]
   vocab = map(lambda x: x[:x.rfind(':')][1:-1], vocab)
   with open(sys.argv[2]+'.csv','w') as f:
-    f.write('Word,Raw,,Parsed\n')
+    csvf = csv.writer(f)
+    csvf.writerow(['Word','Raw','','Parsed'])
     for i in range(len(vocab)):
-      f.write('"'+vocab[i].replace('"','""')+'","'+embeddings[i].replace('"','""')+'",,"'+embeddings[i].replace('"','""').replace(' ','","')+'"\n')
+      csvf.writerow([vocab[i],embeddings[i],'']+embeddings[i].split(' '))
   os.remove(sys.argv[2])
   with open(sys.argv[2]+'.dist.csv', 'w') as f:
-    f.write(','+','.join(map(lambda i:vocab[i].replace('"','""'), range(len(vocab))))+'\n')
+    csvf = csv.writer(f)
+    csvf.writerow(['']+vocab)
     for i in range(len(embeddings)):
       embeddings[i] = map(lambda y: float(y), filter(lambda x: len(x)>0, embeddings[i].split(' ')))
     for i in range(len(vocab)):
-      f.write('"'+vocab[i].replace('"','""')+'","'+'","'.join(map(lambda j:str(embedding_distance(embeddings[j], embeddings[i])), range(len(vocab))))+'"\n')
+      csvf.writerow([vocab[i]]+map(lambda j:str(embedding_distance(embeddings[j], embeddings[i])), range(len(vocab))))
   with open('embeddings.html', 'w') as fhtml:
     fhtml.write('<!DOCTYPE html>\n<html>\n<head>\n<style>\n#raw td {\n	text-align: center;\n}\n#freeze {\n	background: rgba(128,128,128,0.25);\n    position: absolute;\n	top: 0;\n	left: 0;\n	width: 100%;\n	height: 100%;\n}\n#loader {\n	border: 16px solid #f3f3f3; /* Light grey */\n	border-top: 16px solid #3498db; /* Blue */\n	border-radius: 50%;\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    margin-top: -50px;\n    margin-left: -50px;\n	width: 100px;\n	height: 100px;\n	animation: spin 2s linear infinite;\n}\n@keyframes spin {\n	0% { transform: rotate(0deg); }\n	100% { transform: rotate(360deg); }\n}\n</style>\n<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>\n<script>\n')
     fhtml.write('var vocab = [' + ','.join(map(lambda x: '"' + x + '"', vocab)) + '];\n')

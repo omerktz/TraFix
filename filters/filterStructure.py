@@ -1,4 +1,5 @@
 import re
+import csv
 
 def normalize(x):
 	x = x.split(' ')
@@ -23,5 +24,5 @@ def filter(c,ll,out):
     if normalize(c) in map(normalize,out):
     	return True
     with open('structurallyDifferent.csv','a') as f:
-    	f.write('"'+c.replace('"','""')+'","'+ll.replace('"','""')+'","'+'","'.join(map(lambda x:x.replace('"','""'),out))+'"\n')
+		csv.writer(f).writerow([c,ll]+out)
     return False
