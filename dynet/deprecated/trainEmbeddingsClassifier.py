@@ -7,15 +7,17 @@ import random
 import argparse
 import ConfigParser
 
+import csv
+
 parser = argparse.ArgumentParser(description="Train a tagging model")
-parser.add_argument('-d', '--dataset', dest='d', type=str, help="name of dataset to use for training", required=True)
-parser.add_argument('-m', '--model', dest='m', type=str, default='modelClassifier', help="output model file name (default: \'%(default)s\')")
-parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabsClassifier', help="output file for vocabularies (default: \'%(default)s\')")
+parser.add_argument('input', dest='d', type=str, help="embeddings file to use as input", required=True)
+parser.add_argument('-m', '--model', dest='m', type=str, default='modelEmbeddingsClassifier', help="output model file name (default: \'%(default)s\')")
+parser.add_argument('-w', '--vocabularies', dest='w', type=str, default='vocabsEmbeddingsClassifier', help="output file for vocabularies (default: \'%(default)s\')")
 parser.add_argument('-e', '--epochs', dest='e', type=int, default=100, help="max number of epochs (default: %(default)s)")
 parser.add_argument('-f', '--validation', dest='f', type=None, default=None, help="name of dataset to use for validation (validation disabled if no dataset is given)")
 parser.add_argument('-p', '--patience', dest='p', type=int, default=10, help="number of validations with no improvement before training is halted (default: %(default)s)")
 parser.add_argument('-i', '--intervals', dest='i', type=int, default=1000, help="number of trained samples between validations (default: %(default)s)")
-parser.add_argument('-c', '--config', dest='c', type=str, default='classifierNoEmbeddings.config', help="configuration file (default: \'%(default)s\')")
+parser.add_argument('-c', '--config', dest='c', type=str, default='embeddingsClassifier.config', help="configuration file (default: \'%(default)s\')")
 parser.add_argument('-v', '--verbose', dest='v', help="print progress information during training", action='count')
 parser.add_argument('-r', '--report', dest='r', type=int, default=1000, help="number of samples between progress reports (default: %(default)s)")
 args = parser.parse_args()
@@ -56,33 +58,26 @@ class Vocabulary:
             f.write(self.i2w[i]+'\t'+str(i)+'\n')
         f.write('\n')
 
-if (not os.path.exists(args.d+'.words')) or (not os.path.exists(args.d+'.tags')):
-    parser.error('train dataset is missing essential files')
-with open(args.d+'.words','r') as f:
-    trainWords = [l.strip().split(' ') for l in f.readlines()]
-with open(args.d+'.tags','r') as f:
-    trainTags = [l.strip() for l in f.readlines()]
+if not os.path.exists(args.d):
+    parser.error('embeddings input file doesn\'t exist')
+with open(args.d,'r') as f:
+    reader = csv.reader(f)
+    lines = filter(lambda l: len(l)>0, list(reader)[1:])
+    trainEmbeddings = map(lambda l: map(lambda x: float(x),l[-config.getint('Model', 'EmbeddingSize'):]), lines)
+    trainTypes = map(lambda l: l[0], lines)
 if args.f:
-    if (not os.path.exists(args.f + '.words')) or (not os.path.exists(args.f + '.tags')):
-        parser.error('validation dataset is missing essential files')
-    with open(args.f + '.words', 'r') as f:
-        validationWords = [l.strip().split(' ') for l in f.readlines()]
-    with open(args.f + '.tags', 'r') as f:
-        validationTags = [l.strip() for l in f.readlines()]
+    if not os.path.exists(args.f):
+        parser.error('validation embeddings file doesn\'t exist')
+    with open(args.f, 'r') as f:
+        reader = csv.reader(f)
+        lines = filter(lambda l: len(l) > 0, list(reader)[1:])
+        validationEmbeddings = map(lambda l: map(lambda x: float(x),l[-config.getint('Model', 'EmbeddingSize'):]), lines)
+        validationTypes = map(lambda l: l[0], lines)
 
 if args.v:
     print 'Loaded datasets'
 
-wordCount = {}
-for t in trainWords:
-    for w in t:
-        if w not in wordCount.keys():
-            wordCount[w] = 1
-        else:
-            wordCount[w] += 1
-
-vw = Vocabulary.from_corpus(list(reduce(lambda x,y: x.union(y), map(lambda w:set(w), trainWords), set())))
-vt = Vocabulary.from_corpus(trainTags)
+vt = Vocabulary.from_corpus(trainTypes)
 
 if args.v:
     print 'Vocabularies created'
@@ -90,7 +85,7 @@ if args.v:
 model = dy.Model()
 trainer = dy.AdamTrainer(model)
 
-pW = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'WordEmbeddingSize')))
+pW = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'EmbeddingSize')))
 pU = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 
 if args.v:
@@ -102,17 +97,17 @@ def get_graph(ws):
     u = dy.parameter(pU)
     return u*dy.tanh(w*ws)
 
-def train(words,tag):
-    return dy.pickneglogsoftmax(get_graph(words),vt.geti(tag))
+def train(embedding, type):
+    return dy.pickneglogsoftmax(get_graph(embedding), vt.geti(type))
 
-def classify(words):
-    return vt.getw(np.argmax(dy.softmax(get_graph(words)).npvalue()))
+def classify(embedding):
+    return vt.getw(np.argmax(dy.softmax(get_graph(embedding)).npvalue()))
 
-def validate(words,expected):
+def validate(embeddings, expected):
     good = 0
     bad = 0
-    for i in xrange(len(words)):
-        w = words[i]
+    for i in xrange(len(embeddings)):
+        w = embeddings[i]
         e = expected[i]
         t = classify(w)
         if t == e:
@@ -128,12 +123,11 @@ def save():
         pass
     model.save_all(args.m)
     with open(args.w,'w') as f:
-        vw.save(f)
         vt.save(f)
 
 words_tagged = 0.0
 total_loss = 0.0
-indexes = range(len(trainWords))
+indexes = range(len(trainEmbeddings))
 patience = 0
 best_good = 0
 best_bad = 0
@@ -149,7 +143,7 @@ for j in xrange(args.e):
                 words_tagged = 0.0
         if args.f:
             if i % args.i == 0 or i == len(indexes)-1:
-                good, bad = validate(validationWords,validationTags)
+                good, bad = validate(validationEmbeddings,validationTypes)
                 if args.v:
                     print 'Validation:'
                     print '\tSentences: '+str(good)+' ('+"{0:.2f}".format(100.0 * good / (good + bad))+')',
@@ -170,11 +164,11 @@ for j in xrange(args.e):
                     end = timeit.default_timer()
                     print 'Done!\t('+"{0:.2f}".format(end-start)+' seconds)'
                     sys.exit(0)
-        words = trainWords[s]
-        expected = trainTags[s]
-        loss = train(words, expected)
+        embedding = trainEmbeddings[s]
+        expected = trainTypes[s]
+        loss = train(embedding, expected)
         total_loss += loss.scalar_value()
-        words_tagged += len(words)
+        words_tagged += len(embedding)
         loss.backward()
         trainer.update()
     if args.v:
@@ -187,7 +181,7 @@ if args.v:
     print 'Reached max epochs. Training stopped'
 
 if args.f:
-    good, bad= validate(validationWords, validationTags)
+    good, bad= validate(validationEmbeddings, validationTypes)
     if good > best_good:
         save()
 

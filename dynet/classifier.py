@@ -93,7 +93,7 @@ def get_graph(ws):
     # only use summary of sentence (last value from transduce)
     return o*dy.tanh(h*exps[-1])
 
-def tag(words):
+def classify(words):
     return vt.getw(np.argmax(dy.softmax(get_graph(words)).npvalue()))
 
 with open(args.d+'.out','w') as f:
@@ -103,7 +103,7 @@ with open(args.d+'.out','w') as f:
     for w in words:
         if args.v:
             print '\r\t' + str(i).zfill(len(s)) + '/' + s + '  (' + "{0:.2f}".format(100.0 * i / l) + '%)',
-        f.write(tag(w)+'\n')
+        f.write(classify(w)+'\n')
         i += 1
     if args.v:
         print ''
