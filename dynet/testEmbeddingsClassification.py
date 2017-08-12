@@ -141,7 +141,7 @@ class TrainAndTest:
         passed = 0
         for s in self.testData:
             embedding = s[0]
-            expected = s[1]
+            expected = s[2]
             classified_type = self.classifySingle(embedding)
             if expected == classified_type:
                 passed += 1
