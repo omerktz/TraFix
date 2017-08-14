@@ -1,18 +1,15 @@
 import timeit
-start = timeit.default_timer()
-
+import argparse
+import random
 import os
 import sys
-import random
-import argparse
 import shutil
-
 import csv
-
 from mapWrodToType import getType
-
-import dynet as dy
 import numpy as np
+import _dynet as dy
+
+start = timeit.default_timer()
 
 parser = argparse.ArgumentParser(description="Test embedding classification (using leave-one-out method)")
 parser.add_argument('input', type=str, help="embeddings file to use as input")
@@ -23,7 +20,14 @@ parser.add_argument('-vv', '--super-verbose', dest='vv', help="print additional 
 parser.add_argument('-t', '--timings', dest='t', help="report inner timings", action='count')
 parser.add_argument('-es', '--embedding-size', dest='s', type=int, default=512, help="size of embedding vector (default: %(default)s)")
 parser.add_argument('-ms', '--mlp-layer-size', dest='m', type=int, default=32, help="size of mlp layer (default: %(default)s)")
+parser.add_argument('-s', '--seed', dest='seed', type=int, default=13371337, help="random seed (default: %(default)s)")
 args = parser.parse_args()
+
+rnd = random.Random(args.seed)
+
+dyparams = dy.DynetParams()
+dyparams.set_random_seed(args.seed)
+dyparams.init()
 
 class Vocabulary:
     def __init__(self):
@@ -72,7 +76,7 @@ if args.v or args.vv:
 
 class TrainAndTest:
 
-    def __init__(self,train,test,dir):
+    def __init__(self, train, test, dir):
         self.model = dy.Model()
         self.trainer = dy.AdamTrainer(self.model)
 
@@ -85,19 +89,19 @@ class TrainAndTest:
         if os.path.exists(self.dir):
             shutil.rmtree(self.dir)
 
-    def get_graph(self,embedding):
+    def get_graph(self, embedding):
         dy.renew_cg()
         w = dy.parameter(self.pW)
         u = dy.parameter(self.pU)
         return u*dy.tanh(w*dy.inputTensor(embedding))
 
-    def trainSingle(self, embedding, type):
+    def train_single(self, embedding, type):
         return dy.pickneglogsoftmax(self.get_graph(embedding), vocab.geti(type))
 
-    def classifySingle(self, embedding):
+    def classify_single(self, embedding):
         return vocab.getw(np.argmax(dy.softmax(self.get_graph(embedding)).npvalue()))
 
-    def saveFailure(self, s,t):
+    def save_failure(self, s, t):
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
             self.model.save_all(os.path.join(self.dir,'model'))
@@ -114,12 +118,12 @@ class TrainAndTest:
         for j in xrange(args.e):
             embeddings_tagged = 0.0
             total_loss = 0.0
-            random.shuffle(indexes)
+            rnd.shuffle(indexes)
             for i in xrange(len(indexes)):
                 s = self.trainData[i]
                 embedding = s[0]
                 expected = s[2]
-                loss = self.trainSingle(embedding, expected)
+                loss = self.train_single(embedding, expected)
                 total_loss += loss.scalar_value()
                 embeddings_tagged += 1
                 loss.backward()
@@ -138,49 +142,79 @@ class TrainAndTest:
         start_time = timeit.default_timer()
         if args.v or args.vv:
             print 'Testing... ',
-        passed = 0
+        failures = []
         for s in self.testData:
             embedding = s[0]
             expected = s[2]
-            classified_type = self.classifySingle(embedding)
-            if expected == classified_type:
-                passed += 1
-            else:
-                self.saveFailure(s, classified_type)
+            classified_type = self.classify_single(embedding)
+            if expected != classified_type:
+                self.save_failure(s, classified_type)
+                failures.append((expected,classified_type))
         if args.v or args.vv:
             total = len(self.testData)
             print 'Done!'
             if args.vv:
-                print '\tSuccesses: '+str(passed)+'/'+str(total)+' ('+"{0:.2f}".format(100*passed/float(total))+'%)'
-                #print '\tFailures: '+str(total-passed)+'/'+str(total)+' ('+"{0:.2f}".format(100*(total-passed)/float(total))+')'
+                print '\tSuccesses: '+str(total-len(failures))+'/'+str(total)+' ('+"{0:.2f}".format(100*(total-len(failures))/float(total))+')'
+                # print '\tFailures: '+str(len(failures))+'/'+str(total)+' ('+"{0:.2f}".format(100*len(failures)/float(total))+'%)'
         end_time = timeit.default_timer()
         if args.t:
             print '\tTiming: '+"{0:.2f}".format(end_time-start_time)
-        return passed
+        return failures
 
 if os.path.exists(args.o):
-  shutil.rmtree(args.o)
+    shutil.rmtree(args.o)
 os.makedirs(args.o)
 
-total_passed = 0
 data_len_str = str(len(data))
+failure_matrix = {}
+type_counter = {}
+type_successes = {}
 for i in range(len(data)):
     print '\r'+str(i+1).zfill(len(data_len_str))+'/'+data_len_str,
     sys.stdout.flush()
-    total_passed += TrainAndTest(data[0:i]+data[i+1:], [data[i]], os.path.join(args.o, str(i))).train().test()
+    res = TrainAndTest(data[0:i]+data[i+1:], [data[i]], os.path.join(args.o, str(i))).train().test()
+    expected = data[i][2]
+    if expected not in failure_matrix.keys():
+        failure_matrix[expected] = {}
+        failure_matrix[expected][expected] = 0
+    if expected not in type_counter.keys():
+        type_counter[expected] = 0
+    if expected not in type_successes.keys():
+        type_successes[expected] = 0
+    type_counter[expected] += 1
+    if len(res) == 0:
+        type_successes[expected] += 1
+        failure_matrix[expected][expected] += 1
+    else:
+        classified_type = res[0][1]
+        if classified_type not in failure_matrix[expected].keys():
+            failure_matrix[expected][classified_type] = 0
+        failure_matrix[expected][classified_type] += 1
 print ''
-print str(total_passed)+' out of '+str(len(data))+' tests passed ('+"{0:.2f}".format(100*total_passed/float(len(data)))+'%)'
+total_successes = sum(type_successes.values())
+print str(total_successes) + ' out of ' + str(len(data)) + ' tests passed (' + "{0:.2f}".format(100 * total_successes / float(len(data))) + '%)'
 
 with open('failures.csv', 'w') as fout:
     csvout = csv.writer(fout)
     first = True
     for d in sorted(os.listdir(args.o), key=lambda x: int(x)):
-        with open(os.path.join(args.o,d,'failures.csv'), 'r') as fin:
+        with open(os.path.join(args.o, d, 'failures.csv'), 'r') as fin:
             lines = list(csv.reader(fin))
             if first:
                 csvout.writerow(['dir']+lines[0])
                 first = False
             csvout.writerow([d]+lines[1])
+with open('failures_matrix.csv', 'w') as fout:
+    csvout = csv.writer(fout)
+    types = sorted(type_counter.keys())
+    csvout.writerow(['Counters'])
+    csvout.writerow(types+['TOTAL'])
+    csvout.writerow(map(lambda t: str(type_counter[t]), types)+[str(sum(type_counter.values()))])
+    csvout.writerow([])
+    csvout.writerow(['Matrix'])
+    csvout.writerow(['']+types)
+    for t in types:
+        csvout.writerow([t] + map(lambda x: str(failure_matrix[t][x] if x in failure_matrix[t].keys() else 0),types))
 
 end = timeit.default_timer()
 
