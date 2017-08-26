@@ -24,9 +24,9 @@ if not os.path.exists(args.m):
 if not os.path.exists(args.w):
     parser.error('vocabularies are missing')
 
-if not os.path.exists(args.d+'.words'):
+if not os.path.exists(args.d+'.'+config.get('General','InputExt')):
     parser.error('dataset is missing')
-with open(args.d+'.words','r') as f:
+with open(args.d+'.'+config.get('General','InputExt'),'r') as f:
     words = [l.strip().split(' ') for l in f.readlines()]
 if args.v:
     print 'Loaded dataset'
@@ -76,12 +76,12 @@ pO = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 fwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
 bwd = dy.LSTMBuilder(1, config.getint('Model', 'WordEmbeddingSize'), config.getint('Model', 'HiddenLayerHalfSize'), model)
 
-model.load_all(args.m)
+model.populate(args.m)
 if args.v:
     print 'Loaded model'
 
 if args.v:
-    print 'Translating'
+    print 'Tagging'
 
 def get_graph(ws):
     dy.renew_cg()
@@ -98,7 +98,7 @@ def get_graph(ws):
 def tag(words):
     return [vt.getw(np.argmax(dy.softmax(w).npvalue())) for w in (get_graph(words))]
 
-with open(args.d+'.out','w') as f:
+with open(args.d+'.'+config.get('General','OutputExt'),'w') as f:
     i = 1
     l = len(words)
     s  = str(l)

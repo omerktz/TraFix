@@ -24,9 +24,9 @@ if not os.path.exists(args.m):
 if not os.path.exists(args.w):
     parser.error('vocabularies are missing')
 
-if not os.path.exists(args.d+'.words'):
+if not os.path.exists(args.d+'.'+config.get('General','InputExt')):
     parser.error('dataset is missing')
-with open(args.d+'.words','r') as f:
+with open(args.d+'.'+config.get('General','InputExt'),'r') as f:
     words = [l.strip().split(' ') for l in f.readlines()]
 if args.v:
     print 'Loaded dataset'
@@ -70,13 +70,13 @@ model = dy.Model()
 
 wordsLookup = model.add_lookup_parameters((vw.size(),config.getint('Model', 'WordEmbeddingSize')))
 
-pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerSize')*2))
+pH = model.add_parameters((config.getint('MLP', 'LayerSize'), config.getint('Model', 'HiddenLayerSize')))
 pO = model.add_parameters((vt.size(), config.getint('MLP', 'LayerSize')))
 
 # for classify we want summary of sentence, not context of word in sentence, so backward lstm is not needed
 lstm = dy.LSTMBuilder(layers=1, input_dim=config.getint('Model', 'WordEmbeddingSize'), hidden_dim=config.getint('Model', 'HiddenLayerSize'), model=model)
 
-model.load_all(args.m)
+model.populate(args.m)
 if args.v:
     print 'Loaded model'
 
@@ -96,7 +96,7 @@ def get_graph(ws):
 def classify(words):
     return vt.getw(np.argmax(dy.softmax(get_graph(words)).npvalue()))
 
-with open(args.d+'.out','w') as f:
+with open(args.d+'.'+config.get('General','OutputExt'),'w') as f:
     i = 1
     l = len(words)
     s  = str(l)

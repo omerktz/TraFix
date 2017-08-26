@@ -56,19 +56,19 @@ class Vocabulary:
             f.write(self.i2w[i]+'\t'+str(i)+'\n')
         f.write('\n')
 
-if (not os.path.exists(args.d+'.words')) or (not os.path.exists(args.d+'.tags')):
+if (not os.path.exists(args.d+'.'+config.get('General','InputExt'))) or (not os.path.exists(args.d+'.'+config.get('General','ExpectedExt'))):
     parser.error('train dataset is missing essential files')
-with open(args.d+'.words','r') as f:
+with open(args.d+'.'+config.get('General','InputExt'),'r') as f:
     trainWords = [l.strip().split(' ') for l in f.readlines()]
-with open(args.d+'.tags','r') as f:
-    trainTags = [l.strip().split(' ') for l in f.readlines()]
+with open(args.d+'.'+config.get('General','ExpectedExt'),'r') as f:
+    trainTags = [l.strip() for l in f.readlines()]
 if args.f:
-    if (not os.path.exists(args.f + '.words')) or (not os.path.exists(args.f + '.tags')):
+    if (not os.path.exists(args.f + '.'+config.get('General','InputExt'))) or (not os.path.exists(args.f + '.'+config.get('General','ExpectedExt'))):
         parser.error('validation dataset is missing essential files')
-    with open(args.f + '.words', 'r') as f:
+    with open(args.f + '.'+config.get('General','InputExt'), 'r') as f:
         validationWords = [l.strip().split(' ') for l in f.readlines()]
-    with open(args.f + '.tags', 'r') as f:
-        validationTags = [l.strip().split(' ') for l in f.readlines()]
+    with open(args.f + '.'+config.get('General','ExpectedExt'), 'r') as f:
+        validationTags = [l.strip() for l in f.readlines()]
 words = list(reduce(lambda x,y: x.union(y), map(lambda w:set(w), trainWords), set()))
 tags = list(reduce(lambda x, y: x.union(y), map(lambda t:set(t), trainTags), set()))
 
@@ -144,7 +144,7 @@ def save():
         os.remove(args.m)
     except OSError:
         pass
-    model.save_all(args.m)
+    model.save(args.m)
     with open(args.w,'w') as f:
         vw.save(f)
         vt.save(f)
@@ -170,10 +170,6 @@ for j in xrange(args.e):
         if args.f:
             if i % args.i == 0 or i == len(indexes)-1:
                 good, bad, wgood, wbad = validate(validationWords,validationTags)
-                if args.v:
-                    print 'Validation:'
-                    print '\tSentences: '+str(good)+' ('+"{0:.2f}".format(100.0 * good / (good + bad))+')'
-                    print '\tWords: '+str(wgood)+' ('+"{0:.2f}".format(100.0 * wgood / (wgood + wbad))+')'
                 if (wgood > best_wgood) or ((wgood == best_wgood) and (good >= best_good)):
                     if (wgood > best_wgood) or ((wgood == best_wgood) and (good > best_good)):
                         best_wgood = wgood
@@ -186,6 +182,10 @@ for j in xrange(args.e):
                     save()
                 else:
                     patience += 1
+                if args.v:
+                    print 'Validation:'+'\t\t\t['+str(patience)+'/'+str(args.p)+']'
+                    print '\tSentences: '+str(good)+' ('+"{0:.2f}".format(100.0 * good / (good + bad))+')'
+                    print '\tWords: '+str(wgood)+' ('+"{0:.2f}".format(100.0 * wgood / (wgood + wbad))+')'
                 if patience >= args.p:
                     print 'No progress for the last '+str(args.p)+' validations. Training stopped'
                     end = timeit.default_timer()

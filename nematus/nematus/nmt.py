@@ -7,7 +7,6 @@ import theano
 import theano.tensor as tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-import cPickle as pkl
 import json
 import numpy
 import copy
@@ -16,6 +15,7 @@ import argparse
 import os
 import sys
 import time
+import logging
 
 import itertools
 
@@ -30,6 +30,7 @@ from training_progress import TrainingProgress
 from util import *
 from theano_util import *
 from alignment_util import *
+from raml_distributions import *
 
 from layers import *
 from initializers import *
@@ -39,8 +40,8 @@ from metrics.scorer_provider import ScorerProvider
 from domain_interpolation_data_iterator import DomainInterpolatorTextIterator
 
 # batch preparation
-def prepare_data(seqs_x, seqs_y, maxlen=None, n_words_src=30000,
-                 n_words=30000):
+def prepare_data(seqs_x, seqs_y, weights=None, maxlen=None, n_words_src=30000,
+                 n_words=30000, n_factors=1):
     # x: a list of sentences
     lengths_x = [len(s) for s in seqs_x]
     lengths_y = [len(s) for s in seqs_y]
@@ -50,22 +51,29 @@ def prepare_data(seqs_x, seqs_y, maxlen=None, n_words_src=30000,
         new_seqs_y = []
         new_lengths_x = []
         new_lengths_y = []
-        for l_x, s_x, l_y, s_y in zip(lengths_x, seqs_x, lengths_y, seqs_y):
+        new_weights = []
+        if weights is None:
+            weights = [None] * len(seqs_y) # to make the zip easier
+        for l_x, s_x, l_y, s_y, w in zip(lengths_x, seqs_x, lengths_y, seqs_y, weights):
             if l_x < maxlen and l_y < maxlen:
                 new_seqs_x.append(s_x)
                 new_lengths_x.append(l_x)
                 new_seqs_y.append(s_y)
                 new_lengths_y.append(l_y)
+                new_weights.append(w)
         lengths_x = new_lengths_x
         seqs_x = new_seqs_x
         lengths_y = new_lengths_y
         seqs_y = new_seqs_y
+        weights = new_weights
 
         if len(lengths_x) < 1 or len(lengths_y) < 1:
-            return None, None, None, None
+            if weights is not None:
+                return None, None, None, None, None
+            else:
+                return None, None, None, None
 
     n_samples = len(seqs_x)
-    n_factors = len(seqs_x[0][0])
     maxlen_x = numpy.max(lengths_x) + 1
     maxlen_y = numpy.max(lengths_y) + 1
 
@@ -78,8 +86,10 @@ def prepare_data(seqs_x, seqs_y, maxlen=None, n_words_src=30000,
         x_mask[:lengths_x[idx]+1, idx] = 1.
         y[:lengths_y[idx], idx] = s_y
         y_mask[:lengths_y[idx]+1, idx] = 1.
-
-    return x, x_mask, y, y_mask
+    if weights is not None:
+        return x, x_mask, y, y_mask, weights
+    else:
+        return x, x_mask, y, y_mask
 
 # initialize all parameters
 def init_params(options):
@@ -127,9 +137,13 @@ def init_params(options):
 
     ctxdim = 2 * options['dim']
 
+    dec_state = options['dim']
+    if options['decoder'].startswith('lstm'):
+        dec_state *= 2
+
     # init_state, init_cell
     params = get_layer_param('ff')(options, params, prefix='ff_state',
-                                nin=ctxdim, nout=options['dim'])
+                                nin=ctxdim, nout=dec_state)
     # decoder
     params = get_layer_param(options['decoder'])(options, params,
                                               prefix='decoder',
@@ -227,6 +241,11 @@ def build_encoder(tparams, options, dropout, x_mask=None, sampling=False):
                                                  truncate_gradient=options['encoder_truncate_gradient'],
                                                  profile=profile)
 
+    # discard LSTM cell state
+    if options['encoder'].startswith('lstm'):
+        proj[0] = get_slice(proj[0], 0, options['dim'])
+        projr[0] = get_slice(projr[0], 0, options['dim'])
+
     ## bidirectional levels before merge
     for level in range(2, options['enc_depth_bidirectional'] + 1):
         prefix_f = pp('encoder', level)
@@ -252,6 +271,11 @@ def build_encoder(tparams, options, dropout, x_mask=None, sampling=False):
                                                      recurrence_transition_depth=options['enc_recurrence_transition_depth'],
                                                      truncate_gradient=options['encoder_truncate_gradient'],
                                                      profile=profile)
+
+        # discard LSTM cell state
+        if options['encoder'].startswith('lstm'):
+            proj[0] = get_slice(proj[0], 0, options['dim'])
+            projr[0] = get_slice(projr[0], 0, options['dim'])
 
         # residual connections
         if level > 1:
@@ -346,6 +370,10 @@ def build_decoder(tparams, options, y, ctx, init_state, dropout, x_mask=None, y_
     if options['dec_depth'] > 1:
         for level in range(2, options['dec_depth'] + 1):
 
+            # don't pass LSTM cell state to next layer
+            if options['decoder'].startswith('lstm'):
+                next_state = get_slice(next_state, 0, options['dim'])
+
             if options['dec_deep_context']:
                 if sampling:
                     axis=1
@@ -370,10 +398,18 @@ def build_decoder(tparams, options, y, ctx, init_state, dropout, x_mask=None, y_
                                               profile=profile)[0]
 
             if sampling:
-                ret_state.append(out_state.reshape((1, next_state.shape[0], next_state.shape[1])))
+                ret_state.append(out_state.reshape((1, proj[0].shape[0], proj[0].shape[1])))
+
+            # don't pass LSTM cell state to next layer
+            if options['decoder'].startswith('lstm'):
+                out_state = get_slice(out_state, 0, options['dim'])
 
             # residual connection
             next_state += out_state
+
+    # don't pass LSTM cell state to next layer
+    elif options['decoder'].startswith('lstm'):
+        next_state = get_slice(next_state, 0, options['dim'])
 
     if sampling:
         if options['dec_depth'] > 1:
@@ -476,10 +512,10 @@ def build_sampler(tparams, options, use_noise, trng, return_alignment=False):
     if options['dec_depth'] > 1:
         init_state = tensor.tile(init_state, (options['dec_depth'], 1, 1))
 
-    print >>sys.stderr, 'Building f_init...',
+    logging.info('Building f_init...')
     outs = [init_state, ctx]
     f_init = theano.function([x], outs, name='f_init', profile=profile)
-    print >>sys.stderr, 'Done'
+    logging.info('Done')
 
     # x: 1 x 1
     y = tensor.vector('y_sampler', dtype='int64')
@@ -499,7 +535,7 @@ def build_sampler(tparams, options, use_noise, trng, return_alignment=False):
 
     # compile a function to do the whole thing above, next word probability,
     # sampled word for the next target, next hidden state to be used
-    print >>sys.stderr, 'Building f_next..',
+    logging.info('Building f_next..')
     inps = [y, ctx, init_state]
     outs = [next_probs, next_sample, ret_state]
 
@@ -507,7 +543,7 @@ def build_sampler(tparams, options, use_noise, trng, return_alignment=False):
         outs.append(opt_ret['dec_alphas'])
 
     f_next = theano.function(inps, outs, name='f_next', profile=profile)
-    print >>sys.stderr, 'Done'
+    logging.info('Done')
 
     return f_init, f_next
 
@@ -643,14 +679,14 @@ def build_full_sampler(tparams, options, use_noise, trng, greedy=False):
                         non_sequences=[ctx, pctx_]+shared_vars,
                         n_steps=n_steps, truncate_gradient=options['decoder_truncate_gradient'])
 
-    print >>sys.stderr, 'Building f_sample...',
+    logging.info('Building f_sample...')
     if greedy:
         inps = [x, x_mask, n_steps]
     else:
         inps = [x, k, n_steps]
     outs = [sample, probs]
     f_sample = theano.function(inps, outs, name='f_sample', updates=updates, profile=profile)
-    print >>sys.stderr, 'Done'
+    logging.info('Done')
 
     return f_sample
 
@@ -889,14 +925,15 @@ def pred_probs(f_log_probs, prepare_data, options, iterator, verbose=True, norma
     for x, y in iterator:
         #ensure consistency in number of factors
         if len(x[0][0]) != options['factors']:
-            sys.stderr.write('Error: mismatch between number of factors in settings ({0}), and number in validation corpus ({1})\n'.format(options['factors'], len(x[0][0])))
+            logging.error('Mismatch between number of factors in settings ({0}), and number in validation corpus ({1})\n'.format(options['factors'], len(x[0][0])))
             sys.exit(1)
 
         n_done += len(x)
 
         x, x_mask, y, y_mask = prepare_data(x, y,
                                             n_words_src=options['n_words_src'],
-                                            n_words=options['n_words'])
+                                            n_words=options['n_words'],
+                                            n_factors=options['factors'])
 
         ### in optional save weights mode.
         if alignweights:
@@ -914,10 +951,83 @@ def pred_probs(f_log_probs, prepare_data, options, iterator, verbose=True, norma
         for pp in pprobs:
             probs.append(pp)
 
-        if verbose:
-            print >>sys.stderr, '%d samples computed' % (n_done)
+        logging.debug('%d samples computed' % (n_done))
 
     return numpy.array(probs), alignments_json
+
+
+def augment_raml_data(x, y, tgt_worddict, options):
+    #augment data with copies, of which the targets will be perturbed
+    aug_x = []
+    aug_y = []
+    sample_weights = numpy.empty((0), dtype=floatX)
+    vocab = range(1, options['n_words']) # vocabulary for perturbation
+    vocab.remove(tgt_worddict['eos'])
+    vocab.remove(tgt_worddict['UNK'])
+    bleu_scorer = ScorerProvider().get("SENTENCEBLEU n=4")
+    for x_s, y_s in zip(x, y):
+        y_sample_weights = []
+        bleu_scorer.set_reference(y_s)
+        for s in xrange(options['raml_samples']):
+            y_c = copy.copy(y_s)
+            if options['raml_reward'] in ["hamming_distance", "bleu"]:
+                #sampling based on bleu is done by sampling based on hamming
+                #distance followed by importance corrections
+                #based on https://github.com/pcyin/pytorch_nmt
+                q = hamming_distance_distribution(sentence_length=len(y_c), vocab_size=options['n_words'], tau=options['raml_tau'])
+                #sample distance from exponentiated payoff distribution
+                edits = numpy.random.choice(range(len(y_c)), p=q)
+                if len(y_c) > 1:
+                    #choose random position except last (usually period or question mark etc)
+                    positions = numpy.random.choice(range(len(y_c) - 1), size=edits, replace=False)
+                else:
+                    #for single word sentence
+                    positions = [0]
+                for position in positions:
+                    y_c[position] = numpy.random.choice(vocab)
+
+                if options['raml_reward'] == "bleu":
+                    #importance correction on the weights
+                    y_bleu = bleu_scorer.score(y_c)
+                    y_sample_weights.append(numpy.exp(y_bleu / options['raml_tau']) / numpy.exp(-edits / options['raml_tau']))
+                else:
+                    y_sample_weights = [1.0] * options['raml_samples']
+                    
+
+            elif options['raml_reward'] == "edit_distance":
+                q = edit_distance_distribution(sentence_length=len(y_c), vocab_size=options['n_words'], tau=options['raml_tau'])
+                edits = numpy.random.choice(range(len(y_c)), p=q)
+                for e in range(edits):
+                    if numpy.random.choice(["insertion", "substitution"]) == "insertion":
+                        if len(y_c) > 1:
+                            #insert before last period/question mark
+                            position = numpy.random.choice(range(len(y_c)))
+                        else:
+                            #insert before or after single word
+                            position = numpy.random.choice([0, 1])
+                        y_c.insert(position, numpy.random.choice(vocab))
+                    else:
+                        if len(y_c) > 1:
+                            position = numpy.random.choice(range(len(y_c)))
+                        else:
+                            position = 0
+                        if position == len(y_c) - 1:
+                            #using choice of last position to mean deletion of random word instead
+                            del y_c[numpy.random.choice(range(len(y_c) - 1))]
+                        else:
+                            y_c[position] = numpy.random.choice(vocab)
+                y_sample_weights = [1.0] * options['raml_samples']
+
+            aug_y.append(y_c)
+            aug_x.append(x_s)
+
+        y_sample_weights = numpy.array(y_sample_weights, dtype=floatX)
+        if options['raml_reward'] == "bleu":
+            #normalize importance weights
+            y_sample_weights /= numpy.sum(y_sample_weights)
+        sample_weights = numpy.concatenate([sample_weights, y_sample_weights])
+
+    return aug_x, aug_y, sample_weights
 
 
 def train(dim_word=512,  # word vector dimensionality
@@ -976,14 +1086,20 @@ def train(dim_word=512,  # word vector dimensionality
           domain_interpolation_max=1.0, # maximum fraction of in-domain training data
           domain_interpolation_inc=0.1, # interpolation increment to be applied each time patience runs out, until maximum amount of interpolation is reached
           domain_interpolation_indomain_datasets=[None, None], # in-domain parallel training corpus (source and target)
+          anneal_restarts=0, # when patience run out, restart with annealed learning rate X times before early stopping
+          anneal_decay=0.5, # decay learning rate by this amount on each restart
           maxibatch_size=20, #How many minibatches to load at one time
-          objective="CE", #CE: cross-entropy; MRT: minimum risk training (see https://www.aclweb.org/anthology/P/P16/P16-1159.pdf)
+          objective="CE", #CE: cross-entropy; MRT: minimum risk training (see https://www.aclweb.org/anthology/P/P16/P16-1159.pdf) \
+                          #RAML: reward-augmented maximum likelihood (see https://papers.nips.cc/paper/6547-reward-augmented-maximum-likelihood-for-neural-structured-prediction.pdf)
           mrt_alpha=0.005,
           mrt_samples=100,
           mrt_samples_meanloss=10,
           mrt_reference=False,
           mrt_loss="SENTENCEBLEU n=4", # loss function for minimum risk training
           mrt_ml_mix=0, # interpolate mrt loss with ML loss
+          raml_tau=0.85, # in (0,1] 0: becomes equivalent to ML
+          raml_samples=1,
+          raml_reward="hamming_distance",
           model_version=0.1, #store version used for training for compatibility
           prior_model=None, # Prior model file, used for MAP
           tie_encoder_decoder_embeddings=False, # Tie the input embeddings of the encoder and the decoder (first factor only)
@@ -1001,14 +1117,14 @@ def train(dim_word=512,  # word vector dimensionality
         if factors == 1:
             model_options['dim_per_factor'] = [model_options['dim_word']]
         else:
-            sys.stderr.write('Error: if using factored input, you must specify \'dim_per_factor\'\n')
+            logging.error('Error: if using factored input, you must specify \'dim_per_factor\'\n')
             sys.exit(1)
 
     assert(len(dictionaries) == factors + 1) # one dictionary per source factor + 1 for target factor
     assert(len(model_options['dim_per_factor']) == factors) # each factor embedding has its own dimensionality
     assert(sum(model_options['dim_per_factor']) == model_options['dim_word']) # dimensionality of factor embeddings sums up to total dimensionality of input embedding vector
-    assert(prior_model != None and (os.path.exists(prior_model)) or (map_decay_c==0.0)) # MAP training requires a prior model file
-    
+    assert(prior_model != None and (os.path.exists(prior_model)) or (map_decay_c==0.0)) # MAP training requires a prior model file: Use command-line option --prior_model
+
     assert(enc_recurrence_transition_depth >= 1) # enc recurrence transition depth must be at least 1.
     assert(dec_base_recurrence_transition_depth >= 2) # dec base recurrence transition depth must be at least 2.
     assert(dec_high_recurrence_transition_depth >= 1) # dec higher recurrence transition depth must be at least 1.
@@ -1017,6 +1133,12 @@ def train(dim_word=512,  # word vector dimensionality
         model_options['enc_depth_bidirectional'] = model_options['enc_depth']
     # first layer is always bidirectional; make sure people don't forget to increase enc_depth as well
     assert(model_options['enc_depth_bidirectional'] >= 1 and model_options['enc_depth_bidirectional'] <= model_options['enc_depth'])
+
+    if model_options['dec_depth'] > 1 and model_options['decoder'].startswith('lstm') != model_options['decoder_deep'].startswith('lstm'):
+        logging.error('cannot mix LSTM and GRU in decoder')
+        logging.error('decoder: {0}'.format(model_options['decoder']))
+        logging.error('decoder_deep: {0}'.format(model_options['decoder_deep']))
+        sys.exit(1)
 
     # load dictionaries and invert them
     worddicts = [None] * len(dictionaries)
@@ -1028,29 +1150,42 @@ def train(dim_word=512,  # word vector dimensionality
             worddicts_r[ii][vv] = kk
 
     if n_words_src is None:
-        n_words_src = len(worddicts[0])
+        n_words_src = max(worddicts[0].values()) + 1
         model_options['n_words_src'] = n_words_src
     if n_words is None:
-        n_words = len(worddicts[1])
+        n_words = max(worddicts[-1].values()) + 1
         model_options['n_words'] = n_words
 
     if tie_encoder_decoder_embeddings:
         assert (n_words_src == n_words), "When tying encoder and decoder embeddings, source and target vocabulary size must the same"
         if worddicts[0] != worddicts[1]:
-            warn("Encoder-decoder embedding tying is enabled with different source and target dictionaries. This is usually a configuration error")
+            logging.warning("Encoder-decoder embedding tying is enabled with different source and target dictionaries. This is usually a configuration error")
+
+    if model_options['objective'] == 'RAML' and model_options['raml_tau'] == 0:
+        #tau=0 is equivalent to CE training and causes division by zero error
+        #in the RAML code, so simply switch objectives if tau=0.
+        logging.warning("tau is set to 0. Switching to CE training")
+        model_options['objective'] = 'CE'
 
     if model_options['objective'] == 'MRT':
         # in CE mode parameters are updated once per batch; in MRT mode parameters are updated once
         # per pair of train sentences (== per batch of samples), so we set batch_size to 1 to make
         # model saving, validation, etc trigger after the same number of updates as before
-        print 'Running in MRT mode, minibatch size set to 1 sentence'
+        logging.info('Running in MRT mode, minibatch size set to 1 sentence')
         batch_size = 1
+    elif model_options['objective'] == 'RAML':
+        # in RAML mode, training examples are augmented with samples, causing the size of the
+        # batch to increase. Thus, divide batch_size by the number of samples to have approx.
+        # the same batch size for each update and thus prevent running out of memory.
+        batch_size = batch_size // model_options['raml_samples']
+        logging.info('Running in RAML mode, minibatch size divided by number of samples, set to %d' % batch_size)
 
     # initialize training progress
     training_progress = TrainingProgress()
     best_p = None
     best_opt_p = None
     training_progress.bad_counter = 0
+    training_progress.anneal_restarts_done = 0
     training_progress.uidx = 0
     training_progress.eidx = 0
     training_progress.estop = False
@@ -1059,16 +1194,19 @@ def train(dim_word=512,  # word vector dimensionality
     # reload training progress
     training_progress_file = saveto + '.progress.json'
     if reload_ and reload_training_progress and os.path.exists(training_progress_file):
-        print 'Reloading training progress'
+        logging.info('Reloading training progress')
         training_progress.load_from_json(training_progress_file)
         if (training_progress.estop == True) or (training_progress.eidx > max_epochs) or (training_progress.uidx >= finish_after):
-            print >> sys.stderr, 'Training is already complete. Disable reloading of training progress (--no_reload_training_progress) or remove or modify progress file (%s) to train anyway.' % training_progress_file
+            logging.warning('Training is already complete. Disable reloading of training progress (--no_reload_training_progress) or remove or modify progress file (%s) to train anyway.' % training_progress_file)
             return numpy.inf
 
+    # adjust learning rate if we resume process that has already entered annealing phase
+    if training_progress.anneal_restarts_done > 0:
+        lrate *= anneal_decay**training_progress.anneal_restarts_done
 
-    print 'Loading data'
+    logging.info('Loading data')
     if use_domain_interpolation:
-        print 'Using domain interpolation with initial ratio %s, final ratio %s, increase rate %s' % (training_progress.domain_interpolation_cur, domain_interpolation_max, domain_interpolation_inc)
+        logging.info('Using domain interpolation with initial ratio %s, final ratio %s, increase rate %s' % (training_progress.domain_interpolation_cur, domain_interpolation_max, domain_interpolation_inc))
         train = DomainInterpolatorTextIterator(datasets[0], datasets[1],
                          dictionaries[:-1], dictionaries[1],
                          n_words_source=n_words_src, n_words_target=n_words,
@@ -1080,6 +1218,7 @@ def train(dim_word=512,  # word vector dimensionality
                          indomain_source=domain_interpolation_indomain_datasets[0],
                          indomain_target=domain_interpolation_indomain_datasets[1],
                          interpolation_rate=training_progress.domain_interpolation_cur,
+                         use_factor=(factors > 1),
                          maxibatch_size=maxibatch_size)
     else:
         train = TextIterator(datasets[0], datasets[1],
@@ -1090,6 +1229,7 @@ def train(dim_word=512,  # word vector dimensionality
                          skip_empty=True,
                          shuffle_each_epoch=shuffle_each_epoch,
                          sort_by_length=sort_by_length,
+                         use_factor=(factors > 1),
                          maxibatch_size=maxibatch_size)
 
     if valid_datasets and validFreq:
@@ -1097,34 +1237,35 @@ def train(dim_word=512,  # word vector dimensionality
                             dictionaries[:-1], dictionaries[-1],
                             n_words_source=n_words_src, n_words_target=n_words,
                             batch_size=valid_batch_size,
+                            use_factor=(factors>1),
                             maxlen=maxlen)
     else:
         valid = None
 
     comp_start = time.time()
 
-    print 'Building model'
+    logging.info('Building model')
     params = init_params(model_options)
 
     optimizer_params = {}
     # prepare parameters
     if reload_ and os.path.exists(saveto):
-        print 'Reloading model parameters'
+        logging.info('Reloading model parameters')
         params = load_params(saveto, params)
-        print 'Reloading optimizer parameters'
+        logging.info('Reloading optimizer parameters')
         try:
-            print 'trying to load optimizer params from {0} or {1}'.format(saveto + '.gradinfo', saveto + '.gradinfo.npz')
+            logging.info('trying to load optimizer params from {0} or {1}'.format(saveto + '.gradinfo', saveto + '.gradinfo.npz'))
             optimizer_params = load_optimizer_params(saveto + '.gradinfo', optimizer)
         except IOError:
-            print '{0}(.npz) not found. Trying to load optimizer params from {1}(.npz)'.format(saveto + '.gradinfo', saveto)
+            logging.warning('{0}(.npz) not found. Trying to load optimizer params from {1}(.npz)'.format(saveto + '.gradinfo', saveto))
             optimizer_params = load_optimizer_params(saveto, optimizer)
     elif prior_model:
-        print 'Initializing model parameters from prior'
+        logging.info('Initializing model parameters from prior')
         params = load_params(prior_model, params)
 
     # load prior model if specified
     if prior_model:
-        print 'Loading prior model parameters'
+        logging.info('Loading prior model parameters')
         params = load_params(prior_model, params, with_prefix='prior_')
 
     tparams = init_theano_params(params)
@@ -1138,25 +1279,30 @@ def train(dim_word=512,  # word vector dimensionality
     inps = [x, x_mask, y, y_mask]
 
     if validFreq or sampleFreq:
-        print 'Building sampler'
+        logging.info('Building sampler')
         f_init, f_next = build_sampler(tparams, model_options, use_noise, trng)
     if model_options['objective'] == 'MRT':
-        print 'Building MRT sampler'
+        logging.info('Building MRT sampler')
         f_sampler = build_full_sampler(tparams, model_options, use_noise, trng)
 
     # before any regularizer
-    print 'Building f_log_probs...',
+    logging.info('Building f_log_probs...')
     f_log_probs = theano.function(inps, cost, profile=profile)
-    print 'Done'
+    logging.info('Done')
 
     if model_options['objective'] == 'CE':
         cost = cost.mean()
+    elif model_options['objective'] == 'RAML':
+        sample_weights = tensor.vector('sample_weights', dtype='floatX')
+        cost *= sample_weights
+        cost = cost.mean()
+        inps += [sample_weights]
     elif model_options['objective'] == 'MRT':
         #MRT objective function
         cost, loss = mrt_cost(cost, y_mask, model_options)
         inps += [loss]
     else:
-        sys.stderr.write('Error: objective must be one of ["CE", "MRT"]\n')
+        logging.error('Objective must be one of ["CE", "MRT", "RAML"]')
         sys.exit(1)
 
     # apply L2 regularization on weights
@@ -1188,9 +1334,9 @@ def train(dim_word=512,  # word vector dimensionality
     if prior_model:
         updated_params = OrderedDict([(key,value) for (key,value) in updated_params.iteritems() if not key.startswith('prior_')])
 
-    print 'Computing gradient...',
+    logging.info('Computing gradient...')
     grads = tensor.grad(cost, wrt=itemlist(updated_params))
-    print 'Done'
+    logging.info('Done')
 
     # apply gradient clipping here
     if clip_c > 0.:
@@ -1207,19 +1353,19 @@ def train(dim_word=512,  # word vector dimensionality
     # compile the optimizer, the actual computational graph is compiled here
     lr = tensor.scalar(name='lr')
 
-    print 'Building optimizers...',
+    logging.info('Building optimizers...')
     f_update, optimizer_tparams = eval(optimizer)(lr, updated_params,
                                                                  grads, inps, cost,
                                                                  profile=profile,
                                                                  optimizer_params=optimizer_params)
-    print 'Done'
+    logging.info('Done')
 
-    print 'Total compilation time: {0:.1f}s'.format(time.time() - comp_start)
+    logging.info('Total compilation time: {0:.1f}s'.format(time.time() - comp_start))
 
     if validFreq == -1 or saveFreq == -1 or sampleFreq == -1:
-        print 'Computing number of training batches'
+        logging.info('Computing number of training batches')
         num_batches = len(train)
-        print 'There are {} batches in the train set'.format(num_batches)
+        logging.info('There are {} batches in the train set'.format(num_batches))
 
         if validFreq == -1:
             validFreq = num_batches
@@ -1227,8 +1373,8 @@ def train(dim_word=512,  # word vector dimensionality
             saveFreq = num_batches
         if sampleFreq == -1:
             sampleFreq = num_batches
-    
-    print 'Optimization'
+
+    logging.info('Optimization')
 
     #save model options
     json.dump(model_options, open('%s.json' % saveto, 'wb'), indent=2)
@@ -1250,33 +1396,48 @@ def train(dim_word=512,  # word vector dimensionality
 
             #ensure consistency in number of factors
             if len(x) and len(x[0]) and len(x[0][0]) != factors:
-                sys.stderr.write('Error: mismatch between number of factors in settings ({0}), and number in training corpus ({1})\n'.format(factors, len(x[0][0])))
+                logging.error('Mismatch between number of factors in settings ({0}), and number in training corpus ({1})\n'.format(factors, len(x[0][0])))
                 sys.exit(1)
 
-            xlen = len(x)
-            n_samples += xlen
+            if model_options['objective'] in ['CE', 'RAML']:
 
-            if model_options['objective'] == 'CE':
+                if model_options['objective'] == 'RAML':
+                    x, y, sample_weights = augment_raml_data(x, y, options=model_options,
+                                                             tgt_worddict=worddicts[-1])
+                                                            
+                else:
+                    sample_weights = [1.0] * len(y)
+                
+                xlen = len(x)
+                n_samples += xlen
 
-                x, x_mask, y, y_mask = prepare_data(x, y, maxlen=maxlen,
-                                                    n_words_src=n_words_src,
-                                                    n_words=n_words)
+                x, x_mask, y, y_mask, sample_weights = prepare_data(x, y, weights=sample_weights,
+                                                                    maxlen=maxlen,
+                                                                    n_factors=factors,
+                                                                    n_words_src=n_words_src,
+                                                                    n_words=n_words)
 
                 if x is None:
-                    print 'Minibatch with zero sample under length ', maxlen
+                    logging.warning('Minibatch with zero sample under length %d' % maxlen)
                     training_progress.uidx -= 1
                     continue
-
+                
                 cost_batches += 1
                 last_disp_samples += xlen
                 last_words += (numpy.sum(x_mask) + numpy.sum(y_mask))/2.0
 
                 # compute cost, grads and update parameters
-                cost = f_update(lrate, x, x_mask, y, y_mask)
+                if model_options['objective'] == 'RAML':
+                    cost = f_update(lrate, x, x_mask, y, y_mask, sample_weights)
+                else:
+                    cost = f_update(lrate, x, x_mask, y, y_mask)
 
                 cost_sum += cost
 
             elif model_options['objective'] == 'MRT':
+                xlen = len(x)
+                n_samples += xlen
+
                 assert maxlen is not None and maxlen > 0
 
                 xy_pairs = [(x_i, y_i) for (x_i, y_i) in zip(x, y) if len(x_i) < maxlen and len(y_i) < maxlen]
@@ -1287,7 +1448,9 @@ def train(dim_word=512,  # word vector dimensionality
                 for x_s, y_s in xy_pairs:
 
                     # add EOS and prepare factored data
-                    x, _, _, _ = prepare_data([x_s], [y_s], maxlen=None, n_words_src=n_words_src, n_words=n_words)
+                    x, _, _, _ = prepare_data([x_s], [y_s], maxlen=None,
+                                              n_factors=factors,
+                                              n_words_src=n_words_src, n_words=n_words)
 
                     # draw independent samples to compute mean reward
                     if model_options['mrt_samples_meanloss']:
@@ -1329,7 +1492,9 @@ def train(dim_word=512,  # word vector dimensionality
 
                     # create mini-batch with masking
                     x, x_mask, y, y_mask = prepare_data([x_s for _ in xrange(len(samples))], samples,
-                                                                    maxlen=None, n_words_src=n_words_src,
+                                                                    maxlen=None,
+                                                                    n_factors=factors,
+                                                                    n_words_src=n_words_src,
                                                                     n_words=n_words)
 
                     cost_batches += 1
@@ -1357,7 +1522,7 @@ def train(dim_word=512,  # word vector dimensionality
             # check for bad numbers, usually we remove non-finite elements
             # and continue training - but not done here
             if numpy.isnan(cost) or numpy.isinf(cost):
-                print 'NaN detected'
+                logging.warning('NaN detected')
                 return 1., 1., 1.
 
             # verbose
@@ -1366,7 +1531,16 @@ def train(dim_word=512,  # word vector dimensionality
                 sps = last_disp_samples / float(ud)
                 wps = last_words / float(ud)
                 cost_avg = cost_sum / float(cost_batches)
-                print 'Epoch ', training_progress.eidx, 'Update ', training_progress.uidx, 'Cost ', cost_avg, 'UD ', ud, "{0:.2f} sents/s".format(sps), "{0:.2f} words/s".format(wps)
+                logging.info(
+                    'Epoch {epoch} Update {update} Cost {cost} UD {ud} {sps} {wps}'.format(
+                        epoch=training_progress.eidx,
+                        update=training_progress.uidx,
+                        cost=cost_avg,
+                        ud=ud,
+                        sps="{0:.2f} sents/s".format(sps),
+                        wps="{0:.2f} words/s".format(wps)
+                    )
+                )
                 ud_start = time.time()
                 cost_batches = 0
                 last_disp_samples = 0
@@ -1376,7 +1550,7 @@ def train(dim_word=512,  # word vector dimensionality
             # save the best model so far, in addition, save the latest model
             # into a separate file with the iteration number for external eval
             if numpy.mod(training_progress.uidx, saveFreq) == 0:
-                print 'Saving the best model...',
+                logging.info('Saving the best model...')
                 if best_p is not None:
                     params = best_p
                     optimizer_params = best_opt_p
@@ -1384,21 +1558,19 @@ def train(dim_word=512,  # word vector dimensionality
                     params = unzip_from_theano(tparams, excluding_prefix='prior_')
                     optimizer_params = unzip_from_theano(optimizer_tparams, excluding_prefix='prior_')
 
-                numpy.savez(saveto, **params)
-                numpy.savez(saveto + '.gradinfo', **optimizer_params)
-                training_progress.save_to_json(training_progress_file)
-                print 'Done'
+                save(params, optimizer_params, training_progress, saveto)
+                logging.info('Done')
 
                 # save with uidx
                 if not overwrite:
-                    print 'Saving the model at iteration {}...'.format(training_progress.uidx),
+                    logging.info('Saving the model at iteration {}...'.format(training_progress.uidx))
                     saveto_uidx = '{}.iter{}.npz'.format(
                         os.path.splitext(saveto)[0], training_progress.uidx)
 
-                    numpy.savez(saveto_uidx, **unzip_from_theano(tparams, excluding_prefix='prior_'))
-                    numpy.savez(saveto_uidx + '.gradinfo', **unzip_from_theano(optimizer_tparams, excluding_prefix='prior_'))
-                    training_progress.save_to_json(saveto_uidx+'.progress.json')
-                    print 'Done'
+                    params = unzip_from_theano(tparams, excluding_prefix='prior_')
+                    optimizer_params = unzip_from_theano(optimizer_tparams, excluding_prefix='prior_')
+                    save(params, optimizer_params, training_progress, saveto_uidx)
+                    logging.info('Done')
 
 
             # generate some samples with the model and display them
@@ -1473,47 +1645,64 @@ def train(dim_word=512,  # word vector dimensionality
                 if valid_err >= numpy.array(training_progress.history_errs).min():
                     training_progress.bad_counter += 1
                     if training_progress.bad_counter > patience:
+
+                        # change mix of in-domain and out-of-domain data
                         if use_domain_interpolation and (training_progress.domain_interpolation_cur < domain_interpolation_max):
                             training_progress.domain_interpolation_cur = min(training_progress.domain_interpolation_cur + domain_interpolation_inc, domain_interpolation_max)
-                            print 'No progress on the validation set, increasing domain interpolation rate to %s and resuming from best params' % training_progress.domain_interpolation_cur
+                            logging.info('No progress on the validation set, increasing domain interpolation rate to %s and resuming from best params' % training_progress.domain_interpolation_cur)
                             train.adjust_domain_interpolation_rate(training_progress.domain_interpolation_cur)
                             if best_p is not None:
                                 zip_to_theano(best_p, tparams)
                                 zip_to_theano(best_opt_p, optimizer_tparams)
                             training_progress.bad_counter = 0
+
+                        # anneal learning rate and reset optimizer parameters
+                        elif training_progress.anneal_restarts_done < anneal_restarts:
+                            logging.info('No progress on the validation set, annealing learning rate and resuming from best params.')
+                            lrate *= anneal_decay
+                            training_progress.anneal_restarts_done += 1
+                            training_progress.bad_counter = 0
+
+                            # reload best parameters
+                            if best_p is not None:
+                                zip_to_theano(best_p, tparams)
+
+                            # reset optimizer parameters
+                            for item in optimizer_tparams.values():
+                                item.set_value(numpy.array(item.get_value()) * 0.)
+
+                        # stop
                         else:
-                            print 'Valid ', valid_err
-                            print 'Early Stop!'
+                            logging.info('Valid {}'.format(valid_err))
+                            logging.info('Early Stop!')
                             training_progress.estop = True
                             break
 
-                print 'Valid ', valid_err
+                logging.info('Valid {}'.format(valid_err))
 
                 if external_validation_script:
-                    print "Calling external validation script"
+                    logging.info("Calling external validation script")
                     if p_validation is not None and p_validation.poll() is None:
-                        print "Waiting for previous validation run to finish"
-                        print "If this takes too long, consider increasing validation interval, reducing validation set size, or speeding up validation by using multiple processes"
+                        logging.info("Waiting for previous validation run to finish")
+                        logging.info("If this takes too long, consider increasing validation interval, reducing validation set size, or speeding up validation by using multiple processes")
                         valid_wait_start = time.time()
                         p_validation.wait()
-                        print "Waited for {0:.1f} seconds".format(time.time()-valid_wait_start)
-                    print 'Saving  model...',
+                        logging.info("Waited for {0:.1f} seconds".format(time.time()-valid_wait_start))
+                    logging.info('Saving  model...')
                     params = unzip_from_theano(tparams, excluding_prefix='prior_')
                     optimizer_params = unzip_from_theano(optimizer_tparams, excluding_prefix='prior_')
-                    numpy.savez(saveto +'.dev', **params)
-                    numpy.savez(saveto +'.dev.gradinfo', **optimizer_params)
-                    training_progress.save_to_json(saveto+'.dev.progress.json')
+                    save(params, optimizer_params, training_progress, saveto+'.dev')
                     json.dump(model_options, open('%s.dev.npz.json' % saveto, 'wb'), indent=2)
-                    print 'Done'
+                    logging.info('Done')
                     p_validation = Popen([external_validation_script])
 
             # finish after this many updates
             if training_progress.uidx >= finish_after:
-                print 'Finishing after %d iterations!' % training_progress.uidx
+                logging.info('Finishing after %d iterations!' % training_progress.uidx)
                 training_progress.estop = True
                 break
 
-        print 'Seen %d samples' % n_samples
+        logging.info('Seen %d samples' % n_samples)
 
         if training_progress.estop:
             break
@@ -1528,7 +1717,7 @@ def train(dim_word=512,  # word vector dimensionality
                                         model_options, valid)
         valid_err = valid_errs.mean()
 
-        print 'Valid ', valid_err
+        logging.info('Valid {}'.format(valid_err))
 
     if best_p is not None:
         params = copy.copy(best_p)
@@ -1538,9 +1727,7 @@ def train(dim_word=512,  # word vector dimensionality
         params = unzip_from_theano(tparams, excluding_prefix='prior_')
         optimizer_params = unzip_from_theano(optimizer_tparams, excluding_prefix='prior_')
 
-    numpy.savez(saveto, **params)
-    numpy.savez(saveto + '.gradinfo', **optimizer_params)
-    training_progress.save_to_json(training_progress_file)
+    save(params, optimizer_params, training_progress, saveto)
 
     return valid_err
 
@@ -1612,15 +1799,15 @@ if __name__ == '__main__':
                          help="tie the input embeddings of the encoder and the decoder (first factor only). Source and target vocabulary size must the same")
     network.add_argument('--tie_decoder_embeddings', action="store_true", dest="tie_decoder_embeddings",
                          help="tie the input embeddings of the decoder with the softmax output embeddings")
-    #network.add_argument('--encoder', type=str, default='gru',
-                         #choices=['gru'],
-                         #help='encoder recurrent layer')
-    #network.add_argument('--decoder', type=str, default='gru_cond',
-                         #choices=['gru_cond'],
-                         #help='first decoder recurrent layer')
+    network.add_argument('--encoder', type=str, default='gru',
+                         choices=['gru', 'lstm'],
+                         help='encoder recurrent layer (default: %(default)s)')
+    network.add_argument('--decoder', type=str, default='gru_cond',
+                         choices=['gru_cond', 'lstm_cond'],
+                         help='first decoder recurrent layer (default: %(default)s)')
     network.add_argument('--decoder_deep', type=str, default='gru',
-                         choices=['gru', 'gru_cond'],
-                         help='decoder recurrent layer after first one')
+                         choices=['gru', 'gru_cond', 'lstm'],
+                         help='decoder recurrent layer after first one (default: %(default)s)')
 
     training = parser.add_argument_group('training parameters')
     training.add_argument('--maxlen', type=int, default=100, metavar='INT',
@@ -1637,7 +1824,9 @@ if __name__ == '__main__':
     training.add_argument('--decay_c', type=float, default=0, metavar='FLOAT',
                          help="L2 regularization penalty (default: %(default)s)")
     training.add_argument('--map_decay_c', type=float, default=0, metavar='FLOAT',
-                         help="L2 regularization penalty towards original weights (default: %(default)s)")
+                         help="MAP-L2 regularization penalty towards original weights (default: %(default)s)")
+    training.add_argument('--prior_model', type=str, metavar='PATH',
+                         help="Prior model for MAP-L2 regularization. Unless using \"--reload\", this will also be used for initialization.")
     training.add_argument('--clip_c', type=float, default=1, metavar='FLOAT',
                          help="gradient clipping threshold (default: %(default)s)")
     training.add_argument('--lrate', type=float, default=0.0001, metavar='FLOAT',
@@ -1648,8 +1837,9 @@ if __name__ == '__main__':
                          help='do not sort sentences in maxibatch by length')
     training.add_argument('--maxibatch_size', type=int, default=20, metavar='INT',
                          help='size of maxibatch (number of minibatches that are sorted by length) (default: %(default)s)')
-    training.add_argument('--objective', choices=['CE', 'MRT'], default='CE',
-                         help='training objective. CE: cross-entropy minimization (default); MRT: Minimum Risk Training (https://www.aclweb.org/anthology/P/P16/P16-1159.pdf)')
+    training.add_argument('--objective', choices=['CE', 'MRT', 'RAML'], default='CE',
+                         help='training objective. CE: cross-entropy minimization (default); MRT: Minimum Risk Training (https://www.aclweb.org/anthology/P/P16/P16-1159.pdf) \
+                               RAML: Reward Augmented Maximum Likelihood (https://papers.nips.cc/paper/6547-reward-augmented-maximum-likelihood-for-neural-structured-prediction.pdf)')
     training.add_argument('--encoder_truncate_gradient', type=int, default=-1, metavar='INT',
                          help="truncate BPTT gradients in the encoder to this value. Use -1 for no truncation (default: %(default)s)")
     training.add_argument('--decoder_truncate_gradient', type=int, default=-1, metavar='INT',
@@ -1664,6 +1854,10 @@ if __name__ == '__main__':
                          help="validation frequency (default: %(default)s)")
     validation.add_argument('--patience', type=int, default=10, metavar='INT',
                          help="early stopping patience (default: %(default)s)")
+    validation.add_argument('--anneal_restarts', type=int, default=0, metavar='INT',
+                         help="when patience runs out, restart training INT times with annealed learning rate (default: %(default)s)")
+    validation.add_argument('--anneal_decay', type=float, default=0.5, metavar='FLOAT',
+                         help="learning rate decay on each restart (default: %(default)s)")
     validation.add_argument('--external_validation_script', type=str, default=None, metavar='PATH',
                          help="location of validation script (to run your favorite metric for validation) (default: %(default)s)")
 
@@ -1685,7 +1879,15 @@ if __name__ == '__main__':
     mrt.add_argument('--mrt_reference', action="store_true",
                          help='add reference to MRT samples.')
     mrt.add_argument('--mrt_ml_mix', type=float, default=0, metavar='FLOAT',
-                     help="mix in ML objective in MRT training with this scaling factor (default: %(default)s)")
+                         help="mix in ML objective in MRT training with this scaling factor (default: %(default)s)")
+
+    raml = parser.add_argument_group('reward augmented maximum likelihood parameters')
+    raml.add_argument('--raml_tau', type=float, default=0.85, metavar='FLOAT',
+                          help="temperature for sharpness of exponentiated payoff distribution (default: %(default)s)")
+    raml.add_argument('--raml_samples', type=int, default=1, metavar='INT',
+                          help="augment outputs with n samples (default: %(default)s)")
+    raml.add_argument('--raml_reward', type=str, default='hamming_distance', metavar='STR',
+                          help="reward for sampling from exponentiated payoff distribution (default: %(default)s)")
 
     domain_interpolation = parser.add_argument_group('domain interpolation parameters')
     domain_interpolation.add_argument('--use_domain_interpolation', action='store_true',  dest='use_domain_interpolation',
@@ -1700,6 +1902,10 @@ if __name__ == '__main__':
                          help="indomain parallel training corpus (source and target)")
 
     args = parser.parse_args()
+
+    # set up logging
+    level = logging.INFO
+    logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
 
     #print vars(args)
     train(**vars(args))

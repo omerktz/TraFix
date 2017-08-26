@@ -104,7 +104,7 @@ class TrainAndTest:
     def save_failure(self, s, t):
         if not os.path.exists(self.dir):
             os.makedirs(self.dir)
-            self.model.save_all(os.path.join(self.dir,'model'))
+            self.model.save(os.path.join(self.dir,'model'))
             with open(os.path.join(self.dir,'failures.csv'), 'w') as f:
                 csv.writer(f).writerow(['embedding','word','expected','type'])
         with open(os.path.join(self.dir,'failures.csv'), 'a') as f:
