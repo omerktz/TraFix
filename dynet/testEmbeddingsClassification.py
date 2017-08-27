@@ -1,13 +1,16 @@
-import timeit
 import argparse
-import random
-import os
-import sys
-import shutil
 import csv
-from mapWrodToType import getType
-import numpy as np
+import os
+import random
+import shutil
+import timeit
+
 import _dynet as dy
+import numpy as np
+import sys
+
+sys.path.insert(0,'..')
+from utils.mapWrodToType import getType
 
 start = timeit.default_timer()
 

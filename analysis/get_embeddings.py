@@ -3,29 +3,12 @@ import os
 import numpy
 import csv
 
+sys.path.insert(0, '..')
+from utils.mapWrodToType import getType
+
 from scipy.spatial import distance
 def embedding_distance(x,y):
   return distance.euclidean(x,y)
-
-import re
-
-import enum
-Types = enum.Enum('Types', 'Assign Model Op Var Tmp Other Num')
-
-def getType(w):
-  if w in ['eos', 'UNK']:
-    return Types.Model
-  if w == '=':
-    return Types.Assign
-  if w.startswith('%'):
-    if re.match('%[0-9]+$',w):
-      return Types.Tmp
-    return Types.Var
-  if re.match('^\-?[0-9]+$',w):
-    return Types.Num
-  if w in ['add','sub','load','store','sdiv','mul','srem']:
-    return Types.Op
-  return Types.Other
 
 if (len(sys.argv) < 3) or (len(sys.argv) > 4):
   print 'Usage: python '+sys.argv[0]+' <model npz file> <output file> [<vocabulary file>]'
