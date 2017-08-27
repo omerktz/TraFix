@@ -146,11 +146,15 @@ class UnaryOp(Op):
         return self._op.collectVars()
 
 class Assignment:
-    def __init__(self):
+    def __init__(self, i):
         self._source = getExpr()
         self._target = TargetVar.getTargetVar()
+        if config.getboolean('Assignments', 'RenameTargetVars'):
+            target_name = self._target._name+str(i)
+            self._target = Var()
+            self._target._name = target_name
     def __str__(self):
-        return str(self._target) + ' = ' + str(self._source) + ' ;'
+        return str(self._target) + ' = ' + str(self._source) + ' ; '
     def __eq__(self, other):
         if not isinstance(other,Assignment):
             return False
@@ -193,12 +197,18 @@ class Condition:
 class Assignments:
     _max_statements = config.getint('Assignments', 'MaxAssignments')
     _statements_weights = ast.literal_eval(config.get('Assignments', 'Weights'))
+    _assignments_counter = 0
 
     @staticmethod
     def getAssignments(max_statements = _max_statements, statements_weights = _statements_weights):
         num_statements_weights = reduce(lambda x, y: x+y, map(lambda i: [i + 1] * statements_weights[i], range(max_statements)), [])
         num_statements = num_statements_weights[random.randrange(0, len(num_statements_weights))]
-        return map(lambda i: Assignment(), range(num_statements))
+        result = map(lambda i: Assignment(Assignments._assignments_counter + i), range(num_statements))
+        Assignments._assignments_counter += num_statements
+        return result
+    @staticmethod
+    def resetCounter():
+        Assignments._assignments_counter = 0
 
 class Statements:
     _branchRatio = config.getfloat('Statements', 'BranchRatio')
@@ -392,6 +402,7 @@ def generateStatements():
                 if limited:
                     print '/' + str(limit),
                 sys.stdout.flush()
+                Assignments.resetCounter()
                 done = False
                 while not done:
                     try:
@@ -409,7 +420,7 @@ def generateStatements():
                 statements.add(' '.join(map(lambda x:str(x),s)))
                 with open('tmp.c', 'w') as f:
                     f.write('void f() {\n')
-                    f.write('int Y' + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
+                    f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
                     for x in s:
                         f.write(str(x)+'\n')
                     f.write('}\n')
