@@ -15,7 +15,13 @@ parser.add_argument('-n', '--num', dest='n', type=int, help="R|number of samples
 parser.add_argument('-o', '--out', dest='o', type=str, default='out', help="output files names (default: \'%(default)s\')")
 parser.add_argument('-v', '--vars', dest='v', type=int, default=10, help="number of input variables to use (default: %(default)s)")
 parser.add_argument('-c', '--config', dest='c', type=str, default='codenator.config', help="configuration file (default: \'%(default)s\')")
+parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
+parser.add_argument('-pt', '--parse-tree', dest='p', help="generate parse tree code", action='count')
+
 args = parser.parse_args()
+
+if not (args.l or args.p):
+    parser.error('You need to choose at least one output option (-ll or -pt)')
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)
@@ -344,9 +350,10 @@ class Stats:
             self._elses += 1
         map(lambda o: o.updateCounts(c), self._ops)
         self._c_statement_length.updateCounts(c)
-        self._ll_statement_length.updateCounts(ll)
         self._c_word_count.updateCounts(c)
-        self._ll_word_count.updateCounts(ll)
+        if args.l:
+            self._ll_statement_length.updateCounts(ll)
+            self._ll_word_count.updateCounts(ll)
     def __str__(self):
         res = ''
         res += '[General]\n'
@@ -418,17 +425,18 @@ def generateStatements():
                     except RuntimeError:
                         pass
                 statements.add(' '.join(map(lambda x:str(x),s)))
-                with open('tmp.c', 'w') as f:
-                    f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
-                    f.write('void f() {\n')
-                    for x in s:
-                        f.write(str(x)+'\n')
-                    f.write('}\n')
-                os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
-                with open('tmp.ll', 'r') as f:
-                    lines = [l.strip() for l in f.readlines()]
-                start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
-                end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
+                if args.l:
+                    with open('tmp.c', 'w') as f:
+                        f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
+                        f.write('void f() {\n')
+                        for x in s:
+                            f.write(str(x)+'\n')
+                        f.write('}\n')
+                    os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
+                    with open('tmp.ll', 'r') as f:
+                        lines = [l.strip() for l in f.readlines()]
+                    start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+                    end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
                 line = ''
                 for x in s:
                     line += str(x)
@@ -436,20 +444,23 @@ def generateStatements():
                 corpusc.write(line)
                 cline = line
                 vocabc.update(map(lambda x: x.strip(), line.split(' ')))
-                llline = ''
-                for i in range(start + 1, end - 1):
-                    line = lines[i].strip().replace(',', ' ,')
-                    if config.getint('General', 'OptimizationLevel') > 0:
-                        line = line[:line.find('!')].strip()[:-1].strip()
-                    if config.getboolean('General', 'RemoveAlign4'):
-                        if line.endswith(', align 4'):
-                            line = line[:-len(', align 4')].strip()
-                    vocabll.update(map(lambda y: y.strip(), line.split(' ')))
-                    llline += line + ' ; '
-                corpusll.write(llline+'\n')
-                stats.updateStats(cline, llline)
-                os.remove('tmp.c')
-                os.remove('tmp.ll')
+                if args.l:
+                    llline = ''
+                    for i in range(start + 1, end - 1):
+                        line = lines[i].strip().replace(',', ' ,')
+                        if config.getint('General', 'OptimizationLevel') > 0:
+                            line = line[:line.find('!')].strip()[:-1].strip()
+                        if config.getboolean('General', 'RemoveAlign4'):
+                            if line.endswith(', align 4'):
+                                line = line[:-len(', align 4')].strip()
+                        vocabll.update(map(lambda y: y.strip(), line.split(' ')))
+                        llline += line + ' ; '
+                    corpusll.write(llline+'\n')
+                    stats.updateStats(cline, llline)
+                    os.remove('tmp.c')
+                    os.remove('tmp.ll')
+                else:
+                    stats.updateStats(cline, None)
                 j += 1
     with open(outFile+'.vocab.c.json', 'w') as f:
         f.write('{\n')
@@ -464,19 +475,20 @@ def generateStatements():
                 f.write(', ')
             f.write('\n')
         f.write('}')
-    with open(outFile+'.vocab.ll.json', 'w') as f:
-        f.write('{\n')
-        f.write('  "eos": 0, \n')
-        f.write('  "UNK": 1, \n')
-        i = 0
-        n = len(vocabll)
-        for w in vocabll:
-            f.write('  "' + w + '": ' + str(i+2))
-            i += 1
-            if i != n:
-                f.write(', ')
-            f.write('\n')
-        f.write('}')
+    if args.l:
+        with open(outFile+'.vocab.ll.json', 'w') as f:
+            f.write('{\n')
+            f.write('  "eos": 0, \n')
+            f.write('  "UNK": 1, \n')
+            i = 0
+            n = len(vocabll)
+            for w in vocabll:
+                f.write('  "' + w + '": ' + str(i+2))
+                i += 1
+                if i != n:
+                    f.write(', ')
+                f.write('\n')
+            f.write('}')
     with open(outFile+'.stats.csv', 'w') as f:
         f.write(str(stats))
     print '\nDone!\n'
