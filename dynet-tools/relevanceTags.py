@@ -66,7 +66,7 @@ with open(sys.argv[1]+'.words','w') as fwords:
             for i in range(len(ll)):
                 if i > 0:
                     ftags.write(' ')
-                ftags.write(' '.join([str(list(relevance[i])).replace(' ','') for j in range(ll[i].count(' ')+1)]))
+                ftags.write(' '.join([str([(x+1) for x in relevance[i]]).replace(' ','') for j in range(ll[i].count(' ')+1)]))
             ftags.write('\n')
 
 
