@@ -1,45 +1,72 @@
 import sys
 import os
 import re
-if not os.path.exists(sys.argv[1]+'.words'):
+if not os.path.exists(sys.argv[1]+'.corpus.c') or not os.path.exists(sys.argv[1]+'.corpus.ll'):
     print 'Dataset input missing'
-def propogateRelevance(inst, dependencies, temps, i, relevance):
-    if i in relevance[inst]:
-        return
-    relevance[inst].add(i)
-    for x in dependencies[inst]:
-        propogateRelevance(temps[x], dependencies, temps, i, relevance)
 
-with open(sys.argv[1]+'.words','r') as fin:
-    with open(sys.argv[1]+'.tags','w') as fout:
-        for l in fin.readlines():
-            instructions = map(lambda x: x.strip() +' ;', filter(lambda y: len(y.strip())>0, l.split(';')))
-            temps = {}
-            lengths = {}
-            dependencies = {}
-            counter = 1
-            finals = {}
-            index = 0
-            for inst in instructions:
-            	lengths[index] = inst.count(' ')+1
-            	dependencies[index] = []
-                parts = inst.split(' ')
-                for p in parts:
-                    if re.match('%[0-9]+',p):
-                        dependencies[index].append(p)
-                if re.match('%[0-9]+',parts[0]):
-                    temps[parts[0]] = index
-                if parts[0] == 'store':
-                        finals[index] = counter
-                        if '%Y' in parts:
-                            counter += 1
-                index += 1
+with open(sys.argv[1]+'.corpus.c','r') as f:
+    clines = [l for l in f.readlines()]
+with open(sys.argv[1]+'.corpus.ll','r') as f:
+    lllines = [l for l in f.readlines()]
+with open(sys.argv[1]+'.words','w') as fwords:
+    with open(sys.argv[1]+'.tags','w') as ftags:
+        for (c,ll) in zip(clines,lllines):
+            fwords.write(ll)
+            c = map(lambda x: x.strip() + ' ;', filter(lambda y: len(y) > 0, c.strip().split(';')))
+            ll = map(lambda x: x.strip() + ' ;', filter(lambda y: len(y) > 0, ll.strip().split(';')))
+            dependson = {}
+            lastupdatedon = {}
+            counter = 0
             relevance = {}
-            for inst in range(index):
-                relevance[inst] = set()
-            for inst in finals.keys():
-                propogateRelevance(inst, dependencies, temps, finals[inst], relevance)
-            res = ''
-            for inst in range(index):
-                res += ' '+' '.join(map(lambda i:str(sorted(list(relevance[inst]))).replace(' ',''), range(lengths[inst])))
-            fout.write(res.strip()+'\n')
+            lastCounters = {}
+            for i in range(len(ll)):
+                dependson[i] = set()
+                parts = filter(lambda p: len(p) > 0, ll[i].split(' '))
+                for j in range(1, len(parts)):
+                    if parts[j][0] in ['%', '@']:
+                        if parts[j] in lastupdatedon.keys():
+                            dependson[i].add(lastupdatedon[parts[j]])
+                if parts[0] != 'store':
+                    for j in range(1,len(parts)):
+                        if parts[j][0] in ['%','@']:
+                            if parts[j] in lastupdatedon.keys():
+                                dependson[i].add(lastupdatedon[parts[j]])
+                    if parts[0][0] in ['%','@']:
+                        lastupdatedon[parts[0]] = i
+                else:
+                    source = parts[: parts.index(',')]
+                    target = parts[parts.index(',')+1:]
+                    for j in range(len(source)):
+                        if source[j][0] in ['%','@']:
+                            if source[j] in lastupdatedon.keys():
+                                dependson[i].add(lastupdatedon[source[j]])
+                    for j in range(len(target)):
+                        if target[j][0] in ['%','@']:
+                            if target[j][1] == 'Y':
+                                relevance[i] = set([counter])
+                                counter += 1
+
+                            else:
+                                relevance[i] = set([counter])
+                                var = target[j][1:]
+                                relevance[i].update(filter(lambda k: (' ++ '+var+' ' in c[k]) or
+                                                 (' '+var+' ++ ' in c[k]) or
+                                                 (' -- '+var+' ' in c[k]) or
+                                                 (' '+var+' -- ' in c[k]), range(lastCounters[var]+1 if var in lastCounters.keys() else 0, counter+1)))
+                                lastCounters[var] = counter
+            workq = set(list(relevance.keys())[:])
+            while len(workq) > 0:
+                i = workq.pop()
+                for j in dependson[i]:
+                    if j not in relevance.keys():
+                        relevance[j] = set()
+                    if any(map(lambda x: x not in relevance[j], relevance[i])):
+                        relevance[j].update(relevance[i])
+                        workq.add(j)
+            for i in range(len(ll)):
+                if i > 0:
+                    ftags.write(' ')
+                ftags.write(' '.join([str(list(relevance[i])).replace(' ','') for j in range(ll[i].count(' ')+1)]))
+            ftags.write('\n')
+
+

@@ -1,8 +1,8 @@
 from sklearn import decomposition
 import argparse
 import os
-import csv
 import sys
+import csv
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 from matplotlib import colors as mcolors
 
 sys.path.insert(0,'..')
-from utils.mapWrodToType import getType
+from utils.mapWrodToType import *
 
 parser = argparse.ArgumentParser(description="Test embedding classification (using leave-one-out method)")
 parser.add_argument('input', type=str, help="embeddings file to use as input")
@@ -49,15 +49,27 @@ if args.plot:
     if args.f > 3:
         print 'Plotting is only supported for final vector size at most 3. Skipping plot\n'
     else:
-        mcolors = map(lambda i: mcolors.BASE_COLORS[i], filter(lambda k: k != 'w', mcolors.BASE_COLORS.keys()))
-        colors = map(lambda t: mcolors[t.value-1], types)
+        if len(set(types)) < len(mcolors.BASE_COLORS):
+            mcolors = mcolors.BASE_COLORS
+            avoid = ['w']
+        else:
+            mcolors = mcolors.CSS4_COLORS
+            avoid = ['white']
+        mcolors = sorted(map(lambda y: mcolors[y], filter(lambda x: x not in avoid, mcolors.keys())))
+        stride = max(1,len(mcolors)/len(Types))
+        colorsMap = {}
+        def mapColorToType(t):
+            if t.value not in colorsMap.keys():
+                colorsMap[t.value] = mcolors[len(colorsMap.keys())*stride]
+            return colorsMap[t.value]
+        colors = map(mapColorToType, types)
         if args.f == 1:
             p = plt.scatter(pca, [0 for i in range(len(pca))], c=colors)
         if args.f == 2:
             p = plt.scatter(pca[:,0],pca[:,1],c=colors)
         if args.f == 3:
             p = Axes3D(plt.figure()).scatter(pca[:,0],pca[:,1],pca[:,2],c=colors)
-        plt.legend(handles=map(lambda t: mpatches.Patch(color=mcolors[t.value-1], label=t.name), set(types)))
+        plt.legend(handles=map(lambda t: mpatches.Patch(color=mapColorToType(t), label=t.name), set(types)))
         plt.show()
 
     if args.screen:

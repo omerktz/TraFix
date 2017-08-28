@@ -1,7 +1,7 @@
 import re
 
 import enum
-Types = enum.Enum('Types', 'Assign Model Op Var Tmp Other Num')
+Types = enum.Enum('Types', 'Assign Model Op Var Global Tmp Other Num')
 
 def getType(w):
 	if w in ['eos', 'UNK']:
@@ -12,6 +12,8 @@ def getType(w):
 		if re.match('%[0-9]+$',w):
 			return Types.Tmp
 		return Types.Var
+	if w.startswith('@'):
+		return Types.Global
 	if re.match('^\-?[0-9]+$',w):
 		return Types.Num
 	if w in ['add','sub','load','store','sdiv','mul','srem']:
