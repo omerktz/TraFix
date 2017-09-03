@@ -219,7 +219,7 @@ class Condition:
         self._op1 = getExpr(inner_weights)
         self._act = Condition._Relations[random.randrange(0,len(Condition._Relations))]
         self._op2 = getExpr(inner_weights)
-        while self._op2==self._op1:
+        while (self._op2==self._op1) or (isinstance(self._op1, Number) and isinstance(self._op1, Number)):
             self._op2 = getExpr(inner_weights)
     def __str__(self):
         res = ''
