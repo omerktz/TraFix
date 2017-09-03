@@ -42,6 +42,8 @@ class Number(Expr):
         self._num = random.randint(Number._minNumber,Number._maxNumber)
     def __str__(self):
         return str(self._num)
+    def pt(self):
+        return (str(self._num), '')
     def __eq__(self, other):
         if not isinstance(other,Number):
             return False
@@ -61,6 +63,8 @@ class Var(Expr):
         Var._vars = map(createVar,range(num))
     def __str__(self):
         return self._name
+    def pt(self):
+        return (self._name, '')
     def __eq__(self, other):
         if not isinstance(other,Var):
             return False
@@ -100,6 +104,7 @@ class Op(Expr):
 
 class BinaryOp(Op):
     _Ops = ['+','-','*','/','%']
+    _binary_temp_counter = 0
     def __init__(self):
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
@@ -119,6 +124,13 @@ class BinaryOp(Op):
         else:
             res += str(self._op2)
         return res
+    def pt(self):
+        (var1, code1) = self._op1.pt()
+        (var2, code2) = self._op2.pt()
+        var = 'bo'+str(BinaryOp._binary_temp_counter)
+        BinaryOp._binary_temp_counter += 1
+        res = (var, code1+code2+var+' = '+var1+' '+self._act+' '+var2+' ; ')
+        return res
     def __eq__(self, other):
         if not isinstance(other,BinaryOp):
             return False
@@ -130,6 +142,7 @@ class BinaryOp(Op):
 
 class UnaryOp(Op):
     _Ops = ['++','--']
+    _unary_temp_counter = 0
     def __init__(self):
         self._op = SourceVar()
         self._act = UnaryOp._Ops[random.randint(0,1)]
@@ -141,6 +154,15 @@ class UnaryOp(Op):
         res += str(self._op)
         if not self._position:
             res += ' '+self._act
+        return res
+    def pt(self):
+        (var1, code1) = self._op.pt()
+        if self._position:
+            res = (var1, code1+ var1+' = '+var1+' + 1 ; ')
+        else:
+            var = 'uo'+str(UnaryOp._unary_temp_counter)
+            UnaryOp._unary_temp_counter += 1
+            res = (var, code1+var+' = '+var1+' ; '+var1+' = '+var1+' + 1 ; ')
         return res
     def __eq__(self, other):
         if not isinstance(other,UnaryOp):
@@ -161,6 +183,18 @@ class Assignment:
             self._target._name = target_name
     def __str__(self):
         return str(self._target) + ' = ' + str(self._source) + ' ; '
+    def pt(self):
+        (vars, codes) = self._source.pt()
+        (vart, codet) = self._target.pt()
+        if config.getboolean('ParseTree', 'SimplifyAssignments'):
+            if isinstance(self._source, BinaryOp):
+                insts = codes.split(';')
+                codes = ';'.join(insts[:-2]).strip()
+                if len(codes) > 0:
+                    codes += ' ; '
+                vars = insts[-2]
+                vars = vars[vars.find('=')+2:].strip()
+        return ('', codes+codet+vart+' = '+vars+' ; ')
     def __eq__(self, other):
         if not isinstance(other,Assignment):
             return False
@@ -172,6 +206,7 @@ class Assignment:
 
 class Condition:
     _Relations = ['>','>=','<','<=','==','!=']
+    _condition_temp_counter = 0
     def __init__(self):
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
@@ -191,6 +226,12 @@ class Condition:
         else:
             res += str(self._op2)
         return res
+    def pt(self):
+        (var1, code1) = self._op1.pt()
+        (var2, code2) = self._op2.pt()
+        var = 'c'+str(Condition._condition_temp_counter)
+        Condition._condition_temp_counter += 1
+        return (var, code1+code2+var+' = '+var1+' '+self._act+' '+var2+' ; ')
     def __eq__(self, other):
         if not isinstance(other,Condition):
             return False
@@ -258,6 +299,13 @@ class Branch:
         if self._else:
             res += 'else { '+' '.join(map(lambda x:str(x),self._else))+' } '
         return res
+    def pt(self):
+        (varc, codec) = self._cond.pt()
+        code = codec+'if ( '+varc+' ) { '+''.join(map(lambda x:x.pt()[1],self._if))
+        if self._else:
+            code += '} else { '+''.join(map(lambda x:x.pt()[1],self._else))
+        code += '} '
+        return ('', code)
     def collectVarNames(self):
         _if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._if), set())
         _else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._else), set())
@@ -321,6 +369,9 @@ class Stats:
     class LengthCounter(Counter):
         def __init__(self):
             Stats.Counter.__init__(self, lambda x: len(filter(lambda x: x!=' ', list(x.strip()))))
+    class StatementsCounter(Counter):
+        def __init__(self):
+            Stats.Counter.__init__(self, lambda x: x.count(';'))
     class WordCounter(Counter):
         def __init__(self):
             Stats.Counter.__init__(self, lambda x: x.strip().count(' ')+1)
@@ -332,10 +383,12 @@ class Stats:
         self._statement_count = dict(map(lambda x: (x+1,0), range(config.getint('Assignments', 'MaxAssignments'))))
         self._ops = [Stats.OperatorCount('+', ['+']), Stats.OperatorCount('-', ['-']), Stats.OperatorCount('*', ['*']), Stats.OperatorCount('/', ['/']), Stats.OperatorCount('%', ['%']), Stats.OperatorCount('++', ['++']), Stats.OperatorCount('--', ['--']), Stats.OperatorCount('Binary', ['+','-','*','/','%']), Stats.OperatorCount('Unary', ['++','--']), Stats.OperatorCount('All', ['+','-','*','/','%','++','--'])]
         self._c_statement_length = Stats.LengthCounter()
-        self._ll_statement_length = Stats.LengthCounter()
+        self._ir_statement_length = Stats.LengthCounter()
+        self._c_statement_count = Stats.StatementsCounter()
+        self._ir_statement_count = Stats.StatementsCounter()
         self._c_word_count = Stats.WordCounter()
-        self._ll_word_count = Stats.WordCounter()
-    def updateStats(self, c, ll):
+        self._ir_word_count = Stats.WordCounter()
+    def updateStats(self, c, ll=None, pt=None):
         self._num_inputs += 1
         self._num_statements += c.count(';')
         if '} else {' not in c:
@@ -350,10 +403,16 @@ class Stats:
             self._elses += 1
         map(lambda o: o.updateCounts(c), self._ops)
         self._c_statement_length.updateCounts(c)
+        self._c_statement_count.updateCounts(c)
         self._c_word_count.updateCounts(c)
-        if args.l:
-            self._ll_statement_length.updateCounts(ll)
-            self._ll_word_count.updateCounts(ll)
+        if ll:
+            self._ir_statement_length.updateCounts(ll)
+            self._ir_statement_count.updateCounts(ll)
+            self._ir_word_count.updateCounts(ll)
+        if pt:
+            self._ir_statement_length.updateCounts(pt)
+            self._ir_statement_count.updateCounts(pt)
+            self._ir_word_count.updateCounts(pt)
     def __str__(self):
         res = ''
         res += '[General]\n'
@@ -364,14 +423,18 @@ class Stats:
         res += str(self._ifs)+','+"{0:.2f}".format(100.0*self._ifs/float(self._num_inputs))+','+str(self._elses)+','+"{0:.2f}".format(100.0*self._elses/float(self._num_inputs))+'\n'
         res += '\n[Lengths]\n'
         res += ',Min,Max\n'
-        res += 'Input,'+str(self._c_statement_length)+'\n'
-        res += 'Output,'+str(self._ll_statement_length)+'\n'
+        res += 'C,'+str(self._c_statement_length)+'\n'
+        res += 'IR,'+str(self._ir_statement_length)+'\n'
+        res += '\n[Statements]\n'
+        res += ',Min,Max\n'
+        res += 'C,'+str(self._c_statement_count)+'\n'
+        res += 'IR,'+str(self._ir_statement_count)+'\n'
         res += '\n[Word Counts]\n'
         res += ',Min,Max\n'
-        res += 'Input,'+str(self._c_word_count)+'\n'
-        res += 'Output,'+str(self._ll_word_count)+'\n'
+        res += 'C,'+str(self._c_word_count)+'\n'
+        res += 'IR,'+str(self._ir_word_count)+'\n'
         res += '\n[Operators]\n'
-        res += ',Inputs,%,Statements,%,Total,t%\n'
+        res += ',Samples,%,Statements,%,Total,t%\n'
         res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total), self._ops[:-1]))+'\n'
         res += '\n[Statements]\n'
         res += 'Num,Count,%\n'
@@ -397,10 +460,10 @@ def generateStatements():
     print ''
     j = 1
     vocabc = set()
-    vocabll = set()
+    vocabir = set()
     stats = Stats()
     with open(outFile+'.corpus.c', 'w') as corpusc:
-        with open(outFile+'.corpus.ll', 'w') as corpusll:
+        with open(outFile+'.corpus.'+('ll' if args.l else 'pt'), 'w') as corpusir:
             Var.clear()
             Var.populate(varCount)
             statements = set()
@@ -437,14 +500,6 @@ def generateStatements():
                         lines = [l.strip() for l in f.readlines()]
                     start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
                     end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
-                line = ''
-                for x in s:
-                    line += str(x)
-                line += '\n'
-                corpusc.write(line)
-                cline = line
-                vocabc.update(map(lambda x: x.strip(), line.split(' ')))
-                if args.l:
                     llline = ''
                     for i in range(start + 1, end - 1):
                         line = lines[i].strip().replace(',', ' ,')
@@ -453,14 +508,31 @@ def generateStatements():
                         if config.getboolean('General', 'RemoveAlign4'):
                             if line.endswith(', align 4'):
                                 line = line[:-len(', align 4')].strip()
-                        vocabll.update(map(lambda y: y.strip(), line.split(' ')))
+                        vocabir.update(map(lambda y: y.strip(), line.split(' ')))
                         llline += line + ' ; '
-                    corpusll.write(llline+'\n')
-                    stats.updateStats(cline, llline)
+                    cline = ''
+                    for x in s:
+                        cline += str(x)
+                    cline += '\n'
+                    corpusc.write(cline)
+                    vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
+                    corpusir.write(llline+'\n')
+                    stats.updateStats(cline, ll=llline)
                     os.remove('tmp.c')
                     os.remove('tmp.ll')
-                else:
-                    stats.updateStats(cline, None)
+                if args.p:
+                    cline = ''
+                    ptline = ''
+                    for x in s:
+                        cline += str(x)
+                        ptline += x.pt()[1]
+                    cline += '\n'
+                    ptline += '\n'
+                    corpusc.write(cline)
+                    corpusir.write(ptline)
+                    vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
+                    vocabir.update(map(lambda x: x.strip(), ptline.split(' ')))
+                    stats.updateStats(cline, pt=ptline)
                 j += 1
     with open(outFile+'.vocab.c.json', 'w') as f:
         f.write('{\n')
@@ -475,20 +547,19 @@ def generateStatements():
                 f.write(', ')
             f.write('\n')
         f.write('}')
-    if args.l:
-        with open(outFile+'.vocab.ll.json', 'w') as f:
-            f.write('{\n')
-            f.write('  "eos": 0, \n')
-            f.write('  "UNK": 1, \n')
-            i = 0
-            n = len(vocabll)
-            for w in vocabll:
-                f.write('  "' + w + '": ' + str(i+2))
-                i += 1
-                if i != n:
-                    f.write(', ')
-                f.write('\n')
-            f.write('}')
+    with open(outFile+'.vocab.'+('ll' if args.l else 'pt')+'.json', 'w') as f:
+        f.write('{\n')
+        f.write('  "eos": 0, \n')
+        f.write('  "UNK": 1, \n')
+        i = 0
+        n = len(vocabir)
+        for w in vocabir:
+            f.write('  "' + w + '": ' + str(i+2))
+            i += 1
+            if i != n:
+                f.write(', ')
+            f.write('\n')
+        f.write('}')
     with open(outFile+'.stats.csv', 'w') as f:
         f.write(str(stats))
     print '\nDone!\n'
