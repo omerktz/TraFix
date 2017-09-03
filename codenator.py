@@ -26,6 +26,17 @@ if not (args.l or args.p):
 config = ConfigParser.ConfigParser()
 config.read(args.c)
 
+class ParseTreeTemp:
+    _counter = 0
+    def __init__(self):
+        self._name = 't'+str(ParseTreeTemp._counter)
+        ParseTreeTemp._counter += 1
+    def __str__(self):
+        return self._name
+    @staticmethod
+    def updateCounter(n):
+        ParseTreeTemp._counter += n
+
 class Expr:
     @staticmethod
     def isValid():
@@ -104,7 +115,6 @@ class Op(Expr):
 
 class BinaryOp(Op):
     _Ops = ['+','-','*','/','%']
-    _binary_temp_counter = 0
     def __init__(self):
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
@@ -127,9 +137,8 @@ class BinaryOp(Op):
     def pt(self):
         (var1, code1) = self._op1.pt()
         (var2, code2) = self._op2.pt()
-        var = 'bo'+str(BinaryOp._binary_temp_counter)
-        BinaryOp._binary_temp_counter += 1
-        res = (var, code1+code2+var+' = '+var1+' '+self._act+' '+var2+' ; ')
+        var = ParseTreeTemp()
+        res = (str(var), code1+code2+str(var)+' = '+var1+' '+self._act+' '+var2+' ; ')
         return res
     def __eq__(self, other):
         if not isinstance(other,BinaryOp):
@@ -142,7 +151,6 @@ class BinaryOp(Op):
 
 class UnaryOp(Op):
     _Ops = ['++','--']
-    _unary_temp_counter = 0
     def __init__(self):
         self._op = SourceVar()
         self._act = UnaryOp._Ops[random.randint(0,1)]
@@ -160,9 +168,8 @@ class UnaryOp(Op):
         if self._position:
             res = (var1, code1+ var1+' = '+var1+' + 1 ; ')
         else:
-            var = 'uo'+str(UnaryOp._unary_temp_counter)
-            UnaryOp._unary_temp_counter += 1
-            res = (var, code1+var+' = '+var1+' ; '+var1+' = '+var1+' + 1 ; ')
+            var = ParseTreeTemp()
+            res = (str(var), code1+str(var)+' = '+var1+' ; '+var1+' = '+var1+' + 1 ; ')
         return res
     def __eq__(self, other):
         if not isinstance(other,UnaryOp):
@@ -185,7 +192,6 @@ class Assignment:
         return str(self._target) + ' = ' + str(self._source) + ' ; '
     def pt(self):
         (vars, codes) = self._source.pt()
-        (vart, codet) = self._target.pt()
         if config.getboolean('ParseTree', 'SimplifyAssignments'):
             if isinstance(self._source, BinaryOp):
                 insts = codes.split(';')
@@ -194,6 +200,8 @@ class Assignment:
                     codes += ' ; '
                 vars = insts[-2]
                 vars = vars[vars.find('=')+2:].strip()
+                ParseTreeTemp.updateCounter(-1)
+        (vart, codet) = self._target.pt()
         return ('', codes+codet+vart+' = '+vars+' ; ')
     def __eq__(self, other):
         if not isinstance(other,Assignment):
@@ -206,7 +214,6 @@ class Assignment:
 
 class Condition:
     _Relations = ['>','>=','<','<=','==','!=']
-    _condition_temp_counter = 0
     def __init__(self):
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
@@ -229,9 +236,8 @@ class Condition:
     def pt(self):
         (var1, code1) = self._op1.pt()
         (var2, code2) = self._op2.pt()
-        var = 'c'+str(Condition._condition_temp_counter)
-        Condition._condition_temp_counter += 1
-        return (var, code1+code2+var+' = '+var1+' '+self._act+' '+var2+' ; ')
+        var = ParseTreeTemp()
+        return (str(var), code1+code2+str(var)+' = '+var1+' '+self._act+' '+var2+' ; ')
     def __eq__(self, other):
         if not isinstance(other,Condition):
             return False
