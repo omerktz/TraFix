@@ -4,6 +4,7 @@ import sys
 import ConfigParser
 import ast
 import argparse
+import re
 
 class SmartFormatter(argparse.HelpFormatter):
     def _split_lines(self, text, width):
@@ -119,9 +120,9 @@ class BinaryOp(Op):
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
         self._act = BinaryOp._Ops[random.randrange(0,len(BinaryOp._Ops))]
-        self._op2 = getExpr(inner_weights)
-        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
-            self._op2 = getExpr(inner_weights)
+        self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]]+inner_weights[1:])
+        while (self._op2==self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)):# or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
+            self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]]+inner_weights[1:])
     def __str__(self):
         res = ''
         if isinstance(self._op1,Op):
@@ -218,9 +219,9 @@ class Condition:
         inner_weights = _inner_weights
         self._op1 = getExpr(inner_weights)
         self._act = Condition._Relations[random.randrange(0,len(Condition._Relations))]
-        self._op2 = getExpr(inner_weights)
-        while (self._op2==self._op1) or (isinstance(self._op1, Number) and isinstance(self._op1, Number)):
-            self._op2 = getExpr(inner_weights)
+        self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]]+inner_weights[1:])
+        while (self._op2==self._op1):# or (isinstance(self._op1, Number) and isinstance(self._op2, Number)):
+            self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]]+inner_weights[1:])
     def __str__(self):
         res = ''
         if isinstance(self._op1,Op):
@@ -336,6 +337,7 @@ def getExpr(weights = _weights):
     exprs = []
     for i in range(len(weights)):
         exprs += [_exprs[i]] * weights[i]
+    random.shuffle(exprs)
     expr = exprs[random.randrange(0, len(exprs))]
     while not expr.isValid():
         expr = exprs[random.randrange(0, len(exprs))]
@@ -504,18 +506,54 @@ def generateStatements():
                     os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
                     with open('tmp.ll', 'r') as f:
                         lines = [l.strip() for l in f.readlines()]
+                    splitlines = []
+                    for l in lines:
+                        splitlines += l.split(' ; ')
+                    lines = splitlines
                     start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
                     end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
                     llline = ''
+                    branchlabels = ('', '')
+                    branchIndex = -1
                     for i in range(start + 1, end - 1):
-                        line = lines[i].strip().replace(',', ' ,')
-                        if config.getint('General', 'OptimizationLevel') > 0:
-                            line = line[:line.find('!')].strip()[:-1].strip()
-                        if config.getboolean('General', 'RemoveAlign4'):
-                            if line.endswith(', align 4'):
-                                line = line[:-len(', align 4')].strip()
-                        vocabir.update(map(lambda y: y.strip(), line.split(' ')))
-                        llline += line + ' ; '
+                        if len(lines[i].strip()) > 0:
+                            line = lines[i].strip().replace(',', ' ,')
+                            if line.startswith(';'):
+                                line = line[1:].strip()
+                            line = re.sub('[ \t]+', ' ', line)
+                            if config.getboolean('Branch', 'RemovePreds'):
+                                if line.startswith('preds '):
+                                    continue
+                            if config.getboolean('Branch', 'SimplifyLabels'):
+                                if line.startswith('<label>:'):
+                                    label = line[len('<label>:'):]
+                                    if label == branchlabels[0]:
+                                        line = '<label>:lTrue'+str(branchIndex)
+                                    elif label == branchlabels[1]:
+                                        line = '<label>:lFalse'+str(branchIndex)
+                                    else:
+                                        line = '<label>:lAfter'+str(branchIndex)
+                                elif line.startswith('br '):
+                                    parts = line.split(',')
+                                    if len(parts) == 3:
+                                        branchIndex += 1
+                                        branchlabels = (parts[1].strip()[len('label %'):],parts[2].strip()[len('label %'):])
+                                        line = parts[0].strip()+' , label %lTrue'+str(branchIndex)+' , label %lFalse'+str(branchIndex)
+                                    else:
+                                        label = line[len('br label %'):]
+                                        if label == branchlabels[1]:
+                                            line = 'br label %lFalse'+str(branchIndex)
+                                        else:
+                                            line = 'br label %lAfter'+str(branchIndex)
+                            if config.getint('General', 'OptimizationLevel') > 0:
+                                line = line[:line.find('!')].strip()[:-1].strip()
+                            if config.getboolean('General', 'RemoveAlign4'):
+                                if line.endswith(', align 4'):
+                                    line = line[:-len(', align 4')].strip()
+                            if config.getboolean('General', 'RemoveI32'):
+                                line = re.sub('i32\*? ', '', line)
+                            vocabir.update(map(lambda y: y.strip(), line.split(' ')))
+                            llline += line + ' ; '
                     cline = ''
                     for x in s:
                         cline += str(x)
