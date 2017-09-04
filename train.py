@@ -27,11 +27,11 @@ import nematus.nmt as nmt
 nmt.train(saveto=os.path.join(mdir,m),
 		  datasets=[f+'.corpus.'+('ll' if args.l else 'pt'), f+'.corpus.c'],
 		  dictionaries=[f+'.vocab.'+('ll' if args.l else 'pt')+'.json', f+'.vocab.c.json'],
-		  batch_size=200,
+		  batch_size=150,
 		  valid_datasets=[v+'.corpus.'+('ll' if args.l else 'pt'), v+'.corpus.c'],
 		  validFreq=1000,
 		  patience=20,
-		  valid_batch_size=200,
+		  valid_batch_size=150,
 		  external_validation_script=e,
 		  enc_depth=2,
 		  dec_depth=2)

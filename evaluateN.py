@@ -165,7 +165,7 @@ def main(f,k,ext):
 
 if __name__ == "__main__":
 	import argparse
-	parser = argparse.ArgumentParser(description="Transalte dataset")
+	parser = argparse.ArgumentParser(description="Evaluate dataset translations")
 	parser.add_argument('dataset', type=str, help="dataset to translate")
 	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
 	parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
