@@ -61,14 +61,14 @@ if (not os.path.exists(args.d+'.'+config.get('General','InputExt'))) or (not os.
 with open(args.d+'.'+config.get('General','InputExt'),'r') as f:
     trainWords = [l.strip().split(' ') for l in f.readlines()]
 with open(args.d+'.'+config.get('General','ExpectedExt'),'r') as f:
-    trainTags = [l.strip() for l in f.readlines()]
+    trainTags = [l.strip().split(' ') for l in f.readlines()]
 if args.f:
     if (not os.path.exists(args.f + '.'+config.get('General','InputExt'))) or (not os.path.exists(args.f + '.'+config.get('General','ExpectedExt'))):
         parser.error('validation dataset is missing essential files')
     with open(args.f + '.'+config.get('General','InputExt'), 'r') as f:
         validationWords = [l.strip().split(' ') for l in f.readlines()]
     with open(args.f + '.'+config.get('General','ExpectedExt'), 'r') as f:
-        validationTags = [l.strip() for l in f.readlines()]
+        validationTags = [l.strip().split(' ') for l in f.readlines()]
 words = list(reduce(lambda x,y: x.union(y), map(lambda w:set(w), trainWords), set()))
 tags = list(reduce(lambda x, y: x.union(y), map(lambda t:set(t), trainTags), set()))
 
