@@ -2,7 +2,7 @@
 mode=FAST_RUN
 floatX=float32
 device=cuda
-on_unused_inpus=warn
+on_unused_input=warn
 
 [lib]
 cnmem=0.1
@@ -13,3 +13,6 @@ root=/usr/local/cuda
 [dnn]
 include_path=/usr/local/cuda/include
 library_path=/usr/local/cuda/lib64
+
+[blas]
+ldflags=-L/usr/lib -lblas
