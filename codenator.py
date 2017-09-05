@@ -35,6 +35,9 @@ class ParseTreeTemp:
     def __str__(self):
         return self._name
     @staticmethod
+    def resetCounter():
+        ParseTreeTemp._counter = 0
+    @staticmethod
     def updateCounter(n):
         ParseTreeTemp._counter += n
 
@@ -476,6 +479,7 @@ def generateStatements():
             Var.populate(varCount)
             statements = set()
             while (not limited) or (j <= limit):
+                ParseTreeTemp.resetCounter()
                 print '\r\t' + str(j),
                 if limited:
                     print '/' + str(limit),
