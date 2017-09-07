@@ -282,6 +282,7 @@ class Branch:
     _max_inner_statements = config.getint('Branch', 'MaxInnerAssignments')
     _inner_statements_weights = ast.literal_eval(config.get('Branch', 'InnerWeights'))
     _allow_nested = config.getboolean('Branch', 'AllowNested')
+    _branch_counter = 0;
 
     def __init__(self):
         self._cond = Condition()
@@ -294,6 +295,9 @@ class Branch:
                 self._else = body_generator()
         else:
             self._else = None
+    @staticmethod
+    def resetCounter():
+        Branch._branch_counter = 0
     def __eq__(self, other):
         if not isinstance(other,Branch):
             return False
@@ -311,10 +315,18 @@ class Branch:
         return res
     def pt(self):
         (varc, codec) = self._cond.pt()
-        code = codec+'if ( '+varc+' ) { '+''.join(map(lambda x:x.pt()[1],self._if))
-        if self._else:
-            code += '} else { '+''.join(map(lambda x:x.pt()[1],self._else))
-        code += '} '
+        if not config.getboolean('Branch','useGoto'):
+            code = codec+'if ( '+varc+' ) { '+''.join(map(lambda x:x.pt()[1],self._if))
+            if self._else:
+                code += '} else { '+''.join(map(lambda x:x.pt()[1],self._else))
+            code += '} '
+        else:
+            currentCounter = str(Branch._branch_counter)
+            Branch._branch_counter += 1
+            code = codec+'if ( ! '+varc+' ) goto '+('lFalse' if self._else else 'lAfter')+currentCounter+' ; '+''.join(map(lambda x:x.pt()[1],self._if))
+            if self._else:
+                code += 'goto lAfter'+currentCounter+'; lFalse'+currentCounter+': '+''.join(map(lambda x:x.pt()[1],self._else))
+            code += 'lAfter'+currentCounter+': '
         return ('', code)
     def collectVarNames(self):
         _if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._if), set())
@@ -480,6 +492,7 @@ def generateStatements():
             statements = set()
             while (not limited) or (j <= limit):
                 ParseTreeTemp.resetCounter()
+                Branch.resetCounter()
                 print '\r\t' + str(j),
                 if limited:
                     print '/' + str(limit),
