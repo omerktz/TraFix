@@ -80,7 +80,7 @@ if vals:
 		count += 1
 		if count > p:
 			retry += 1
-			if retry == r:
+			if (retry == r) or ((ni+ns) > 0):
 				print 'No progress for last '+str(p)+' validations ('+str(retry)+' retries). Terminating!'
 				for proc in psutil.process_iter():
 					if proc.name() == 'python':
