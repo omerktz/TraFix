@@ -75,7 +75,7 @@ if vals:
 		shutil.copy(os.path.join(mdir,m+'.npz.dev.npz'),os.path.join(mdir,m+'.npz.best.npz'))
 		shutil.copy(os.path.join(mdir,m+'.npz.dev.npz.json'),os.path.join(mdir,m+'.npz.best.npz.json'))
 		with open(h,'w') as history:
-			history.write(str(ni)+'\t'+str(ns)+'\t'+str(np)+'\t'+str(nf)+'\t'+str(nt)+'\t0\n')
+			history.write(str(ni)+'\t'+str(ns)+'\t'+str(np)+'\t'+str(nf)+'\t'+str(nt)+'\t0\t0\n')
 	else:
 		count += 1
 		if count > p:
