@@ -15,14 +15,16 @@ parser.add_argument('patience', type=int, help="number of validations without im
 parser.add_argument('history', type=str, help="file used to store validation history")
 parser.add_argument('num_translations', type=int, help="number of translations for each input")
 parser.add_argument('-r', '--retries', dest='retries', type=int, default=1, help="number of times to restart patience counting if patience expired with 0 successes (default: \'%(default)s\')")
-parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
-parser.add_argument('-pt', '--parse-tree', dest='p', help="generate parse tree code", action='count')
+parser.add_argument('-ll', '--llvm', dest='l', help="use LLVM code", action='count')
+parser.add_argument('-pt', '--parse-tree', dest='p', help="use parse tree code", action='count')
+parser.add_argument('-po', '--post-order', dest='po', help="use post order c code", action='count')
 
 args = parser.parse_args()
 
 if not (args.l or args.p):
     parser.error('You need to choose at least one output option (-ll or -pt)')
-ext = 'll' if args.l else 'pt'
+extIn = 'll' if args.l else 'pt'
+extRef = 'po' if args.po else 'c'
 
 v = args.dataset
 mdir = args.model_directory
@@ -41,11 +43,11 @@ def cleanup():
 	os.rename(m+'.npz.best.npz',m+'.npz')
 	os.rename(m+'.npz.best.npz.json',m+'.npz.json')
 
-translate(v, os.path.join(mdir,m+'.npz.dev.npz'), k, ext)
-with open(v+'.corpus.c','r') as fc:
-	with open(v+'.corpus.'+ext, 'r') as fll:
+translate(v, os.path.join(mdir,m+'.npz.dev.npz'), k, extIn)
+with open(v+'.corpus.'+extRef,'r') as fc:
+	with open(v+'.corpus.'+extIn, 'r') as fll:
 		with open(v+'.corpus.'+str(k)+'.out', 'r') as fout:
-			(ni,ns,np,nf,nt) = evaluate(k,fc,fll,fout)
+			(ni,ns,np,nf,nt) = evaluate(k,fc,fll,fout,args.po is None)
 			print 'external progress: '+str((ni,ns,np,nf,nt))
 
 vals = None

@@ -40,8 +40,8 @@ if __name__ == "__main__":
 	parser.add_argument('model_directory', type=str, help="directory in which to save trained model")
 	parser.add_argument('model_name', type=str, help="name of trained model")
 	parser.add_argument('num_translations', type=int, help="number of top translations to output for each input")
-	parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
-	parser.add_argument('-pt', '--parse-tree', dest='p', help="generate parse tree code", action='count')
+	parser.add_argument('-ll', '--llvm', dest='l', help="translate LLVM code", action='count')
+	parser.add_argument('-pt', '--parse-tree', dest='p', help="translate parse tree code", action='count')
 	args = parser.parse_args()
 
 	if (not (args.l or args.p)) or (args.l and args.p):

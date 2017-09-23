@@ -18,6 +18,7 @@ parser.add_argument('-v', '--vars', dest='v', type=int, default=10, help="number
 parser.add_argument('-c', '--config', dest='c', type=str, default='codenator.config', help="configuration file (default: \'%(default)s\')")
 parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
 parser.add_argument('-pt', '--parse-tree', dest='p', help="generate parse tree code", action='count')
+parser.add_argument('-po', '--post-order', dest='po', help="output c code in post order", action='count')
 
 args = parser.parse_args()
 
@@ -59,6 +60,8 @@ class Number(Expr):
         return str(self._num)
     def pt(self):
         return (str(self._num), '')
+    def po(self):
+        return str(self._num)
     def __eq__(self, other):
         if not isinstance(other,Number):
             return False
@@ -80,6 +83,8 @@ class Var(Expr):
         return self._name
     def pt(self):
         return (self._name, '')
+    def po(self):
+        return self._name
     def __eq__(self, other):
         if not isinstance(other,Var):
             return False
@@ -144,6 +149,8 @@ class BinaryOp(Op):
         var = ParseTreeTemp()
         res = (str(var), code1+code2+str(var)+' = '+var1+' '+self._act+' '+var2+' ; ')
         return res
+    def po(self):
+        return self._op1.po()+' '+self._op2.po()+' '+self._act
     def __eq__(self, other):
         if not isinstance(other,BinaryOp):
             return False
@@ -175,6 +182,8 @@ class UnaryOp(Op):
             var = ParseTreeTemp()
             res = (str(var), code1+str(var)+' = '+var1+' ; '+var1+' = '+var1+' + 1 ; ')
         return res
+    def po(self):
+        return self._op.po()+' '+('X' if self._position else '')+self._act+('' if self._position else 'X')
     def __eq__(self, other):
         if not isinstance(other,UnaryOp):
             return False
@@ -207,6 +216,8 @@ class Assignment:
                 ParseTreeTemp.updateCounter(-1)
         (vart, codet) = self._target.pt()
         return ('', codes+codet+vart+' = '+vars+' ; ')
+    def po(self):
+        return self._source.po()+' '+self._target.po()+' ='
     def __eq__(self, other):
         if not isinstance(other,Assignment):
             return False
@@ -242,6 +253,8 @@ class Condition:
         (var2, code2) = self._op2.pt()
         var = ParseTreeTemp()
         return (str(var), code1+code2+str(var)+' = '+var1+' '+self._act+' '+var2+' ; ')
+    def po(self):
+        return self._op1.po()+' '+self._op2.po()+' '+self._act
     def __eq__(self, other):
         if not isinstance(other,Condition):
             return False
@@ -328,6 +341,9 @@ class Branch:
                 code += 'goto lAfter'+currentCounter+'; lFalse'+currentCounter+': '+''.join(map(lambda x:x.pt()[1],self._else))
             code += 'lAfter'+currentCounter+': '
         return ('', code)
+    def po(self):
+        separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
+        return self._cond.po()+' COND '+separator.join(map(lambda x:x.po(),self._if)+[''])+'TRUE '+(separator.join(map(lambda x:x.po(),self._else)+[''])+'FALSE ' if self._else else '')+'IF'
     def collectVarNames(self):
         _if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._if), set())
         _else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._else), set())
@@ -484,6 +500,9 @@ def generateStatements():
     j = 1
     vocabc = set()
     vocabir = set()
+    if args.po:
+        vocabpo = set()
+        corpuspo = open(outFile+'.corpus.po', 'w')
     stats = Stats()
     with open(outFile+'.corpus.c', 'w') as corpusc:
         with open(outFile+'.corpus.'+('ll' if args.l else 'pt'), 'w') as corpusir:
@@ -514,6 +533,7 @@ def generateStatements():
                         pass
                 statements.add(' '.join(map(lambda x:str(x),s)))
                 if args.l:
+                    separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
                     with open('tmp.c', 'w') as f:
                         f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
                         f.write('void f() {\n')
@@ -570,7 +590,7 @@ def generateStatements():
                             if config.getboolean('General', 'RemoveI32'):
                                 line = re.sub('i32\*? ', '', line)
                             vocabir.update(map(lambda y: y.strip(), line.split(' ')))
-                            llline += line + ' ; '
+                            llline += line + separator
                     cline = ''
                     for x in s:
                         cline += str(x)
@@ -594,6 +614,14 @@ def generateStatements():
                     vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
                     vocabir.update(map(lambda x: x.strip(), ptline.split(' ')))
                     stats.updateStats(cline, pt=ptline)
+                if args.po:
+                    separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
+                    line = ''
+                    for x in s:
+                        line += x.po()+separator
+                    line += '\n'
+                    corpuspo.write(line)
+                    vocabpo.update(map(lambda x: x.strip(), line.split(' ')))
                 j += 1
     with open(outFile+'.vocab.c.json', 'w') as f:
         f.write('{\n')
@@ -621,6 +649,21 @@ def generateStatements():
                 f.write(', ')
             f.write('\n')
         f.write('}')
+    if args.po:
+        corpuspo.close()
+        with open(outFile+'.vocab.po.json', 'w') as f:
+            f.write('{\n')
+            f.write('  "eos": 0, \n')
+            f.write('  "UNK": 1, \n')
+            i = 0
+            n = len(vocabpo)
+            for w in vocabpo:
+                f.write('  "' + w + '": ' + str(i+2))
+                i += 1
+                if i != n:
+                    f.write(', ')
+                f.write('\n')
+            f.write('}')
     with open(outFile+'.stats.csv', 'w') as f:
         f.write(str(stats))
     print '\nDone!\n'
