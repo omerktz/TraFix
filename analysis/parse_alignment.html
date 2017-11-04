@@ -106,9 +106,9 @@ $(document).ready(function() {
     	j = 0;
 		matrix[i].forEach(function(y) {
 			if (y == m) {
-				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white; background-color: yellow;">'+y+'</td>';
+				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white; background-color: yellow;">'+y.toFixed(3)+'</td>';
 			} else {
-				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white;">'+y+'</td>';
+				row += '<td class="td" id="td_'+i+'_'+j+'" style="border: 2px solid white;">'+y.toFixed(3)+'</td>';
 			}
 			j++;
 		});
