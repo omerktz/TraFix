@@ -5,7 +5,7 @@ import multiprocessing
 import time
 import itertools
 import csv
-import utils.postOrder as po
+import utils.convertPostOrderToC as po2c
 
 def runCbmc(timeout):
 	with open(os.devnull,'w') as fnull:
@@ -68,42 +68,48 @@ def compareProgs((c,out)):
 	os.remove('cbmc'+str(os.getpid())+'.c')
 	return ret
 
-def parsePostOrder(code):
-	return True if po.parse(code) else False
+def convertPostOrderToC(po):
+	return po2c.parse(po)
 
-def evaluateProg(i,p,c,ll,out,pool,useCbmc):
+def evaluateProg(i,p,c,ll,out,pool,postOrder,convert):
 	print '\r'+p,
 	sys.stdout.flush()
 	if len(filter(lambda x:len(x)>0,out)) == 0:
 		return (i,c,ll,out,3) #fail
 	else:
+		if postOrder:
+			if not convert:
+				if c in out:
+					return (i, c, ll, out, 0)  # identical
+			res = pool.map(convertPostOrderToC, out)
+			if all(map(lambda x: not x[0], res)):
+				return (i, c, ll, out, 2)  # parse
+			else:
+				if convert:
+					out = map(lambda x: x[1].c().strip(), filter(lambda y: y[0], res))
+				else:
+					return (i, c, ll, out, 3)  # fail
+		# compare c code
 		if c in out:
 			return (i,c,ll,out,0) #identical
 		else:
-			if useCbmc:
-				res = pool.map(compareProgs,map(lambda x:(c,x),out))
-				for f in os.listdir('.'):
-					if f.startswith('cbmc') and f.endswith('.c'):
-						os.remove(f)
-				if 0 in res:
-					return (i,c,ll,out,1) #equivalent
-				else:
-					if 2 in res:
-						return (i,c,ll,out,3) #fail
-					else:
-						if 1 in res:
-							return (i,c,ll,out,2) #parse
-						else:
-							return (i,c,ll,out,4) #timeout
+			res = pool.map(compareProgs,map(lambda x:(c,x),out))
+			for f in os.listdir('.'):
+				if f.startswith('cbmc') and f.endswith('.c'):
+					os.remove(f)
+			if 0 in res:
+				return (i,c,ll,out,1) #equivalent
 			else:
-				res = pool.map(parsePostOrder, out)
-				if any(res):
-					return (i, c, ll, out, 3)  # fail
+				if 2 in res:
+					return (i,c,ll,out,3) #fail
 				else:
-					return (i, c, ll, out, 2)  # parse
+					if 1 in res:
+						return (i,c,ll,out,2) #parse
+					else:
+						return (i,c,ll,out,4) #timeout
 
 
-def evaluate(k,fc,fll,fout,useCbmc,fi=None,fs=None,ff=None,fp=None,ft=None):
+def evaluate(k,fc,fll,fout,postOrder,convert,fi=None,fs=None,ff=None,fp=None,ft=None):
 	nidentical = 0
 	nsuccess = 0
 	nfail = 0
@@ -121,7 +127,7 @@ def evaluate(k,fc,fll,fout,useCbmc,fi=None,fs=None,ff=None,fp=None,ft=None):
 	for i in filter(lambda x: x not in groups.keys(), range(max_len)):
 		groups[i] = []
 	pool = multiprocessing.Pool(processes=k)
-	results = map(lambda i: evaluateProg(i,str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],groups[i],pool,useCbmc),range(len(cs)))
+	results = map(lambda i: evaluateProg(i,str(i+1).zfill(len(str(max_len)))+'/'+str(max_len),cs[i],lls[i],groups[i],pool,postOrder,convert),range(len(cs)))
 	pool.close()
 	pool.join()
 	print ''
@@ -154,7 +160,7 @@ def evaluate(k,fc,fll,fout,useCbmc,fi=None,fs=None,ff=None,fp=None,ft=None):
 			os.remove(f)
 	return (nidentical,nsuccess,nparse,nfail,ntimeout)
 
-def main(f,k,extIn,extRef,useCbmc):
+def main(f,k,extIn,extRef,postOrder,convert):
 	with open(f+'.identical.'+str(k)+'.csv','w') as fidentical:
 		with open(f+'.equivalent.'+str(k)+'.csv','w') as fsuccess:
 			with open(f+'.fail.'+str(k)+'.csv', 'w') as ffail:
@@ -168,7 +174,7 @@ def main(f,k,extIn,extRef,useCbmc):
 						with open(f+'.corpus.'+extRef,'r') as fc:
 							with open(f+'.corpus.'+extIn, 'r') as fll:
 								with open(f+'.corpus.'+str(k)+'.out', 'r') as fout:
-									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,useCbmc,csv.writer(fidentical),csv.writer(fsuccess),csv.writer(ffail),csv.writer(fparse),csv.writer(ftimeout))
+									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,postOrder,convert,csv.writer(fidentical),csv.writer(fsuccess),csv.writer(ffail),csv.writer(fparse),csv.writer(ftimeout))
 	print str(nidentical)+' statements translated identically'
 	print str(nsuccess)+' statements translated equivalently'
 	print str(nparse)+' translated statements failed to parse'
@@ -182,13 +188,14 @@ if __name__ == "__main__":
 	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
 	parser.add_argument('-ll', '--llvm', dest='l', help="evalaute LLVM code tanslation", action='count')
 	parser.add_argument('-pt', '--parse-tree', dest='p', help="evaluate parse tree code translation", action='count')
-	parser.add_argument('-po', '--post-order', dest='po', help="usee translations to post order code", action='count')
+	parser.add_argument('-po', '--post-order', dest='po', help="use translations to post order code", action='count')
+	parser.add_argument('-c', '--convert', dest='convert', help="convert post order to c", action='count')
 	args = parser.parse_args()
 
 	if (not (args.l or args.p)) or (args.l and args.p):
 		parser.error('You need to exactly one input option (-ll or -pt, not both)')
 
-	main(args.dataset,args.num_translations,'ll' if args.l else 'pt','po' if args.po else 'c',False if args.po else True)
+	main(args.dataset, args.num_translations, 'll' if args.l else 'pt', 'po' if (args.po and not args.convert) else 'c', args.po, args.convert)
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):
 			os.remove(f)

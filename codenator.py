@@ -217,7 +217,7 @@ class Assignment:
         (vart, codet) = self._target.pt()
         return ('', codes+codet+vart+' = '+vars+' ; ')
     def po(self):
-        return self._source.po()+' '+self._target.po()+' ='
+        return self._target.po()+' '+self._source.po()+' ='
     def __eq__(self, other):
         if not isinstance(other,Assignment):
             return False
