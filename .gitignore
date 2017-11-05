@@ -101,3 +101,4 @@ dynet/*.corpus.out
 dynet/*.counts
 dynet/*.csv
 dynet/output/
+backups/

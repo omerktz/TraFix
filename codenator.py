@@ -16,14 +16,9 @@ parser.add_argument('-n', '--num', dest='n', type=int, help="R|number of samples
 parser.add_argument('-o', '--out', dest='o', type=str, default='out', help="output files names (default: \'%(default)s\')")
 parser.add_argument('-v', '--vars', dest='v', type=int, default=10, help="number of input variables to use (default: %(default)s)")
 parser.add_argument('-c', '--config', dest='c', type=str, default='codenator.config', help="configuration file (default: \'%(default)s\')")
-parser.add_argument('-ll', '--llvm', dest='l', help="generate LLVM code", action='count')
-parser.add_argument('-pt', '--parse-tree', dest='p', help="generate parse tree code", action='count')
 parser.add_argument('-po', '--post-order', dest='po', help="output c code in post order", action='count')
 
 args = parser.parse_args()
-
-if not (args.l or args.p):
-    parser.error('You need to choose at least one output option (-ll or -pt)')
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)
@@ -505,7 +500,7 @@ def generateStatements():
         corpuspo = open(outFile+'.corpus.po', 'w')
     stats = Stats()
     with open(outFile+'.corpus.c', 'w') as corpusc:
-        with open(outFile+'.corpus.'+('ll' if args.l else 'pt'), 'w') as corpusir:
+        with open(outFile+'.corpus.ll', 'w') as corpusir:
             Var.clear()
             Var.populate(varCount)
             statements = set()
@@ -532,88 +527,74 @@ def generateStatements():
                     except RuntimeError:
                         pass
                 statements.add(' '.join(map(lambda x:str(x),s)))
-                if args.l:
-                    separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
-                    with open('tmp.c', 'w') as f:
-                        f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
-                        f.write('void f() {\n')
-                        for x in s:
-                            f.write(str(x)+'\n')
-                        f.write('}\n')
-                    os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
-                    with open('tmp.ll', 'r') as f:
-                        lines = [l.strip() for l in f.readlines()]
-                    splitlines = []
-                    for l in lines:
-                        splitlines += l.split(' ; ')
-                    lines = splitlines
-                    start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
-                    end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
-                    llline = ''
-                    branchlabels = ('', '')
-                    branchIndex = -1
-                    for i in range(start + 1, end - 1):
-                        if len(lines[i].strip()) > 0:
-                            line = lines[i].strip().replace(',', ' ,')
-                            if line.startswith(';'):
-                                line = line[1:].strip()
-                            line = re.sub('[ \t]+', ' ', line)
-                            if config.getboolean('Branch', 'RemovePreds'):
-                                if line.startswith('preds '):
-                                    continue
-                            if config.getboolean('Branch', 'SimplifyLabels'):
-                                if line.startswith('<label>:'):
-                                    label = line[len('<label>:'):]
-                                    if label == branchlabels[0]:
-                                        line = '<label>:lTrue'+str(branchIndex)
-                                    elif label == branchlabels[1]:
-                                        line = '<label>:lFalse'+str(branchIndex)
-                                    else:
-                                        line = '<label>:lAfter'+str(branchIndex)
-                                elif line.startswith('br '):
-                                    parts = line.split(',')
-                                    if len(parts) == 3:
-                                        branchIndex += 1
-                                        branchlabels = (parts[1].strip()[len('label %'):],parts[2].strip()[len('label %'):])
-                                        line = parts[0].strip()+' , label %lTrue'+str(branchIndex)+' , label %lFalse'+str(branchIndex)
-                                    else:
-                                        label = line[len('br label %'):]
-                                        if label == branchlabels[1]:
-                                            line = 'br label %lFalse'+str(branchIndex)
-                                        else:
-                                            line = 'br label %lAfter'+str(branchIndex)
-                            if config.getint('General', 'OptimizationLevel') > 0:
-                                line = line[:line.find('!')].strip()[:-1].strip()
-                            if config.getboolean('General', 'RemoveAlign4'):
-                                if line.endswith(', align 4'):
-                                    line = line[:-len(', align 4')].strip()
-                            if config.getboolean('General', 'RemoveI32'):
-                                line = re.sub('i32\*? ', '', line)
-                            vocabir.update(map(lambda y: y.strip(), line.split(' ')))
-                            llline += line + separator
-                    cline = ''
+                separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
+                with open('tmp.c', 'w') as f:
+                    f.write('int '+('Y' if not config.getboolean('Assignments','RenameTargetVars') else ','.join(map(lambda i: 'Y'+str(i), range(Assignments._assignments_counter)))) + ','.join(['']+map(lambda v: v._name, Var._vars)) + ';\n')
+                    f.write('void f() {\n')
                     for x in s:
-                        cline += str(x)
-                    cline += '\n'
-                    corpusc.write(cline)
-                    vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
-                    corpusir.write(llline+'\n')
-                    stats.updateStats(cline, ll=llline)
-                    os.remove('tmp.c')
-                    os.remove('tmp.ll')
-                if args.p:
-                    cline = ''
-                    ptline = ''
-                    for x in s:
-                        cline += str(x)
-                        ptline += x.pt()[1]
-                    cline += '\n'
-                    ptline += '\n'
-                    corpusc.write(cline)
-                    corpusir.write(ptline)
-                    vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
-                    vocabir.update(map(lambda x: x.strip(), ptline.split(' ')))
-                    stats.updateStats(cline, pt=ptline)
+                        f.write(str(x)+'\n')
+                    f.write('}\n')
+                os.system('clang -S -emit-llvm -O'+str(config.getint('General', 'OptimizationLevel'))+' -o tmp.ll tmp.c > /dev/null 2>&1')
+                with open('tmp.ll', 'r') as f:
+                    lines = [l.strip() for l in f.readlines()]
+                splitlines = []
+                for l in lines:
+                    splitlines += l.split(' ; ')
+                lines = splitlines
+                start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+                end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
+                llline = ''
+                branchlabels = ('', '')
+                branchIndex = -1
+                for i in range(start + 1, end - 1):
+                    if len(lines[i].strip()) > 0:
+                        line = lines[i].strip().replace(',', ' ,')
+                        if line.startswith(';'):
+                            line = line[1:].strip()
+                        line = re.sub('[ \t]+', ' ', line)
+                        if config.getboolean('Branch', 'RemovePreds'):
+                            if line.startswith('preds '):
+                                continue
+                        if config.getboolean('Branch', 'SimplifyLabels'):
+                            if line.startswith('<label>:'):
+                                label = line[len('<label>:'):]
+                                if label == branchlabels[0]:
+                                    line = '<label>:lTrue'+str(branchIndex)
+                                elif label == branchlabels[1]:
+                                    line = '<label>:lFalse'+str(branchIndex)
+                                else:
+                                    line = '<label>:lAfter'+str(branchIndex)
+                            elif line.startswith('br '):
+                                parts = line.split(',')
+                                if len(parts) == 3:
+                                    branchIndex += 1
+                                    branchlabels = (parts[1].strip()[len('label %'):],parts[2].strip()[len('label %'):])
+                                    line = parts[0].strip()+' , label %lTrue'+str(branchIndex)+' , label %lFalse'+str(branchIndex)
+                                else:
+                                    label = line[len('br label %'):]
+                                    if label == branchlabels[1]:
+                                        line = 'br label %lFalse'+str(branchIndex)
+                                    else:
+                                        line = 'br label %lAfter'+str(branchIndex)
+                        if config.getint('General', 'OptimizationLevel') > 0:
+                            line = line[:line.find('!')].strip()[:-1].strip()
+                        if config.getboolean('General', 'RemoveAlign4'):
+                            if line.endswith(', align 4'):
+                                line = line[:-len(', align 4')].strip()
+                        if config.getboolean('General', 'RemoveI32'):
+                            line = re.sub('i32\*? ', '', line)
+                        vocabir.update(map(lambda y: y.strip(), line.split(' ')))
+                        llline += line + separator
+                cline = ''
+                for x in s:
+                    cline += str(x)
+                cline += '\n'
+                corpusc.write(cline)
+                vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
+                corpusir.write(llline+'\n')
+                stats.updateStats(cline, ll=llline)
+                os.remove('tmp.c')
+                os.remove('tmp.ll')
                 if args.po:
                     separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
                     line = ''
@@ -636,7 +617,7 @@ def generateStatements():
                 f.write(', ')
             f.write('\n')
         f.write('}')
-    with open(outFile+'.vocab.'+('ll' if args.l else 'pt')+'.json', 'w') as f:
+    with open(outFile+'.vocab.ll.json', 'w') as f:
         f.write('{\n')
         f.write('  "eos": 0, \n')
         f.write('  "UNK": 1, \n')

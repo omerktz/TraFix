@@ -160,19 +160,19 @@ def evaluate(k,fc,fll,fout,postOrder,convert,fi=None,fs=None,ff=None,fp=None,ft=
 			os.remove(f)
 	return (nidentical,nsuccess,nparse,nfail,ntimeout)
 
-def main(f,k,extIn,extRef,postOrder,convert):
+def main(f, k, ext, postOrder, convert):
 	with open(f+'.identical.'+str(k)+'.csv','w') as fidentical:
 		with open(f+'.equivalent.'+str(k)+'.csv','w') as fsuccess:
 			with open(f+'.fail.'+str(k)+'.csv', 'w') as ffail:
 				with open(f+'.parse.'+str(k)+'.csv', 'w') as fparse:
 					with open(f+'.timeout.'+str(k)+'.csv', 'w') as ftimeout:
-						csv.writer(fidentical).writerow(['line',extRef,extIn]+map(lambda i:'out'+str(i),range(k)))
-						csv.writer(fsuccess).writerow(['line',extRef,extIn]+map(lambda i:'out'+str(i),range(k)))
-						csv.writer(ffail).writerow(['line',extRef,extIn]+map(lambda i:'out'+str(i),range(k)))
-						csv.writer(fparse).writerow(['line',extRef,extIn]+map(lambda i:'out'+str(i),range(k)))
-						csv.writer(ftimeout).writerow(['line',extRef,extIn]+map(lambda i:'out'+str(i),range(k)))
-						with open(f+'.corpus.'+extRef,'r') as fc:
-							with open(f+'.corpus.'+extIn, 'r') as fll:
+						csv.writer(fidentical).writerow(['line', ext, 'll'] + map(lambda i: 'out' + str(i), range(k)))
+						csv.writer(fsuccess).writerow(['line', ext, 'll'] + map(lambda i: 'out' + str(i), range(k)))
+						csv.writer(ffail).writerow(['line', ext, 'll'] + map(lambda i: 'out' + str(i), range(k)))
+						csv.writer(fparse).writerow(['line', ext, 'll'] + map(lambda i: 'out' + str(i), range(k)))
+						csv.writer(ftimeout).writerow(['line', ext, 'll'] + map(lambda i: 'out' + str(i), range(k)))
+						with open(f+'.corpus.'+ext, 'r') as fc:
+							with open(f+'.corpus.ll', 'r') as fll:
 								with open(f+'.corpus.'+str(k)+'.out', 'r') as fout:
 									(nidentical,nsuccess,nparse,nfail,ntimeout) = evaluate(k,fc,fll,fout,postOrder,convert,csv.writer(fidentical),csv.writer(fsuccess),csv.writer(ffail),csv.writer(fparse),csv.writer(ftimeout))
 	print str(nidentical)+' statements translated identically'
@@ -186,16 +186,11 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Evaluate dataset translations")
 	parser.add_argument('dataset', type=str, help="dataset to translate")
 	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
-	parser.add_argument('-ll', '--llvm', dest='l', help="evalaute LLVM code tanslation", action='count')
-	parser.add_argument('-pt', '--parse-tree', dest='p', help="evaluate parse tree code translation", action='count')
 	parser.add_argument('-po', '--post-order', dest='po', help="use translations to post order code", action='count')
 	parser.add_argument('-c', '--convert', dest='convert', help="convert post order to c", action='count')
 	args = parser.parse_args()
 
-	if (not (args.l or args.p)) or (args.l and args.p):
-		parser.error('You need to exactly one input option (-ll or -pt, not both)')
-
-	main(args.dataset, args.num_translations, 'll' if args.l else 'pt', 'po' if (args.po and not args.convert) else 'c', args.po, args.convert)
+	main(args.dataset, args.num_translations, 'po' if (args.po and not args.convert) else 'c', args.po, args.convert)
 	for f in os.listdir('.'):
 		if f.startswith('cbmc') and f.endswith('.c'):
 			os.remove(f)

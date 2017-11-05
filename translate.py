@@ -25,8 +25,8 @@ def copy_unknown_words(filename, out_filename, unk_token = 'UNK'):
 							target[i] = '$'
 			out_filename.write(index+' ||| '+' '.join(target) + ' ||| \n')
 
-def main(f,m,k,ext):
-	decode_command = 'python nematus/nematus/translate.py -m {} -i {} -o {} -a {} -p 5 --n-best -k {}'.format(m, f+'.corpus.'+ext, f+'.corpus.'+str(k)+'.tmp', f+'.'+str(k)+'.alignment',k)
+def main(f,m,k):
+	decode_command = 'python nematus/nematus/translate.py -m {} -i {} -o {} -a {} -p 5 --n-best -k {}'.format(m, f+'.corpus.ll', f+'.corpus.'+str(k)+'.tmp', f+'.'+str(k)+'.alignment',k)
 	os.system(decode_command)
 	with open(f+'.'+str(k)+'.alignment','r') as fin:
 		with open(f+'.corpus.'+str(k)+'.out','w') as fout:
@@ -40,11 +40,6 @@ if __name__ == "__main__":
 	parser.add_argument('model_directory', type=str, help="directory in which to save trained model")
 	parser.add_argument('model_name', type=str, help="name of trained model")
 	parser.add_argument('num_translations', type=int, help="number of top translations to output for each input")
-	parser.add_argument('-ll', '--llvm', dest='l', help="translate LLVM code", action='count')
-	parser.add_argument('-pt', '--parse-tree', dest='p', help="translate parse tree code", action='count')
 	args = parser.parse_args()
 
-	if (not (args.l or args.p)) or (args.l and args.p):
-		parser.error('You need to exactly one input option (-ll or -pt, not both)')
-
-	main(args.dataset,os.path.join(args.model_directory,args.model_name),args.num_translations,'ll' if args.l else 'pt')
+	main(args.dataset,os.path.join(args.model_directory,args.model_name),args.num_translations)
