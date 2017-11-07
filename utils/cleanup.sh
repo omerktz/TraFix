@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -rf *.json *.csv *.c *.ll *.out *.npz *.alignment *.pyc *.po
+rm -rf *.csv *.c *.ll *.po *.out *.pyc *.txt *.png

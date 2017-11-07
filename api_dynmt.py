@@ -2,13 +2,14 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
+	dynmt = os.path.abspath('dynmt/src/dynmt.py')
 	config.read(args['config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
 	test = os.path.abspath(args['test_dataset'])
 	ext = 'po' if args['post_order'] else 'c'
 	model = os.path.abspath(args['model_path'] + '.ll-' + ext + '.dynmt')
-	command = 'python dynmt/src/dynmt.py --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.{3} {1}.corpus.ll ' \
+	command = 'python '+dynmt+' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.{3} {1}.corpus.ll ' \
 			  '{1}.corpus.{3} {2}.corpus.ll {2}.corpus.{3} {4} --epochs={5} --batch-size={6} --eval-after={7} ' \
 			  '--max-len={8} --max-pred={9} --max-patience={10} --beam-size={11} --plot --lstm-layers={12} ' \
 			  '--models-to-save={13} {14}' \
@@ -18,7 +19,31 @@ def main(args):
 				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
 				config.getint('DyNmt', 'lstm_layers'), config.getint('DyNmt', 'models_to_save'),
 				'--eval' if args['translate'] else '--override')
-	os.system(command)
+	if args['train']:
+		os.system(command)
+	if args['translate']:
+		import subprocess
+		import re
+		import sys
+		with open(test+'.corpus.'+str(args['num_translations'])+'.out','w') as f:
+			translations = False
+			current = None
+			p = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE)
+			while p.poll() is None:
+				line = p.stdout.readline()
+				if not translations:
+					print line,
+					sys.stdout.flush()
+					if line.strip() == 'predicting...':
+						translations = True
+				else:
+					if re.match('^[0-9]+/[0-9]+$', line.strip()):
+						current = line[:line.find('/')]
+						print '\r\t'+line.strip(),
+						sys.stdout.flush()
+					if re.match('^[0-9]+\-best\: ', line):
+						translation = line[line.find(':')+1:].strip()
+						f.write(current+' ||| '+translation+' ||| \n')
 	if args['cleanup']:
 		import glob
 		files = filter(os.path.isfile, glob.glob(model + '*[0-9].*txt'))
