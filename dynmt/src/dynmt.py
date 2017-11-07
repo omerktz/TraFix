@@ -264,7 +264,7 @@ def save_model(model, model_file_path, updates, models_to_save=None):
         files.sort(key=lambda x: os.path.getmtime(x))
         if len(files) > models_to_save:
             print 'removing {}'.format(files[0])
-            os.remove(files[-1])
+            os.remove(files[0])
 
 
 def load_best_model(input_vocabulary, output_vocabulary, results_file_path, input_dim, hidden_dim, layers):
