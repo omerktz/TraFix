@@ -1,3 +1,3 @@
 #!/bin/bash
-notify ./trainMany.sh
-notify ./trainManyL2.sh
+notify python measureTrainTime.py
+notify python measureTrainTimeL2.py
