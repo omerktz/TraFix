@@ -580,7 +580,7 @@ def generateStatements():
 						pass
 				statements.add(' '.join(map(lambda x: str(x), s)))
 				separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
-				with open('tmp.c', 'w') as f:
+				with open('tmp'+str(os.getpid())+'.c', 'w') as f:
 					f.write('int ' + ('Y' if not config.getboolean('Assignments', 'RenameTargetVars') else ','.join(
 						map(lambda i: 'Y' + str(i), range(Assignments._assignments_counter)))) + ','.join(
 						[''] + map(lambda v: v._name, Var._vars)) + ';\n')
@@ -589,8 +589,8 @@ def generateStatements():
 						f.write(str(x) + '\n')
 					f.write('}\n')
 				os.system('clang -S -emit-llvm -O' + str(
-					config.getint('General', 'OptimizationLevel')) + ' -o tmp.ll tmp.c > /dev/null 2>&1')
-				with open('tmp.ll', 'r') as f:
+					config.getint('General', 'OptimizationLevel')) + ' -o tmp'+str(os.getpid())+'.ll tmp'+str(os.getpid())+'.c > /dev/null 2>&1')
+				with open('tmp'+str(os.getpid())+'.ll', 'r') as f:
 					lines = [l.strip() for l in f.readlines()]
 				splitlines = []
 				for l in lines:
@@ -650,8 +650,8 @@ def generateStatements():
 				vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
 				corpusir.write(llline + '\n')
 				stats.updateStats(cline, llline)
-				os.remove('tmp.c')
-				os.remove('tmp.ll')
+				os.remove('tmp'+str(os.getpid())+'.c')
+				os.remove('tmp'+str(os.getpid())+'.ll')
 				if args.po:
 					separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
 					line = ''
