@@ -172,31 +172,31 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
     else:
         print 'skipped training, evaluating on test set...'
 
-    # evaluate using an ensemble
-    if ensemble:
-        # predict test set using ensemble majority
-        predicted_sequences = predict_with_ensemble_majority(input_vocabulary, output_vocabulary, x2int, y2int,
-                                                             int2y, ensemble, hidden_dim, input_dim, layers,
-                                                             test_inputs, test_outputs)
-    else:
-        # TODO: load best model from disk before test eval in case training was performed
-        # predict test set using a single model
-        predicted_sequences = predict_multiple_sequences(params, encoder, decoder, y2int, int2y, test_inputs)
-    if len(predicted_sequences) > 0:
+        # evaluate using an ensemble
+        if ensemble:
+            # predict test set using ensemble majority
+            predicted_sequences = predict_with_ensemble_majority(input_vocabulary, output_vocabulary, x2int, y2int,
+                                                                 int2y, ensemble, hidden_dim, input_dim, layers,
+                                                                 test_inputs, test_outputs)
+        else:
+            # TODO: load best model from disk before test eval in case training was performed
+            # predict test set using a single model
+            predicted_sequences = predict_multiple_sequences(params, encoder, decoder, y2int, int2y, test_inputs)
+        if len(predicted_sequences) > 0:
 
-        # evaluate the test predictions
-        amount, accuracy = evaluate(predicted_sequences, test_inputs, test_outputs, print_results=False,
-                                    predictions_file_path=results_file_path + '.test.predictions')
-        print 'test bleu: {}% '.format(accuracy)
+            # evaluate the test predictions
+            amount, accuracy = evaluate(predicted_sequences, test_inputs, test_outputs, print_results=False,
+                                        predictions_file_path=results_file_path + '.test.predictions')
+            print 'test bleu: {}% '.format(accuracy)
 
-        final_results = []
-        for i in xrange(len(test_outputs)):
-            index = ' '.join(test_inputs[i])
-            final_output = ' '.join(predicted_sequences[index])
-            final_results.append(final_output)
+            final_results = []
+            for i in xrange(len(test_outputs)):
+                index = ' '.join(test_inputs[i])
+                final_output = ' '.join(predicted_sequences[index])
+                final_results.append(final_output)
 
-        # write output files
-        common.write_results_files(results_file_path, final_results)
+            # write output files
+            common.write_results_files(results_file_path, final_results)
 
     return
 
@@ -437,7 +437,7 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
                 train_loss_patience += 1
                 if train_loss_patience > train_loss_patience_threshold:
                     print 'train loss patience exceeded: {}'.format(train_loss_patience)
-                    return model, params, e, best_train_epoch
+                    return model, params, e, best_dev_epoch
 
             if total_batches % 100 == 0 and total_batches > 0:
                 print 'epoch {}: {} batches out of {} ({} examples out of {}) total: {} batches, {} examples. avg \
@@ -497,7 +497,7 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
                     if plot:
                         plt.cla()
                     print 'checkpoint patience exceeded'
-                    return model, params, e, best_train_epoch
+                    return model, params, e, best_dev_epoch
 
                 # plotting results from checkpoint evaluation
                 if plot:
@@ -523,7 +523,7 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
         best_dev_epoch,
         best_train_epoch)
 
-    return model, params, e, best_train_epoch
+    return model, params, e, best_dev_epoch
 
 
 def checkpoint_eval(encoder, decoder, params, batch_size, dev_data, dev_inputs, dev_len, dev_order, dev_outputs, int2y,
