@@ -82,7 +82,7 @@ def convertPostOrderToC(po):
 
 
 def evaluateProg(i, p, c, ll, out, postOrder, convert):
-	print '\r' + p,
+	#print '\r' + p,
 	sys.stdout.flush()
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, c, ll, out, 3)  # fail
@@ -141,7 +141,7 @@ def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp
 	results = map(
 		lambda i: evaluateProg(i, str(i + 1).zfill(len(str(max_len))) + '/' + str(max_len), cs[i], lls[i], groups[i],
 							   postOrder, convert), range(len(cs)))
-	print ''
+	#print ''
 	for x in results:
 		if x[4] == 0:
 			if fi:

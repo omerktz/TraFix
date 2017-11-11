@@ -4,6 +4,7 @@ from itertools import product
 import time
 import os
 from evaluate import evaluate
+import sys
 
 
 def run((nums, length)):
@@ -41,7 +42,8 @@ def run((nums, length)):
 			translate_end - translate_start, test_blue, nidentical + nsuccess, nparse, nfail + ntimeout)
 
 
-pool = Pool(processes=32)
+print 'Using %s processes' % sys.argv[1]
+pool = Pool(processes=int(sys.argv[1]))
 results = pool.map(run, product(range(100, 0, -10), range(10000, 0, -1000)))
 pool.close()
 pool.join()
