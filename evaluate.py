@@ -1,7 +1,7 @@
 import sys
 import os
 import subprocess
-import multiprocessing
+#import parmap
 import time
 import itertools
 import csv
@@ -81,7 +81,7 @@ def convertPostOrderToC(po):
 	return po2c.parse(po)
 
 
-def evaluateProg(i, p, c, ll, out, pool, postOrder, convert):
+def evaluateProg(i, p, c, ll, out, postOrder, convert):
 	print '\r' + p,
 	sys.stdout.flush()
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
@@ -91,7 +91,8 @@ def evaluateProg(i, p, c, ll, out, pool, postOrder, convert):
 			if not convert:
 				if c in out:
 					return (i, c, ll, out, 0)  # identical
-			res = pool.map(convertPostOrderToC, out)
+			#res = parmap.map(convertPostOrderToC, out)
+			res = map(convertPostOrderToC, out)
 			if all(map(lambda x: not x[0], res)):
 				return (i, c, ll, out, 2)  # parse
 			else:
@@ -103,7 +104,8 @@ def evaluateProg(i, p, c, ll, out, pool, postOrder, convert):
 		if c in out:
 			return (i, c, ll, out, 0)  # identical
 		else:
-			res = pool.map(compareProgs, map(lambda x: (c, x), out))
+			#res = parmap.map(compareProgs, map(lambda x: (c, x), out))
+			res = map(compareProgs, map(lambda x: (c, x), out))
 			for f in os.listdir('.'):
 				if f.startswith('cbmc') and f.endswith('.c'):
 					os.remove(f)
@@ -136,12 +138,9 @@ def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp
 	lls = lls + [''] * (max_len - len(lls))
 	for i in filter(lambda x: x not in groups.keys(), range(max_len)):
 		groups[i] = []
-	pool = multiprocessing.Pool(processes=k)
 	results = map(
 		lambda i: evaluateProg(i, str(i + 1).zfill(len(str(max_len))) + '/' + str(max_len), cs[i], lls[i], groups[i],
-							   pool, postOrder, convert), range(len(cs)))
-	pool.close()
-	pool.join()
+							   postOrder, convert), range(len(cs)))
 	print ''
 	for x in results:
 		if x[4] == 0:
