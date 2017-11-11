@@ -55,7 +55,7 @@ import numpy as np
 import random
 import glob
 import prepare_data
-import progressbar
+#import progressbar
 import time
 import os
 import common
@@ -387,8 +387,8 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 
     # progress bar init
     # noinspection PyArgumentList
-    widgets = [progressbar.Bar('>'), ' ', progressbar.ETA()]
-    train_progress_bar = progressbar.ProgressBar(widgets=widgets, maxval=epochs).start()
+    #widgets = [progressbar.Bar('>'), ' ', progressbar.ETA()]
+    #train_progress_bar = progressbar.ProgressBar(widgets=widgets, maxval=epochs).start()
 
     for e in xrange(start_epoch, epochs):
 
@@ -493,7 +493,7 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 
                 if patience == max_patience:
                     print 'out of patience after {0} checkpoints'.format(str(e))
-                    train_progress_bar.finish()
+                    #train_progress_bar.finish()
                     if plot:
                         plt.cla()
                     print 'checkpoint patience exceeded'
@@ -511,10 +511,10 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
                                         file_path=results_file_path + '_learning_curve.png')
 
         # update progress bar after completing epoch
-        train_progress_bar.update(e)
+        #train_progress_bar.update(e)
 
     # update progress bar after completing training
-    train_progress_bar.finish()
+    #train_progress_bar.finish()
     if plot:
         # clear plot when done
         plt.cla()
