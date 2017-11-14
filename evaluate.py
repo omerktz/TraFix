@@ -106,9 +106,9 @@ def evaluateProg(i, p, c, ll, out, postOrder, convert):
 		else:
 			#res = parmap.map(compareProgs, map(lambda x: (c, x), out))
 			res = map(compareProgs, map(lambda x: (c, x), out))
-			for f in os.listdir('.'):
-				if f.startswith('cbmc') and f.endswith('.c'):
-					os.remove(f)
+			#for f in os.listdir('.'):
+			#	if f.startswith('cbmc') and f.endswith('.c'):
+			#		os.remove(f)
 			if 0 in res:
 				return (i, c, ll, out, 1)  # equivalent
 			else:
@@ -166,9 +166,9 @@ def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp
 						if ft:
 							ft.writerow([str(x[0]), x[1], x[2]] + x[3])
 						ntimeout += 1
-	for f in os.listdir('.'):
-		if f.startswith('cbmc') and f.endswith('.c'):
-			os.remove(f)
+	#for f in os.listdir('.'):
+	#	if f.startswith('cbmc') and f.endswith('.c'):
+	#		os.remove(f)
 	return (nidentical, nsuccess, nparse, nfail, ntimeout)
 
 
