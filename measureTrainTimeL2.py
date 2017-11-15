@@ -55,6 +55,4 @@ with open('resultsL2.csv', 'w') as f:
 		['MaxNum', 'TrainDatsetSize', 'TrainTime', 'TotalEpochs', 'BestEpoch', 'BestDevBleu', 'TranslationTime',
 		 'TestBleu', 'Successes', 'UnParsable', 'Failures'])
 	for r in results:
-		csvf.writerow(
-			[results[0], results[1], results[2], results[3], results[4], results[5], results[6], results[7], results[8],
-			 results[9], results[10]])
+		csvf.writerow([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10]])
