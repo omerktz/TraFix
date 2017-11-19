@@ -89,20 +89,21 @@ def print_fields():
 		print '\t' + str(i) + ') ' + fields[i][0]
 
 
-def handle_fields(args):
-	print_fields()
-
-
-def handle_sheets(args):
-	print_sheets(args.workbook)
-
-
-def handle_plot(args):
-	plot(args.workbook, args.sheet, args.index, args.d)
-
-
 if __name__ == "__main__":
 	import argparse
+
+
+	def handle_fields(args):
+		print_fields()
+
+
+	def handle_sheets(args):
+		print_sheets(args.workbook)
+
+
+	def handle_plot(args):
+		plot(args.workbook, args.sheet, args.index, args.d)
+
 
 	parser = argparse.ArgumentParser(description="Analyze timing data")
 	subparsers = parser.add_subparsers()
