@@ -1,4 +1,4 @@
-import dynet as dn
+import _dynet as dn
 import numpy as np
 import common
 

@@ -1,4 +1,4 @@
-import dynet as dn
+import _dynet as dn
 import BiLSTMEncoder
 from collections import defaultdict
 import math

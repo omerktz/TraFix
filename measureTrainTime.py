@@ -6,12 +6,12 @@ from evaluate import evaluate
 import sys
 
 
-def run((nums, length)):
+def run((nums, length, seed)):
 	with open('outputs/dynmt_train_{0}_{1}.out'.format(nums, length),'w') as f:
 		train_start = time.time()
 		Popen(
-			'time python api_dynmt.py datasets/train_{0}_{1} datasets/validate_{0}_{1} datasets/test_{0}_{1} -m models/model_{0}_{1} -po -c configs/dynmt.config --train --cleanup'.format(
-				nums, length).split(' '), stdout=f, stderr=f).wait()
+			'time python api_dynmt.py datasets/train_{0}_{1} datasets/validate_{0}_{1} datasets/test_{0}_{1} -m models/model_{0}_{1} -po -c configs/dynmt.config --train --cleanup --seed {2}'.format(
+				nums, length, seed).split(' '), stdout=f, stderr=f).wait()
 		train_end = time.time()
 	with open('outputs/dynmt_train_{0}_{1}.out'.format(nums, length), 'r') as f:
 		lines = f.readlines()
@@ -24,8 +24,8 @@ def run((nums, length)):
 	with open('outputs/dynmt_translate_{0}_{1}.out'.format(nums, length), 'w') as f:
 		translate_start = time.time()
 		Popen(
-			'time python api_dynmt.py datasets/train_{0}_{1} datasets/validate_{0}_{1} datasets/test_{0}_{1} -m models/model_{0}_{1} -po -c configs/dynmt.config --translate --cleanup'.format(
-				nums, length).split(' '), stdout=f, stderr=f).wait()
+			'time python api_dynmt.py datasets/train_{0}_{1} datasets/validate_{0}_{1} datasets/test_{0}_{1} -m models/model_{0}_{1} -po -c configs/dynmt.config --translate --cleanup --seed {2}'.format(
+				nums, length, seed).split(' '), stdout=f, stderr=f).wait()
 		translate_end = time.time()
 	with open('outputs/dynmt_translate_{0}_{1}.out'.format(nums, length), 'r') as f:
 		lines = f.readlines()
@@ -40,7 +40,7 @@ def run((nums, length)):
 
 print 'Using %s processes' % sys.argv[1]
 pool = Pool(processes=int(sys.argv[1]))
-results = pool.map(run, product(range(100, 0, -10), range(10000, 0, -1000)))
+results = pool.map(run, product(range(100, 0, -10), range(10000, 0, -1000), [int(sys.argv[2])]))
 pool.close()
 pool.join()
 import csv
