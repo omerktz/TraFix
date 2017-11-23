@@ -20,7 +20,7 @@ def run((nums, length, seed)):
 				'cp timingResults/datasets/base_test_{0}.corpus.{2} timingResults/datasets/test_{0}_{1}.corpus.{2}'.format(
 					nums, length, ext))
 			os.system(
-				'cp timingResults/datasets/base_vocabs_{0}.corpus.{2} timingResults/datasets/vocabs_{0}_{1}.{2}'.format(
+				'cp timingResults/datasets/base_vocabs_{0}.{2} timingResults/datasets/vocabs_{0}_{1}.{2}'.format(
 					nums, length, ext))
 
 	duplicateDatasets(nums, length)
