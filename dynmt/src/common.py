@@ -30,10 +30,13 @@ def argmax(arr, k):
     return np.flip(indices, 0)
 
 def write_model_config_file(hyper_params, train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path,
-                        test_inputs_path, test_outputs_path, output_file_path):
+                        test_inputs_path, test_outputs_path, output_file_path, vocab_input_path, vocab_output_path):
 
     # write hyperparams
     with codecs.open(output_file_path + '.modelinfo.txt', 'w', encoding='utf8') as f:
+        f.write('input vocabulary path = ' + str(vocab_input_path) + '\n')
+        f.write('output vocabulary path = ' + str(vocab_output_path) + '\n')
+
         f.write('train inputs path = ' + str(train_inputs_path) + '\n')
         f.write('train outputs path = ' + str(train_outputs_path) + '\n')
 

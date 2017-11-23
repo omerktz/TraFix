@@ -8,7 +8,7 @@ Usage:
   [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval] [--ensemble=ENSEMBLE]
   [--vocab-size=VOCAB] [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
   [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED] TRAIN_INPUTS_PATH
-  TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH TEST_OUTPUTS_PATH RESULTS_PATH...
+  TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
 
 Arguments:
   TRAIN_INPUTS_PATH    train inputs path
@@ -17,7 +17,9 @@ Arguments:
   DEV_OUTPUTS_PATH     development outputs path
   TEST_INPUTS_PATH     test inputs path
   TEST_OUTPUTS_PATH    test outputs path
-  RESULTS_PATH  results file path
+  RESULTS_PATH         results file path
+  VOCAB_INPUT_PATH     input vocabulary path
+  VOCAB_OUTPUT_PATH    output vocabulary path
 
 Options:
   -h --help                     show this help message and exit
@@ -88,25 +90,31 @@ from matplotlib import pyplot as plt
 
 
 def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path, test_inputs_path, test_outputs_path,
-		 results_file_path, input_dim, hidden_dim, epochs, layers, optimization, plot, override, eval_only, ensemble,
-		 batch_size, vocab_size, eval_after, max_len):
+		 results_file_path, vocab_input_path, vocab_output_path, input_dim, hidden_dim, epochs, layers, optimization,
+		 plot, override, eval_only, ensemble, batch_size, vocab_size, eval_after, max_len):
 	# write model config file (.modelinfo)
 	common.write_model_config_file(arguments, train_inputs_path, train_outputs_path, dev_inputs_path,
-								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path)
+								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path,
+								   vocab_input_path, vocab_output_path)
 
 	# print arguments for current run
 	for param in arguments:
 		print param + '=' + str(arguments[param])
 
-	# load train, dev and test data
-	train_inputs, input_vocabulary, train_outputs, output_vocabulary = \
-		prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, vocab_size, max_len)
+	# load vocabularies
+	vocab_inputs, input_vocabulary, vocab_outputs, output_vocabulary = \
+		prepare_data.load_parallel_data(vocab_input_path, vocab_output_path, vocab_size, max_len)
 
-	dev_inputs, dev_in_vocab, dev_outputs, dev_out_vocab = \
-		prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, vocab_size, 999)
-
-	test_inputs, test_in_vocab, test_outputs, test_out_vocab = \
-		prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, vocab_size, 999)
+	if not eval_only:
+		# load train and dev data
+		train_inputs, train, train_outputs, train_out_vocab = \
+			prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, vocab_size, max_len)
+		dev_inputs, dev_in_vocab, dev_outputs, dev_out_vocab = \
+			prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, vocab_size, max_len)
+	else:
+		# load test data
+		test_inputs, test_in_vocab, test_outputs, test_out_vocab = \
+			prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, vocab_size, max_len)
 
 	# add unk symbols to vocabularies
 	input_vocabulary.append(common.UNK)
@@ -171,7 +179,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 		print 'best epoch is {}'.format(best_epoch)
 		print 'finished training'
 	else:
-		print 'skipped training, evaluating on test set...'
+		print 'evaluating on test set...'
 
 		# evaluate using an ensemble
 		if ensemble:
@@ -511,8 +519,8 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 					common.plot_to_file(y_vals, x_name='total batches', x_vals=checkpoints_x,
 										file_path=results_file_path + '_learning_curve.png')
 
-					# update progress bar after completing epoch
-					# train_progress_bar.update(e)
+				# update progress bar after completing epoch
+				# train_progress_bar.update(e)
 
 	# update progress bar after completing training
 	# train_progress_bar.finish()
@@ -741,12 +749,13 @@ if __name__ == '__main__':
 	max_prediction_len = int(arguments['--max-pred'])
 	plot_param = arguments['--plot']
 	beam_param = int(arguments['--beam-size'])
-	results_file_path_param = arguments['RESULTS_PATH'][0]
+	results_file_path_param = arguments['RESULTS_PATH']
 
 	main(arguments['TRAIN_INPUTS_PATH'], arguments['TRAIN_OUTPUTS_PATH'], arguments['DEV_INPUTS_PATH'],
 		 arguments['DEV_OUTPUTS_PATH'], arguments['TEST_INPUTS_PATH'], arguments['TEST_OUTPUTS_PATH'],
-		 arguments['RESULTS_PATH'][0], int(arguments['--input-dim']), int(arguments['--hidden-dim']),
-		 int(arguments['--epochs']), int(arguments['--lstm-layers']), arguments['--optimization'],
-		 bool(arguments['--plot']), bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
+		 arguments['RESULTS_PATH'], arguments['VOCAB_INPUT_PATH'], arguments['VOCAB_OUTPUT_PATH'],
+		 int(arguments['--input-dim']), int(arguments['--hidden-dim']), int(arguments['--epochs']),
+		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
+		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
 		 int(arguments['--batch-size']), int(arguments['--vocab-size']), int(arguments['--eval-after']),
 		 int(arguments['--max-len']))
