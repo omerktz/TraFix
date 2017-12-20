@@ -1,11 +1,13 @@
 import sys
 import os
 import subprocess
-#import parmap
+# import parmap
 import time
 import itertools
 import csv
+import ConfigParser
 import utils.convertPostOrderToC as po2c
+from utils import llvmUtil as c2llvm
 
 
 def runCbmc(timeout):
@@ -40,7 +42,7 @@ def compareProgs((c, out)):
 			if c[i][0] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '%', '(', ')', '=',
 							   ';']:
 				if c[i] == 'Y':
-					c[i] = c[i] + '_' + str(yi_c) + '_1'
+					c[i] = c[i] + '_' + str(yi_c) + '_0'
 					yi_c += 1
 				else:
 					c[i] = c[i] + '_0'
@@ -81,8 +83,14 @@ def convertPostOrderToC(po):
 	return po2c.parse(po)
 
 
-def evaluateProg(i, p, c, ll, out, postOrder, convert):
-	#print '\r' + p,
+def convertCToLLVM(c, config):
+	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
+	return c2llvm.translateToLLVM(s, config, check_success=True,
+								  assignments_counter=sum([str(x).count(' = ') for x in c]))
+
+
+def evaluateProg(i, p, c, ll, out, postOrder, convert, llvm, cbmc, config):
+	# print '\r' + p,
 	sys.stdout.flush()
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, c, ll, out, 3)  # fail
@@ -91,7 +99,7 @@ def evaluateProg(i, p, c, ll, out, postOrder, convert):
 			if not convert:
 				if c in out:
 					return (i, c, ll, out, 0)  # identical
-			#res = parmap.map(convertPostOrderToC, out)
+			# res = parmap.map(convertPostOrderToC, out)
 			res = map(convertPostOrderToC, out)
 			if all(map(lambda x: not x[0], res)):
 				return (i, c, ll, out, 2)  # parse
@@ -101,14 +109,19 @@ def evaluateProg(i, p, c, ll, out, postOrder, convert):
 				else:
 					return (i, c, ll, out, 3)  # fail
 		# compare c code
+		config = ConfigParser.ConfigParser()
+		config.read(args.config)
 		if c in out:
 			return (i, c, ll, out, 0)  # identical
-		else:
-			#res = parmap.map(compareProgs, map(lambda x: (c, x), out))
+		res = map(lambda x: convertCToLLVM(x, config).strip(), out)
+		if not any(res):
+			return (i, c, ll, out, 2)  # parse
+		if llvm:
+			if ll in res:
+				return (i, c, ll, out, 0)  # identical
+		if cbmc:
+			# res = parmap.map(compareProgs, map(lambda x: (c, x), out))
 			res = map(compareProgs, map(lambda x: (c, x), out))
-			#for f in os.listdir('.'):
-			#	if f.startswith('cbmc') and f.endswith('.c'):
-			#		os.remove(f)
 			if 0 in res:
 				return (i, c, ll, out, 1)  # equivalent
 			else:
@@ -119,9 +132,11 @@ def evaluateProg(i, p, c, ll, out, postOrder, convert):
 						return (i, c, ll, out, 2)  # parse
 					else:
 						return (i, c, ll, out, 4)  # timeout
+		return (i, c, ll, out, 3)  # fail
 
 
-def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp=None, ft=None):
+def evaluate(k, fc, fll, fout, postOrder, convert, llvm, cbmc, force, config, fi=None, fs=None, ff=None, fp=None,
+			 ft=None):
 	nidentical = 0
 	nsuccess = 0
 	nfail = 0
@@ -140,8 +155,8 @@ def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp
 		groups[i] = []
 	results = map(
 		lambda i: evaluateProg(i, str(i + 1).zfill(len(str(max_len))) + '/' + str(max_len), cs[i], lls[i], groups[i],
-							   postOrder, convert), range(len(cs)))
-	#print ''
+							   postOrder, convert, llvm, cbmc, config), range(len(cs)))
+	# print ''
 	for x in results:
 		if x[4] == 0:
 			if fi:
@@ -166,13 +181,19 @@ def evaluate(k, fc, fll, fout, postOrder, convert, fi=None, fs=None, ff=None, fp
 						if ft:
 							ft.writerow([str(x[0]), x[1], x[2]] + x[3])
 						ntimeout += 1
-	#for f in os.listdir('.'):
-	#	if f.startswith('cbmc') and f.endswith('.c'):
-	#		os.remove(f)
+	if force:
+		if cbmc:
+			for f in os.listdir('.'):
+				if f.startswith('cbmc') and f.endswith('.c'):
+					os.remove(f)
+		if llvm:
+			for f in os.listdir('.'):
+				if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
+					os.remove(f)
 	return (nidentical, nsuccess, nparse, nfail, ntimeout)
 
 
-def main(f, k, ext, postOrder, convert):
+def main(f, k, ext, postOrder, convert, llvm, cbmc, force, config):
 	with open(f + '.identical.' + str(k) + '.csv', 'w') as fidentical:
 		with open(f + '.equivalent.' + str(k) + '.csv', 'w') as fsuccess:
 			with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
@@ -187,7 +208,8 @@ def main(f, k, ext, postOrder, convert):
 							with open(f + '.corpus.ll', 'r') as fll:
 								with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
 									(nidentical, nsuccess, nparse, nfail, ntimeout) = evaluate(k, fc, fll, fout,
-																							   postOrder, convert,
+																							   postOrder, convert, llvm,
+																							   cbmc, force, config,
 																							   csv.writer(fidentical),
 																							   csv.writer(fsuccess),
 																							   csv.writer(ffail),
@@ -206,11 +228,34 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Evaluate dataset translations")
 	parser.add_argument('dataset', type=str, help="dataset to translate")
 	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
-	parser.add_argument('-po', '--post-order', dest='po', help="use translations to post order code", action='count')
-	parser.add_argument('-c', '--convert', dest='convert', help="convert post order to c", action='count')
+	post_order = parser.add_argument('-po', '--post-order', dest='po', help="use translations to post order code",
+									 action='count')
+	convert = parser.add_argument('--convert', dest='convert', help="convert post order to c", action='count')
+
+
+	class ForceConvert(argparse._CountAction):
+		def __call__(self, parser, namespace, values, option_string=None):
+			if getattr(namespace, post_order.dest, False):
+				setattr(namespace, convert.dest, 1)
+			argparse._CountAction.__call__(self, parser, namespace, values, option_string)
+
+
+	parser.add_argument('--llvm', dest='llvm', help="compile c to llvm", action=ForceConvert)
+	parser.add_argument('--cbmc', dest='cbmc', help="use cbmc to compare c", action=ForceConvert)
+	parser.add_argument('-f', '--force-cleanup', dest='force', help="force delete all tmp files when finished",
+						action='count')
+	parser.add_argument('-c', '--config', dest='config', type=str, default='configs/codenator.config',
+						help="configuration file used for llvm compilation (default: \'%(default)s\')")
 	args = parser.parse_args()
 
-	main(args.dataset, args.num_translations, 'po' if (args.po and not args.convert) else 'c', args.po, args.convert)
-	for f in os.listdir('.'):
-		if f.startswith('cbmc') and f.endswith('.c'):
-			os.remove(f)
+	main(args.dataset, args.num_translations, 'po' if (args.po and not args.convert) else 'c', args.po, args.convert,
+		 args.llvm, args.cbmc, args.force, args.config)
+	if args.force:
+		if args.cbmc:
+			for f in os.listdir('.'):
+				if f.startswith('cbmc') and f.endswith('.c'):
+					os.remove(f)
+		if args.llvm:
+			for f in os.listdir('.'):
+				if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
+					os.remove(f)

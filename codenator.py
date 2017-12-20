@@ -1,10 +1,9 @@
 import random
-import os
 import sys
 import ConfigParser
 import ast
 import argparse
-import re
+from utils import llvmUtil as llvm
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -63,7 +62,7 @@ class Number(Expr):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('Number','Weight') + config.getint('Number','InnerWeight')) > 0:
+		if (config.getint('Number', 'Weight') + config.getint('Number', 'InnerWeight')) > 0:
 			vocabs['c'].update(map(str, range(Number._minNumber, Number._maxNumber + 1)))
 			vocabs['po'].update(map(str, range(Number._minNumber, Number._maxNumber + 1)))
 			vocabs['ll'].update(map(str, range(Number._minNumber, Number._maxNumber + 1)) + ['-1'])
@@ -121,7 +120,7 @@ class SourceVar(Var):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('SourceVar','Weight') + config.getint('SourceVar','InnerWeight')) > 0:
+		if (config.getint('SourceVar', 'Weight') + config.getint('SourceVar', 'InnerWeight')) > 0:
 			vars = map(lambda i: 'X' + str(i), range(config.getint('Var', 'NumVars')))
 			vocabs['c'].update(vars)
 			vocabs['po'].update(vars)
@@ -163,7 +162,7 @@ class BinaryOp(Op):
 		self._act = BinaryOp._Ops[random.randrange(0, len(BinaryOp._Ops))]
 		self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
 		while (self._op2 == self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (
-					self._op2._num == 0)):  # or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
+				self._op2._num == 0)):  # or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
 			self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
 
 	def __str__(self):
@@ -195,7 +194,7 @@ class BinaryOp(Op):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('BinaryOp','Weight') + config.getint('BinaryOp','InnerWeight')) > 0:
+		if (config.getint('BinaryOp', 'Weight') + config.getint('BinaryOp', 'InnerWeight')) > 0:
 			vocabs['c'].update(BinaryOp._Ops)
 			vocabs['po'].update(BinaryOp._Ops)
 			vocabs['ll'].update(['add', 'sub', 'mul', 'sdiv', 'srem'])
@@ -234,7 +233,7 @@ class UnaryOp(Op):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('UnaryOp','Weight') + config.getint('UnaryOp','InnerWeight')) > 0:
+		if (config.getint('UnaryOp', 'Weight') + config.getint('UnaryOp', 'InnerWeight')) > 0:
 			vocabs['c'].update(BinaryOp._Ops)
 			vocabs['po'].update(['X' + o for o in BinaryOp._Ops] + [o + 'X' for o in BinaryOp._Ops])
 
@@ -589,10 +588,10 @@ def generateStatements():
 			vocabpo = set()
 		corpuspo = open(outFile + '.corpus.po', 'w')
 	stats = Stats()
+	Var.clear()
+	Var.repopulate()
 	with open(outFile + '.corpus.c', 'w') as corpusc:
 		with open(outFile + '.corpus.ll', 'w') as corpusir:
-			Var.clear()
-			Var.repopulate()
 			statements = set()
 			while (not limited) or (j <= limit):
 				Branch.resetCounter()
@@ -616,77 +615,9 @@ def generateStatements():
 					except RuntimeError:
 						pass
 				statements.add(' '.join(map(lambda x: str(x), s)))
-				separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
-				with open('tmp' + str(os.getpid()) + '.c', 'w') as f:
-					f.write('int ' + ('Y' if not config.getboolean('Assignments', 'RenameTargetVars') else ','.join(
-						map(lambda i: 'Y' + str(i), range(Assignments._assignments_counter)))) + ','.join(
-						[''] + map(lambda v: v._name, Var._vars)) + ';\n')
-					f.write('void f() {\n')
-					for x in s:
-						f.write(str(x) + '\n')
-					f.write('}\n')
-				os.system('clang -S -emit-llvm -O' + str(
-					config.getint('General', 'OptimizationLevel')) + ' -o tmp' + str(os.getpid()) + '.ll tmp' + str(
-					os.getpid()) + '.c > /dev/null 2>&1')
-				with open('tmp' + str(os.getpid()) + '.ll', 'r') as f:
-					lines = [l.strip() for l in f.readlines()]
-				splitlines = []
-				for l in lines:
-					splitlines += l.split(' ; ')
-				lines = splitlines
-				start = min(
-					filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
-				end = min(filter(lambda i: lines[i] == '}' and i > start, range(len(lines))))
-				llline = ''
-				branchlabels = ('', '')
-				branchIndex = -1
-				for i in range(start + 1, end - 1):
-					if len(lines[i].strip()) > 0:
-						line = lines[i].strip().replace(',', ' ,')
-						if line.startswith(';'):
-							line = line[1:].strip()
-						line = re.sub('[ \t]+', ' ', line)
-						if config.getboolean('Branch', 'RemovePreds'):
-							if line.startswith('preds '):
-								continue
-						if config.getboolean('Branch', 'SimplifyLabels'):
-							if line.startswith('<label>:'):
-								label = line[len('<label>:'):]
-								if label == branchlabels[0]:
-									line = '<label>:lTrue' + str(branchIndex)
-								elif label == branchlabels[1]:
-									line = '<label>:lFalse' + str(branchIndex)
-								else:
-									line = '<label>:lAfter' + str(branchIndex)
-							elif line.startswith('br '):
-								parts = line.split(',')
-								if len(parts) == 3:
-									branchIndex += 1
-									branchlabels = (
-										parts[1].strip()[len('label %'):], parts[2].strip()[len('label %'):])
-									line = parts[0].strip() + ' , label %lTrue' + str(
-										branchIndex) + ' , label %lFalse' + str(branchIndex)
-								else:
-									label = line[len('br label %'):]
-									if label == branchlabels[1]:
-										line = 'br label %lFalse' + str(branchIndex)
-									else:
-										line = 'br label %lAfter' + str(branchIndex)
-						if config.getint('General', 'OptimizationLevel') > 0:
-							line = line[:line.find('!')].strip()[:-1].strip()
-						if config.getboolean('General', 'RemoveAlign4'):
-							if line.endswith(', align 4'):
-								line = line[:-len(', align 4')].strip()
-						if config.getboolean('LLVM', 'ReplaceTemps'):
-							line = re.sub('%[0-9]+ ', '%tmp ', line)
-						if config.getboolean('General', 'RemoveI32'):
-							line = re.sub('i32\*? ', '', line)
-							line = re.sub('i1 ', '', line)
-						if config.getboolean('General', 'RemoveNSW'):
-							line = re.sub('nsw ', '', line)
-						if args.print_vocabs:
-							vocabir.update(map(lambda y: y.strip(), line.split(' ')))
-						llline += line + separator
+				llline = llvm.translateToLLVM(s, config, args=args, vocab=vocabir if args.print_vocabs else None,
+											  var_count=len(Var._vars),
+											  assignments_counter=sum([str(x).count(' = ') for x in s]))
 				cline = ''
 				for x in s:
 					cline += str(x)
@@ -696,8 +627,6 @@ def generateStatements():
 					vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
 				corpusir.write(llline + '\n')
 				stats.updateStats(cline, llline)
-				os.remove('tmp' + str(os.getpid()) + '.c')
-				os.remove('tmp' + str(os.getpid()) + '.ll')
 				if args.po:
 					separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
 					line = ''
