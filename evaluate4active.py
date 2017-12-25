@@ -156,7 +156,7 @@ def evaluate(k, fin, fc, fpo, fll, fout, postOrder, convert, llvm, cbmc, force, 
 							   lls[i], groups[i], postOrder, convert, llvm, cbmc, config), range(len(ins)))
 	# print ''
 	for x in results:
-		if x[4] in [0, 1]:
+		if x[5] in [0, 1]:
 			if fs:
 				fs.writerow([str(x[0]), x[1], x[2], x[3]] + x[4])
 			nsuccess += 1
@@ -187,7 +187,7 @@ def main(f, k, ext, postOrder, convert, llvm, cbmc, force, config):
 						with open(f + '.corpus.ll', 'r') as fll:
 							with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
 								(nsuccess, nfail) = evaluate(k, fin, fc, fpo, fll, fout, postOrder, convert, llvm, cbmc,
-															 force, config, csv.writer(fsuccess), csv.writer(ffail))
+															 force, config, fs=csv.writer(fsuccess), ff=csv.writer(ffail))
 	print str(nsuccess) + ' statements translated successfully'
 	print str(nfail) + ' statements failed to translate'
 

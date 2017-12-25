@@ -129,7 +129,8 @@ class ActiveLearner:
 					datasets[ext] += map(lambda x: x.strip(), f.readlines())
 				with open('{0}.corpus.{1}'.format(old_dataset, ext), 'r') as f:
 					datasets[ext] += map(lambda x: x.strip(), f.readlines())
-			indexes = random.shuffle(range(len(datasets.values()[0])))
+			indexes = range(len(datasets.values()[0]))
+			random.shuffle(indexes)
 			if limit:
 				limit = min(limit, len(indexes))
 				indexes = indexes[0: limit]

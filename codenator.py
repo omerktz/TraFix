@@ -578,7 +578,7 @@ def generateStatements():
 		print 'Generating statements until manually stopped (ctrl+C)'
 	print 'Saving to files: ' + outFile + '.corpus.c, ' + outFile + '.corpus.ll' + (
 		', ' + outFile + '.corpus.po' if args.po else '')
-	print ''
+	#print ''
 	j = 1
 	if args.print_vocabs:
 		vocabc = set()
