@@ -14,7 +14,7 @@ def main(args):
 								  '{2}.corpus.ll {2}.corpus.{3} {4} {17}.ll {17}.{3} --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-len={8} --max-pred={9} --max-patience={10} --beam-size={11} --plot ' \
 								  '--lstm-layers={12} --models-to-save={13} {14} {15} {16}' \
-		.format(train, validation, test, ext, model, args.epochs if args.epochs else config.getint('DyNmt', 'epochs'),
+		.format(train, validation, test, ext, model, args['epochs'] if args['epochs'] else config.getint('DyNmt', 'epochs'),
 				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
 				config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'max_pred'),
 				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],

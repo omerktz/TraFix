@@ -67,17 +67,27 @@ class ActiveLearner:
 			'python {0} -po --vocabs -o {1} -c {2}'.format(self.codenator, self.vocab_path, self.codenator_config))
 		# create initial datasets
 		logging.info('Generating initial datasets')
+		basename = os.path.basename(self.input)
 		for ext in ['ll', 'c', 'po']:
 			os.system('cp {0} {1}'.format(args.input + '.corpus.' + ext,
+										  os.path.join(self.output_dir, basename + '.corpus.' + ext)))
+		os.system(
+			'cp {0} {1}'.format(args.input + '.stats.csv', os.path.join(self.output_dir, basename + '.stats.csv')))
+		for ext in ['ll', 'c', 'po']:
+			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
-		self.initial_test_size = int(check_output('cat {0} | wc -l'.format(os.path.join(self.datasets_path, 'test0.corpus.ll')), shell=True).strip())
-		logging.info('Initial dataset size is {0}'.format(self.initial_test_size))
+		self.initial_test_size = int(
+			check_output('cat {0} | wc -l'.format(os.path.join(self.datasets_path, 'test0.corpus.ll')),
+						 shell=True).strip())
+		logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
 		os.system(
 			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
 														 self.codenator_config, args.validation_size))
+		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate0')))
 		os.system(
 			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
 														 self.codenator_config, args.train_size_initial))
+		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
 	# train model until no more progress is made on validation set and translate test set
 	def train_and_translate(self, i, epochs=None):
@@ -134,12 +144,14 @@ class ActiveLearner:
 			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator,
 														 os.path.join(self.datasets_path, 'validate%d' % i),
 														 self.codenator_config, args.validation_size))
+		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate%d' % i)))
 		combine_dataset(os.path.join(self.datasets_path, 'validate%d' % i),
 						os.path.join(self.datasets_path, 'validate%d' % (i - 1)), limit=args.validation_size)
 		logging.info('Updating training dataset (iteration {0})'.format(i))
 		os.system('python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator,
 															   os.path.join(self.datasets_path, 'train%d' % i),
 															   self.codenator_config, args.train_size_increment))
+		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train%d' % i)))
 		combine_dataset(os.path.join(self.datasets_path, 'train%d' % i),
 						os.path.join(self.datasets_path, 'train%d' % (i - 1)))
 
@@ -201,10 +213,11 @@ class ActiveLearner:
 					csvout.writerow(l[1:])
 					num_failures += 1
 		logging.info(
-			'Successfully translated {0} entries out of {1} ({2}%)'.format(self.initial_test_size - num_failures,
-																		   self.initial_test_size,
-																		   100.0 * num_failures / float(
-																			   self.initial_test_size)))
+			'Successfully translated {0} entries out of {1} ({2}%) in {3} iterations'.format(
+				self.initial_test_size - num_failures,
+				self.initial_test_size,
+				100.0 * num_failures / float(
+					self.initial_test_size)), i)
 
 
 if __name__ == "__main__":
