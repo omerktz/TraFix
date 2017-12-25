@@ -185,7 +185,7 @@ class ActiveLearner:
 				  stderr=f).wait()
 		remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(remaining))
-		return (remaining < (self.initial_test_size * (1 - self.success_percentage)))
+		return (remaining <= (self.initial_test_size * (1 - self.success_percentage)))
 
 	def run(self):
 		import time
