@@ -3,11 +3,11 @@ from subprocess import Popen, check_output
 import random
 import csv
 import logging
-from colored_logger import init_colorful_root_logger
+from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 ###
-# given a test dataset, active learner starts with an train set and iteratively:
+# given a test dataset, active learner iteratively:
 # 1) increase train set size
 # 2) refereshes validation size
 # 3) retrains model
@@ -17,7 +17,7 @@ from colored_logger import init_colorful_root_logger
 class ActiveLearner:
 	def __init__(self, input, output_dir, codenator_config='configs/codenator4active.config',
 				 dynmt_config='configs/dynmt4active.config', num_translations=5, success_percentage=0.99,
-				 validation_size=1000, train_size_initial=0, train_size_increment=1000):
+				 validation_size=1000, train_size_initial=1000, train_size_increment=1000):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
@@ -90,24 +90,22 @@ class ActiveLearner:
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
 	# train model until no more progress is made on validation set and translate test set
-	def train_and_translate(self, i, epochs=None):
+	def train_and_translate(self, i):
 		# train
 		logging.info('Training model (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --train{7}'.format(self.api_dynmt,
-																				   os.path.join(self.datasets_path,
-																								'train%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'validate%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'test%d' % i),
-																				   self.vocab_path,
-																				   os.path.join(self.models_path,
-																								'model%d' % i),
-																				   args.dynmt_config,
-																				   '' if (epochs is None) else (
-																						   ' -e ' + str(epochs))).split(
-				' '), stdout=f, stderr=f).wait()
+			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --train'.format(self.api_dynmt,
+																				os.path.join(self.datasets_path,
+																							 'train%d' % i),
+																				os.path.join(self.datasets_path,
+																							 'validate%d' % i),
+																				os.path.join(self.datasets_path,
+																							 'test%d' % i),
+																				self.vocab_path,
+																				os.path.join(self.models_path,
+																							 'model%d' % i),
+																				args.dynmt_config).split(' '), stdout=f,
+				  stderr=f).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w') as f:
@@ -196,7 +194,7 @@ class ActiveLearner:
 		i = 0
 		logging.info('Starting ActiveLearner')
 		start_time = time.time()
-		self.train_and_translate(i, epochs=0)
+		self.train_and_translate(i)
 		while not self.results_sufficient(i):
 			i += 1
 			self.update_datasets(i)
@@ -236,7 +234,7 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-s', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=0,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=1000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=1000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
