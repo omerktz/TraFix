@@ -681,7 +681,7 @@ def generateStatements():
 				f.write('}')
 	with open(outFile + '.stats.csv', 'w') as f:
 		f.write(str(stats))
-	print '\nDone!\n'
+	print '\nDone!'
 
 
 def generateVocabularies():
