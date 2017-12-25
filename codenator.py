@@ -536,8 +536,8 @@ class Stats:
 		res += 'Statements,' + str(self._num_statements) + '\n'
 		res += '\n[Branches]\n'
 		res += 'If,%,Else,%\n'
-		res += str(self._ifs) + ',' + "{0:.2f}".format(100.0 * self._ifs / float(self._num_inputs)) + ',' + str(
-			self._elses) + ',' + "{0:.2f}".format(100.0 * self._elses / float(self._num_inputs)) + '\n'
+		res += str(self._ifs) + ',' + "{0:.2f}".format(0.0 if self._num_inputs == 0 else (100.0 * self._ifs / float(self._num_inputs))) + ',' + str(
+			self._elses) + ',' + "{0:.2f}".format(0.0 if self._num_inputs == 0 else (100.0 * self._elses / float(self._num_inputs))) + '\n'
 		res += '\n[Lengths]\n'
 		res += ',Min,Max\n'
 		res += 'C,' + str(self._c_statement_length) + '\n'
@@ -563,7 +563,7 @@ class Stats:
 
 
 def generateStatements():
-	if args.n:
+	if args.n is not None:
 		limit = args.n
 		limited = True
 	else:
