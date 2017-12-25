@@ -57,16 +57,21 @@ class ActiveLearner:
 		# update config paths
 		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
 		self.dynmt_config = os.path.join(self.output_dir, os.path.basename(self.dynmt_config))
-		# generate vocabularies
-		os.system('python {0} -po --vocabs -o {1} -c {2}'.format(self.codenatorself.vocab_path, self.codenator_config))
 		# create work directories
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
 		os.makedirs(self.datasets_path)
+		# generate vocabularies
+		logging.info('Generating vocabularies')
+		os.system(
+			'python {0} -po --vocabs -o {1} -c {2}'.format(self.codenator, self.vocab_path, self.codenator_config))
 		# create initial datasets
 		logging.info('Generating initial datasets')
-		os.system('cp {0} {1}'.format(args.input, os.path.join(self.datasets_path, 'test0')))
-		self.initial_test_size = int(check_output('cat {0} | wc -l'.format(args.input)).strip())
+		for ext in ['ll', 'c', 'po']:
+			os.system('cp {0} {1}'.format(args.input + '.corpus.' + ext,
+										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
+		self.initial_test_size = int(check_output('cat {0} | wc -l'.format(os.path.join(self.datasets_path, 'test0.corpus.ll')), shell=True).strip())
+		logging.info('Initial dataset size is {0}'.format(self.initial_test_size))
 		os.system(
 			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
 														 self.codenator_config, args.validation_size))
@@ -112,16 +117,16 @@ class ActiveLearner:
 			datasets = {}
 			for ext in ['ll', 'c', 'po']:
 				datasets[ext] = []
-				with open('{0}.{1}'.format(new_dataset, ext), 'r') as f:
+				with open('{0}.corpus.{1}'.format(new_dataset, ext), 'r') as f:
 					datasets[ext] += map(lambda x: x.strip(), f.readlines())
-				with open('{0}.{1}'.format(old_dataset, ext), 'r') as f:
+				with open('{0}.corpus.{1}'.format(old_dataset, ext), 'r') as f:
 					datasets[ext] += map(lambda x: x.strip(), f.readlines())
 			indexes = random.shuffle(range(len(datasets.values()[0])))
 			if limit:
 				limit = min(limit, len(indexes))
 				indexes = indexes[0: limit]
 			for ext in ['ll', 'c', 'po']:
-				with open('{0}.{1}'.format(new_dataset, ext), 'w') as f:
+				with open('{0}.corpus.{1}'.format(new_dataset, ext), 'w') as f:
 					f.write('\n'.join([datasets[ext][i] for i in indexes] + ['']))
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
@@ -144,9 +149,9 @@ class ActiveLearner:
 		# update test dataset keeping only unsolved entries
 		def update_testset(i):
 			num_remaining = 0
-			with open(os.path.join(self.datasets_path, 'test%d.c' % (i + 1)), 'w') as fc:
-				with open(os.path.join(self.datasets_path, 'test%d.po' % (i + 1)), 'w') as fpo:
-					with open(os.path.join(self.datasets_path, 'test%d.ll' % (i + 1)), 'w') as fll:
+			with open(os.path.join(self.datasets_path, 'test%d.corpus.c' % (i + 1)), 'w') as fc:
+				with open(os.path.join(self.datasets_path, 'test%d.corpus.po' % (i + 1)), 'w') as fpo:
+					with open(os.path.join(self.datasets_path, 'test%d.corpus.ll' % (i + 1)), 'w') as fll:
 						with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, args.num_translations)),
 								  'r') as fin:
 							for l in list(csv.reader(fin))[1:]:
@@ -185,7 +190,7 @@ class ActiveLearner:
 			self.update_datasets(i)
 			self.train_and_translate(i)
 		end_time = time.time()
-		logging.info('ActiveLearner finished (duration: {0} seconds)'.format(end_time-start_time))
+		logging.info('ActiveLearner finished (duration: {0} seconds)'.format(end_time - start_time))
 		num_failures = 0
 		with open(os.path.join(self.output_dir, 'failures'), 'w') as fout:
 			csvout = csv.writer(fout)
