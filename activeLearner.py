@@ -3,7 +3,14 @@ from subprocess import Popen, check_output
 import random
 import csv
 
-
+###
+# given a test dataset, active learner starts with an train set and iteratively:
+# 1) increase train set size
+# 2) refereshes validation size
+# 3) retrains model
+# 4) translates test dataset
+# until enough entries from the test dataset have been successfully translated
+###
 class ActiveLearner:
 	def __init__(self, input, output_dir, codenator_config='configs/codenator4active.config',
 				 dynmt_config='configs/dynmt4active.config', num_translations=5, success_percentage=0.99,
