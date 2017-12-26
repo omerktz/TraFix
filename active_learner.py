@@ -216,7 +216,7 @@ class ActiveLearner:
 				self.initial_test_size - num_failures,
 				self.initial_test_size,
 				100.0 * num_failures / float(
-					self.initial_test_size)), i)
+					self.initial_test_size), i))
 		logging.info('Cleanup')
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
