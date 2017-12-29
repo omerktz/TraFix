@@ -68,11 +68,7 @@ class ActiveLearner:
 		# create initial datasets
 		logging.info('Generating initial datasets')
 		basename = os.path.basename(self.input)
-		for ext in ['ll', 'c', 'po']:
-			os.system('cp {0} {1}'.format(args.input + '.corpus.' + ext,
-										  os.path.join(self.output_dir, basename + '.corpus.' + ext)))
-		os.system(
-			'cp {0} {1}'.format(args.input + '.stats.csv', os.path.join(self.output_dir, basename + '.stats.csv')))
+		os.system('cp {0} {1}'.format(args.input + '.*', self.output_dir))
 		for ext in ['ll', 'c', 'po']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
@@ -188,7 +184,7 @@ class ActiveLearner:
 		logging.info('{0} entries left to translate'.format(remaining))
 		return (remaining <= (self.initial_test_size * (1 - self.success_percentage)))
 
-	def run(self):
+	def run(self, cleanup=False):
 		import time
 		with open(os.path.join(self.output_dir, 'successes'), 'w') as fout:
 			csv.writer(fout).writerow(['c', 'po', 'll'] + map(lambda i: 'out' + str(i), range(self.num_translations)))
@@ -205,8 +201,8 @@ class ActiveLearner:
 		num_failures = 0
 		with open(os.path.join(self.output_dir, 'failures'), 'w') as fout:
 			csvout = csv.writer(fout)
-			csvout.writerow(['c', 'po', 'll'] + map(lambda i: 'out' + str(i), range(self.num_translations)))
-			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i - 1, args.num_translations)),
+			csvout.writerow(['c', 'po', 'll'] + map(lambda j: 'out' + str(j), range(self.num_translations)))
+			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, args.num_translations)),
 					  'r') as fin:
 				for l in list(csv.reader(fin))[1:]:
 					csvout.writerow(l[1:])
@@ -216,11 +212,12 @@ class ActiveLearner:
 				self.initial_test_size - num_failures,
 				self.initial_test_size,
 				100.0 * num_failures / float(
-					self.initial_test_size), i))
-		logging.info('Cleanup')
-		for f in os.listdir('.'):
-			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
-				os.remove(f)
+					self.initial_test_size), i + 1))
+		if cleanup:
+			logging.info('Cleanup')
+			for f in os.listdir('.'):
+				if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
+					os.remove(f)
 
 
 if __name__ == "__main__":
@@ -243,6 +240,7 @@ if __name__ == "__main__":
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=1000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
+	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
@@ -251,4 +249,5 @@ if __name__ == "__main__":
 	ActiveLearner(input=args.input, output_dir=args.output, codenator_config=args.codenator_config,
 				  dynmt_config=args.dynmt_config, num_translations=args.num_translations,
 				  success_percentage=args.percentage, validation_size=args.validation_size,
-				  train_size_initial=args.train_size_initial, train_size_increment=args.train_size_increment).run()
+				  train_size_initial=args.train_size_initial, train_size_increment=args.train_size_increment).run(
+		cleanup=args.cleanup)
