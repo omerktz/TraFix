@@ -101,7 +101,7 @@ class ActiveLearner:
 																				   os.path.join(self.models_path,
 																								'model%d' % i),
 																				   args.dynmt_config, (
-																						   ' -p=%s' % os.path.join(
+																						   ' -p %s' % os.path.join(
 																					   self.models_path,
 																					   'model%d' % previous)) if (
 						previous is not None) else '').split(' '), stdout=f, stderr=f).wait()

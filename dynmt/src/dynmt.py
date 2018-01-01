@@ -148,7 +148,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	model_file_name = '{}_bestmodel.txt'.format(prev_model)
 	if os.path.isfile(model_file_name) and not override:
 		print 'loading existing model from {}'.format(model_file_name)
-		model, params = load_best_model(input_vocabulary, output_vocabulary, results_file_path, input_dim, hidden_dim,
+		model, params = load_best_model(input_vocabulary, output_vocabulary, prev_model, input_dim, hidden_dim,
 										layers)
 		print 'loaded existing model successfully'
 	else:
@@ -405,6 +405,7 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 	# widgets = [progressbar.Bar('>'), ' ', progressbar.ETA()]
 	# train_progress_bar = progressbar.ProgressBar(widgets=widgets, maxval=epochs).start()
 
+	e = -1
 	for e in xrange(start_epoch, epochs):
 
 		# shuffle the batch start indices in each epoch
