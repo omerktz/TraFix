@@ -7,8 +7,9 @@ Usage:
   [--hidden-dim=HIDDEN] [--epochs=EPOCHS] [--lstm-layers=LAYERS] [--optimization=OPTIMIZATION] [--reg=REGULARIZATION]
   [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval] [--ensemble=ENSEMBLE]
   [--vocab-size=VOCAB] [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
-  [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED] TRAIN_INPUTS_PATH
-  TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
+  [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED]
+  [--previous-model=PREV] TRAIN_INPUTS_PATH TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH
+  TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
 
 Arguments:
   TRAIN_INPUTS_PATH    train inputs path
@@ -52,6 +53,7 @@ Options:
   --max                         use MaxPooling encoder
   --diverse                     symmetric diverse loss
   --seed=SEED                   initial random seed
+  --previous-model=PREV			previous model to use as baseline
 """
 
 import numpy as np
@@ -91,7 +93,7 @@ from matplotlib import pyplot as plt
 
 def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path, test_inputs_path, test_outputs_path,
 		 results_file_path, vocab_input_path, vocab_output_path, input_dim, hidden_dim, epochs, layers, optimization,
-		 plot, override, eval_only, ensemble, batch_size, vocab_size, eval_after, max_len):
+		 plot, override, eval_only, ensemble, batch_size, vocab_size, eval_after, max_len, previous_model):
 	# write model config file (.modelinfo)
 	common.write_model_config_file(arguments, train_inputs_path, train_outputs_path, dev_inputs_path,
 								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path,
@@ -139,7 +141,11 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	print 'output vocab size: {}'.format(len(y2int))
 
 	# try to load existing model
-	model_file_name = '{}_bestmodel.txt'.format(results_file_path)
+	if previous_model:
+		prev_model = previous_model
+	else:
+		prev_model = results_file_path
+	model_file_name = '{}_bestmodel.txt'.format(prev_model)
 	if os.path.isfile(model_file_name) and not override:
 		print 'loading existing model from {}'.format(model_file_name)
 		model, params = load_best_model(input_vocabulary, output_vocabulary, results_file_path, input_dim, hidden_dim,
@@ -519,8 +525,8 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 					common.plot_to_file(y_vals, x_name='total batches', x_vals=checkpoints_x,
 										file_path=results_file_path + '_learning_curve.png')
 
-				# update progress bar after completing epoch
-				# train_progress_bar.update(e)
+			# update progress bar after completing epoch
+			# train_progress_bar.update(e)
 
 	# update progress bar after completing training
 	# train_progress_bar.finish()
@@ -758,4 +764,4 @@ if __name__ == '__main__':
 		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
 		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
 		 int(arguments['--batch-size']), int(arguments['--vocab-size']), int(arguments['--eval-after']),
-		 int(arguments['--max-len']))
+		 int(arguments['--max-len']), arguments['--previous-model'])

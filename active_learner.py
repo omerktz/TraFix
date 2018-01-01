@@ -86,22 +86,25 @@ class ActiveLearner:
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
 	# train model until no more progress is made on validation set and translate test set
-	def train_and_translate(self, i):
+	def train_and_translate(self, i, previous=None):
 		# train
 		logging.info('Training model (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --train'.format(self.api_dynmt,
-																				os.path.join(self.datasets_path,
-																							 'train%d' % i),
-																				os.path.join(self.datasets_path,
-																							 'validate%d' % i),
-																				os.path.join(self.datasets_path,
-																							 'test%d' % i),
-																				self.vocab_path,
-																				os.path.join(self.models_path,
-																							 'model%d' % i),
-																				args.dynmt_config).split(' '), stdout=f,
-				  stderr=f).wait()
+			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --train{7}'.format(self.api_dynmt,
+																				   os.path.join(self.datasets_path,
+																								'train%d' % i),
+																				   os.path.join(self.datasets_path,
+																								'validate%d' % i),
+																				   os.path.join(self.datasets_path,
+																								'test%d' % i),
+																				   self.vocab_path,
+																				   os.path.join(self.models_path,
+																								'model%d' % i),
+																				   args.dynmt_config, (
+																						   ' -p=%s' % os.path.join(
+																					   self.models_path,
+																					   'model%d' % previous)) if (
+						previous is not None) else '').split(' '), stdout=f, stderr=f).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w') as f:
@@ -195,7 +198,7 @@ class ActiveLearner:
 		while not self.results_sufficient(i):
 			i += 1
 			self.update_datasets(i)
-			self.train_and_translate(i)
+			self.train_and_translate(i, previous=i - 1)
 		end_time = time.time()
 		logging.info('ActiveLearner finished (duration: {0} seconds)'.format(end_time - start_time))
 		num_failures = 0
