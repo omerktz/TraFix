@@ -68,7 +68,7 @@ class ActiveLearner:
 		# create initial datasets
 		logging.info('Generating initial datasets')
 		basename = os.path.basename(self.input)
-		os.system('cp {0} {1}'.format(args.input + '.*', self.output_dir))
+		os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
 		for ext in ['ll', 'c', 'po']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
