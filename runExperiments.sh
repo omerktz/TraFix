@@ -6,5 +6,5 @@ do
 done
 sleep 5
 wait
-rm tmp*.c
-rm tmp*.ll
+#rm tmp*.c &> /dev/null
+#rm tmp*.ll &> /dev/null

@@ -595,9 +595,9 @@ def generateStatements():
 			statements = set()
 			while (not limited) or (j <= limit):
 				Branch.resetCounter()
-				print '\r\t' + str(j),
-				if limited:
-					print '/' + str(limit),
+				#print '\r\t' + str(j),
+				#if limited:
+				#	print '/' + str(limit),
 				sys.stdout.flush()
 				Assignments.resetCounter()
 				done = False
