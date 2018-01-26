@@ -50,7 +50,7 @@ class Number(Expr):
 	_minNumber = config.getint('Number', 'MinValue')
 	_maxNumber = config.getint('Number', 'MaxValue')
 	_maxUnabstractedValue = settings.getint('Number', 'MaxUnabstractedValue')
-	_constants = 0
+	_numConstants = config.getint('Number', 'NumbersPerStatement')
 	_constants_map = {}
 
 	def __init__(self):
@@ -58,8 +58,12 @@ class Number(Expr):
 		if value <= Number._maxUnabstractedValue:
 			self._num = str(value)
 		else:
-			constant = 'N' + str(Number._constants)
-			Number._constants += 1
+			if len(Number._constants_map.keys()) == Number._numConstants:
+				constant = 'N' + str(random.randint(0, Number._numConstants - 1))
+			else:
+				availableConstants = filter(lambda n: n not in Number._constants_map.keys(),
+											map(lambda i: 'N' + str(i), range(Number._numConstants)))
+				constant = availableConstants[random.randint(0, len(availableConstants) - 1)]
 			Number._constants_map[constant] = value
 			self._num = constant
 
@@ -428,12 +432,14 @@ class Branch:
 	def collectVarNames(self):
 		_if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._if), set())
 		_else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._else), set())
-		return _if.union(_else)
+		_cond = self._cond.collectVarNames()
+		return _if.union(_else).union(_cond)
 
 	def collectVars(self):
 		_if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVars(), self._if), set())
 		_else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVars(), self._else), set())
-		return _if.union(_else)
+		_cond = self._cond.collectVars()
+		return _if.union(_else).union(_cond)
 
 	@staticmethod
 	def vocab(vocabs):
@@ -625,24 +631,23 @@ def generateStatements():
 				with open(outFile + '.constants', 'w') as constants:
 					statements = set()
 					while (not limited) or (j <= limit):
-						Branch.resetCounter()
-						# print '\r\t' + str(j),
-						# if limited:
-						#	print '/' + str(limit),
-						sys.stdout.flush()
-						Assignments.resetCounter()
-						Number.resetCounter()
-						Number.resetMapping()
 						done = False
 						while not done:
 							try:
+								Branch.resetCounter()
+								Assignments.resetCounter()
+								Number.resetCounter()
+								Number.resetMapping()
 								s = Statements.getStatements()
 								if settings.getboolean('General', 'SimplifyVars'):
 									for x in s:
 										k = 0
+										vars = set()
 										for v in x.collectVars():
-											v._name = 'X' + str(k)
-											k += 1
+											if v not in vars:
+												v._name = 'X' + str(k)
+												vars.add(v)
+												k += 1
 								if ' '.join(map(lambda x: str(x), s)) not in statements:
 									done = True
 							except RuntimeError:

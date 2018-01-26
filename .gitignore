@@ -102,3 +102,6 @@ dynet/*.counts
 dynet/*.csv
 dynet/output/
 backups/
+*.corpus.*
+*.csv
+*.constants
