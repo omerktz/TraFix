@@ -83,6 +83,8 @@ class ActiveLearner:
 		for ext in ['ll', 'c', 'po']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
+		os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.constants'),
+									  os.path.join(self.datasets_path, 'test0.constants')))
 		self.initial_test_size = int(
 			check_output('cat {0} | wc -l'.format(os.path.join(self.datasets_path, 'test0.corpus.ll')),
 						 shell=True).strip())
@@ -182,13 +184,15 @@ class ActiveLearner:
 			with open(os.path.join(self.datasets_path, 'test%d.corpus.c' % (i + 1)), 'w') as fc:
 				with open(os.path.join(self.datasets_path, 'test%d.corpus.po' % (i + 1)), 'w') as fpo:
 					with open(os.path.join(self.datasets_path, 'test%d.corpus.ll' % (i + 1)), 'w') as fll:
-						with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
+						with open(os.path.join(self.datasets_path, 'test%d.constants' % (i + 1)), 'w') as fconstants:
+							with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
 								  'r') as fin:
-							for l in list(csv.reader(fin))[1:]:
-								fc.write(l[1] + '\n')
-								fpo.write(l[2] + '\n')
-								fll.write(l[3] + '\n')
-								num_remaining += 1
+								for l in list(csv.reader(fin))[1:]:
+									fc.write(l[1] + '\n')
+									fpo.write(l[2] + '\n')
+									fll.write(l[3] + '\n')
+									fconstants.write(l[4] + '\n')
+									num_remaining += 1
 			with open(os.path.join(self.output_dir, 'successes.csv'), 'a') as fout:
 				csvout = csv.writer(fout)
 				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, self.num_translations)),
@@ -212,7 +216,7 @@ class ActiveLearner:
 	def run(self, cleanup=False):
 		import time
 		with open(os.path.join(self.output_dir, 'successes.csv'), 'w') as fout:
-			csv.writer(fout).writerow(['c', 'po', 'll', 'out'])
+			csv.writer(fout).writerow(['c', 'po', 'll', 'constants', 'out'])
 		i = 0
 		logging.info('Starting ActiveLearner')
 		start_time = time.time()
@@ -226,7 +230,7 @@ class ActiveLearner:
 		num_failures = 0
 		with open(os.path.join(self.output_dir, 'failures.csv'), 'w') as fout:
 			csvout = csv.writer(fout)
-			csvout.writerow(['c', 'po', 'll'] + map(lambda j: 'out' + str(j), range(self.num_translations)))
+			csvout.writerow(['c', 'po', 'll', 'constants'])
 			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
 					  'r') as fin:
 				for l in list(csv.reader(fin))[1:]:

@@ -2,7 +2,8 @@ import os
 import re
 
 
-def translateToLLVM(s, config, settings, args=None, vocab=None, check_success=False, assignments_counter=None, var_count=None):
+def translateToLLVM(s, config, settings, args=None, vocab=None, check_success=False, assignments_counter=None,
+					var_count=None):
 	separator = ' ; ' if settings.getboolean('LLVM', 'AppendSemicolon') else ' '
 	with open('tmp' + str(os.getpid()) + '.c', 'w') as f:
 		f.write('int ' + ('Y' if not settings.getboolean('Assignments', 'RenameTargetVars') else ','.join(
@@ -10,7 +11,9 @@ def translateToLLVM(s, config, settings, args=None, vocab=None, check_success=Fa
 				assignments_counter if assignments_counter else config.getint('Assigments',
 																			  'MaxAssignments'))))) + ','.join(
 			[''] + map(lambda i: 'X' + str(i),
-					   range(var_count if var_count else config.getint('Var', 'NumVars')))) + ';\n')
+					   range(var_count if var_count else config.getint('Var', 'NumVars')))) + ','.join(
+			[''] + map(lambda i: 'N' + str(i),
+					   range(config.getint('Number', 'NumbersPerStatement')))) + ';\n')
 		f.write('void f() {\n')
 		for x in s:
 			f.write(str(x) + '\n')
