@@ -78,11 +78,11 @@ class ActiveLearner:
 		logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
 		os.system(
 			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
-														 self.codenator_config, args.validation_size))
+													 self.codenator_config, args.validation_size))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate0')))
 		os.system(
 			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
-														 self.codenator_config, args.train_size_initial))
+													 self.codenator_config, args.train_size_initial))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
 	# train model until no more progress is made on validation set and translate test set
@@ -91,19 +91,19 @@ class ActiveLearner:
 		logging.info('Training model (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
 			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
-																				   os.path.join(self.datasets_path,
-																								'train%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'validate%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'test%d' % i),
-																				   self.vocab_path,
-																				   os.path.join(self.models_path,
-																								'model%d' % i),
-																				   args.dynmt_config, (
-																						   ' -p %s' % os.path.join(
-																					   self.models_path,
-																					   'model%d' % previous)) if (
+																			   os.path.join(self.datasets_path,
+																							'train%d' % i),
+																			   os.path.join(self.datasets_path,
+																							'validate%d' % i),
+																			   os.path.join(self.datasets_path,
+																							'test%d' % i),
+																			   self.vocab_path,
+																			   os.path.join(self.models_path,
+																							'model%d' % i),
+																			   args.dynmt_config, (
+																					   ' -p %s' % os.path.join(
+																				   self.models_path,
+																				   'model%d' % previous)) if (
 						previous is not None) else '').split(' '), stdout=f, stderr=f).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
@@ -111,8 +111,8 @@ class ActiveLearner:
 			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt, os.path.join(
 				self.datasets_path, 'train%d' % i), os.path.join(self.datasets_path, 'validate%d' % i), os.path.join(
 				self.datasets_path, 'test%d' % i), self.vocab_path, os.path.join(self.models_path, 'model%d' % i),
-																						   args.dynmt_config,
-																						   args.num_translations).split(
+																					   args.dynmt_config,
+																					   args.num_translations).split(
 				' '), stdout=f, stderr=f).wait()
 
 	# generate new datasets and combine with previous set of datasets
@@ -140,16 +140,20 @@ class ActiveLearner:
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
 			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
-														 os.path.join(self.datasets_path, 'validate%d' % i),
-														 self.codenator_config, args.validation_size))
+													 os.path.join(self.datasets_path, 'validate%d' % i),
+													 self.codenator_config, args.validation_size))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate%d' % i)))
 		combine_dataset(os.path.join(self.datasets_path, 'validate%d' % i),
 						os.path.join(self.datasets_path, 'validate%d' % (i - 1)), limit=args.validation_size)
 		logging.info('Updating training dataset (iteration {0})'.format(i))
 		os.system('python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
-															   os.path.join(self.datasets_path, 'train%d' % i),
-															   self.codenator_config, args.train_size_increment))
+														   os.path.join(self.datasets_path, 'train%d' % i),
+														   self.codenator_config, args.train_size_increment))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train%d' % i)))
+		for ext in ['ll', 'c', 'po']:
+			os.system(
+				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
+															  os.path.join(self.datasets_path, 'train%d' % i)), ext)
 		combine_dataset(os.path.join(self.datasets_path, 'train%d' % i),
 						os.path.join(self.datasets_path, 'train%d' % (i - 1)))
 
@@ -169,7 +173,7 @@ class ActiveLearner:
 								fpo.write(l[2] + '\n')
 								fll.write(l[3] + '\n')
 								num_remaining += 1
-			with open(os.path.join(self.output_dir, 'successes'), 'a') as fout:
+			with open(os.path.join(self.output_dir, 'successes.csv'), 'a') as fout:
 				csvout = csv.writer(fout)
 				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, args.num_translations)),
 						  'r') as fin:
@@ -179,9 +183,11 @@ class ActiveLearner:
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w') as f:
-			Popen('python {0} {1} {2}'.format(self.evaluate,
-																   os.path.join(self.datasets_path, 'test%d' % i),
-																   args.num_translations).split(' '), stdout=f,
+			Popen('python {0} {1} {2} -d {3}'.format(self.evaluate,
+													 os.path.join(self.datasets_path, 'test%d' % i),
+													 args.num_translations,
+													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
+				  stdout=f,
 				  stderr=f).wait()
 		remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(remaining))
@@ -189,8 +195,8 @@ class ActiveLearner:
 
 	def run(self, cleanup=False):
 		import time
-		with open(os.path.join(self.output_dir, 'successes'), 'w') as fout:
-			csv.writer(fout).writerow(['c', 'po', 'll'] + map(lambda i: 'out' + str(i), range(self.num_translations)))
+		with open(os.path.join(self.output_dir, 'successes.csv'), 'w') as fout:
+			csv.writer(fout).writerow(['c', 'po', 'll', 'out'])
 		i = 0
 		logging.info('Starting ActiveLearner')
 		start_time = time.time()
@@ -202,7 +208,7 @@ class ActiveLearner:
 		end_time = time.time()
 		logging.info('ActiveLearner finished (duration: {0} seconds)'.format(end_time - start_time))
 		num_failures = 0
-		with open(os.path.join(self.output_dir, 'failures'), 'w') as fout:
+		with open(os.path.join(self.output_dir, 'failures.csv'), 'w') as fout:
 			csvout = csv.writer(fout)
 			csvout.writerow(['c', 'po', 'll'] + map(lambda j: 'out' + str(j), range(self.num_translations)))
 			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, args.num_translations)),
