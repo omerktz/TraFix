@@ -15,8 +15,8 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 # until enough entries from the test dataset have been successfully translated
 ###
 class ActiveLearner:
-	def __init__(self, input, output_dir, codenator_config='configs/codenator4active.config',
-				 dynmt_config='configs/dynmt4active.config', num_translations=5, success_percentage=0.99,
+	def __init__(self, input, output_dir, codenator_config='configs/codenator.config',
+				 dynmt_config='configs/dynmt.config', num_translations=5, success_percentage=0.99,
 				 validation_size=1000, train_size_initial=1000, train_size_increment=1000):
 		# store parameters
 		self.input = input
@@ -31,7 +31,7 @@ class ActiveLearner:
 		# set external scripts paths
 		self.codenator = 'codenator.py'
 		self.api_dynmt = 'api_dynmt.py'
-		self.evaluate = 'evaluate4active.py'
+		self.evaluate = 'evaluate.py'
 		# set work paths
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
 		self.models_path = os.path.join(self.output_dir, 'models')
@@ -64,7 +64,7 @@ class ActiveLearner:
 		# generate vocabularies
 		logging.info('Generating vocabularies')
 		os.system(
-			'python {0} -po --vocabs -o {1} -c {2}'.format(self.codenator, self.vocab_path, self.codenator_config))
+			'python {0} --vocabs -o {1} -c {2}'.format(self.codenator, self.vocab_path, self.codenator_config))
 		# create initial datasets
 		logging.info('Generating initial datasets')
 		basename = os.path.basename(self.input)
@@ -77,11 +77,11 @@ class ActiveLearner:
 						 shell=True).strip())
 		logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
 		os.system(
-			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
+			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
 														 self.codenator_config, args.validation_size))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate0')))
 		os.system(
-			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
+			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
 														 self.codenator_config, args.train_size_initial))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
@@ -90,7 +90,7 @@ class ActiveLearner:
 		# train
 		logging.info('Training model (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --train{7}'.format(self.api_dynmt,
+			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
 																				   os.path.join(self.datasets_path,
 																								'train%d' % i),
 																				   os.path.join(self.datasets_path,
@@ -108,7 +108,7 @@ class ActiveLearner:
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -po -c {6} --translate -n {7}'.format(self.api_dynmt, os.path.join(
+			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt, os.path.join(
 				self.datasets_path, 'train%d' % i), os.path.join(self.datasets_path, 'validate%d' % i), os.path.join(
 				self.datasets_path, 'test%d' % i), self.vocab_path, os.path.join(self.models_path, 'model%d' % i),
 																						   args.dynmt_config,
@@ -139,14 +139,14 @@ class ActiveLearner:
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
-			'python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator,
+			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
 														 os.path.join(self.datasets_path, 'validate%d' % i),
 														 self.codenator_config, args.validation_size))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate%d' % i)))
 		combine_dataset(os.path.join(self.datasets_path, 'validate%d' % i),
 						os.path.join(self.datasets_path, 'validate%d' % (i - 1)), limit=args.validation_size)
 		logging.info('Updating training dataset (iteration {0})'.format(i))
-		os.system('python {0} -po -o {1} -c {2} -n {3}'.format(self.codenator,
+		os.system('python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
 															   os.path.join(self.datasets_path, 'train%d' % i),
 															   self.codenator_config, args.train_size_increment))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train%d' % i)))
@@ -179,7 +179,7 @@ class ActiveLearner:
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} -po --convert --llvm'.format(self.evaluate,
+			Popen('python {0} {1} {2}'.format(self.evaluate,
 																   os.path.join(self.datasets_path, 'test%d' % i),
 																   args.num_translations).split(' '), stdout=f,
 				  stderr=f).wait()
@@ -229,9 +229,9 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Evaluate NMT as active learner")
 	parser.add_argument('input', type=str, help="Input dataset for translation")
 	parser.add_argument('output', type=str, help="Output directory")
-	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator4active.config',
+	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator.config',
 						help="Codenator configuration file (default: \'%(default)s\')")
-	parser.add_argument('-d', '--dynmt-config', type=str, default='configs/dynmt4active.config',
+	parser.add_argument('-d', '--dynmt-config', type=str, default='configs/dynmt.config',
 						help="Dynmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
@@ -239,9 +239,9 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-s', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=1000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
-	parser.add_argument('-n', '--train-size-increment', type=int, default=1000,
+	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
 	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')

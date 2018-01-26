@@ -8,21 +8,19 @@ def main(args):
 	validation = os.path.abspath(args['validation_dataset'])
 	test = os.path.abspath(args['test_dataset'])
 	vocabs = os.path.abspath(args['vocabs'])
-	ext = 'po' if args['post_order'] else 'c'
-	model = os.path.abspath(args['model_path'] + '.ll-' + ext + '.dynmt')
-	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-' + ext + '.dynmt')) if args['previous'] is not None else ''
-	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.{3} {1}.corpus.ll {1}.corpus.{3} ' \
-								  '{2}.corpus.ll {2}.corpus.{3} {4} {18}.ll {18}.{3} --epochs={5} --batch-size={6} --eval-after={7} ' \
+	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
+	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-po.dynmt')) if args['previous'] is not None else ''
+	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.po {1}.corpus.ll {1}.corpus.po ' \
+								  '{2}.corpus.ll {2}.corpus.po {3} {4}.ll {43}.po --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-len={8} --max-pred={9} --max-patience={10} --beam-size={11} --plot ' \
-								  '--lstm-layers={12} --models-to-save={13}{14}{15}{16}{19}{17}' \
-		.format(train, validation, test, ext, model, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
+								  '--lstm-layers={12} --models-to-save={13}{14}{15}{16}{17}{18}' \
+		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
 				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
 				config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'max_pred'),
 				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
 				config.getint('DyNmt', 'lstm_layers'), config.getint('DyNmt', 'models_to_save'),
 				' --eval' if args['translate'] else '', ' --override' if args['override'] else '',
-				(' --seed=%d' % args['seed']) if args['seed'] else '', ' &> /dev/null' if args['silent'] else '',
-				vocabs, previous)
+				(' --seed=%d' % args['seed']) if args['seed'] else '', previous, ' &> /dev/null' if args['silent'] else '')
 	command = command.strip()
 	if args['train']:
 		os.system(command)
@@ -63,7 +61,6 @@ if __name__ == "__main__":
 	parser.add_argument('vocabs', type=str, help="vocabularies for datasets")
 	parser.add_argument('-m', '--model_path', type=str, default='model',
 						help="name of trained model (default: \'%(default)s\')")
-	parser.add_argument('-po', '--post-order', help="use post order c code (instead of regular c code)", action='count')
 	parser.add_argument('--train', help="train a new model", action='count')
 	parser.add_argument('--translate', help="translate using an existing model", action='count')
 	parser.add_argument('-n', '--num_translations', type=int, default=5,

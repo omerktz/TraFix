@@ -20,7 +20,8 @@ parser.add_argument('-o', '--out', dest='o', type=str, default='out',
 					help="output files names (default: \'%(default)s\')")
 parser.add_argument('-c', '--config', dest='c', type=str, default='configs/codenator.config',
 					help="configuration file (default: \'%(default)s\')")
-parser.add_argument('-po', '--post-order', dest='po', help="output c code in post order", action='count')
+parser.add_argument('-s', '--settings', dest='s', type=str, default='configs/codenator_settings.config',
+					help="settings file (default: \'%(default)s\')")
 parser.add_argument('--vocabs', help="generate full vocabularies (doesn't generate code samples)", action='count')
 parser.add_argument('--print-vocabs', help="print vocabs from generated code samples", action='count')
 
@@ -28,6 +29,8 @@ args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)
+settings = ConfigParser.ConfigParser()
+settings.read(args.s)
 
 
 class Expr:
@@ -120,11 +123,10 @@ class SourceVar(Var):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('SourceVar', 'Weight') + config.getint('SourceVar', 'InnerWeight')) > 0:
-			vars = map(lambda i: 'X' + str(i), range(config.getint('Var', 'NumVars')))
-			vocabs['c'].update(vars)
-			vocabs['po'].update(vars)
-			vocabs['ll'].update(map(lambda v: '@' + v, vars) + ['load'])
+		vars = map(lambda i: 'X' + str(i), range(config.getint('Var', 'NumVars')))
+		vocabs['c'].update(vars)
+		vocabs['po'].update(vars)
+		vocabs['ll'].update(map(lambda v: '@' + v, vars) + ['load'])
 
 
 class TargetVar(Var):
@@ -139,7 +141,7 @@ class TargetVar(Var):
 
 	@staticmethod
 	def vocab(vocabs):
-		vars = ['Y'] if not config.getboolean('Assignments', 'RenameTargetVars') else map(lambda i: 'Y' + str(i), range(
+		vars = ['Y'] if not settings.getboolean('Assignments', 'RenameTargetVars') else map(lambda i: 'Y' + str(i), range(
 			config.getint('Assignments', 'MaxAssignments')))
 		vocabs['c'].update(vars)
 		vocabs['po'].update(vars)
@@ -194,10 +196,9 @@ class BinaryOp(Op):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('BinaryOp', 'Weight') + config.getint('BinaryOp', 'InnerWeight')) > 0:
-			vocabs['c'].update(BinaryOp._Ops)
-			vocabs['po'].update(BinaryOp._Ops)
-			vocabs['ll'].update(['add', 'sub', 'mul', 'sdiv', 'srem'])
+		vocabs['c'].update(BinaryOp._Ops)
+		vocabs['po'].update(BinaryOp._Ops)
+		vocabs['ll'].update(['add', 'sub', 'mul', 'sdiv', 'srem'])
 
 
 class UnaryOp(Op):
@@ -233,16 +234,15 @@ class UnaryOp(Op):
 
 	@staticmethod
 	def vocab(vocabs):
-		if (config.getint('UnaryOp', 'Weight') + config.getint('UnaryOp', 'InnerWeight')) > 0:
-			vocabs['c'].update(BinaryOp._Ops)
-			vocabs['po'].update(['X' + o for o in BinaryOp._Ops] + [o + 'X' for o in BinaryOp._Ops])
+		vocabs['c'].update(UnaryOp._Ops)
+		vocabs['po'].update(['X' + o for o in UnaryOp._Ops] + [o + 'X' for o in UnaryOp._Ops])
 
 
 class Assignment:
 	def __init__(self, i):
 		self._source = getExpr()
 		self._target = TargetVar.getTargetVar()
-		if config.getboolean('Assignments', 'RenameTargetVars'):
+		if settings.getboolean('Assignments', 'RenameTargetVars'):
 			target_name = self._target._name + str(i)
 			self._target = Var()
 			self._target._name = target_name
@@ -392,7 +392,7 @@ class Branch:
 		return res
 
 	def po(self):
-		separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
+		separator = ' ; ' if settings.getboolean('PostOrder', 'AppendSemicolon') else ' '
 		return self._cond.po() + ' COND ' + separator.join(map(lambda x: x.po(), self._if) + ['']) + 'TRUE ' + (
 			separator.join(map(lambda x: x.po(), self._else) + ['']) + 'FALSE ' if self._else else '') + 'IF'
 
@@ -410,9 +410,11 @@ class Branch:
 	def vocab(vocabs):
 		vocabs['c'].update(['if', 'else', '{', '}'])
 		vocabs['po'].update(['COND', 'TRUE', 'FALSE', 'IF'])
-		vocabs['ll'].update(
-			['br', 'label', 'icmp', '%lFalse0', '%lAfter0', '%lTrue0', '<label>:lFalse0', '<label>:lAfter0',
-			 '<label>:lTrue0'])
+		# currently at most 1 branch per statement
+		vocabs['ll'].update(['br', 'label', 'icmp'])
+		for i in range(config.getint('Branch', 'BranchPerStatement')):
+			vocabs['ll'].update(['%lFalse' + str(i), '%lAfter' + str(i), '%lTrue' + str(i), '<label>:lFalse' + str(i),
+								 '<label>:lAfter' + str(i), '<label>:lTrue' + str(i)])
 
 
 _exprs = [Number, SourceVar, BinaryOp, UnaryOp]
@@ -536,8 +538,10 @@ class Stats:
 		res += 'Statements,' + str(self._num_statements) + '\n'
 		res += '\n[Branches]\n'
 		res += 'If,%,Else,%\n'
-		res += str(self._ifs) + ',' + "{0:.2f}".format(0.0 if self._num_inputs == 0 else (100.0 * self._ifs / float(self._num_inputs))) + ',' + str(
-			self._elses) + ',' + "{0:.2f}".format(0.0 if self._num_inputs == 0 else (100.0 * self._elses / float(self._num_inputs))) + '\n'
+		res += str(self._ifs) + ',' + "{0:.2f}".format(
+			0.0 if self._num_inputs == 0 else (100.0 * self._ifs / float(self._num_inputs))) + ',' + str(
+			self._elses) + ',' + "{0:.2f}".format(
+			0.0 if self._num_inputs == 0 else (100.0 * self._elses / float(self._num_inputs))) + '\n'
 		res += '\n[Lengths]\n'
 		res += ',Min,Max\n'
 		res += 'C,' + str(self._c_statement_length) + '\n'
@@ -576,59 +580,55 @@ def generateStatements():
 		print 'Generating ' + str(limit) + ' statements'
 	else:
 		print 'Generating statements until manually stopped (ctrl+C)'
-	print 'Saving to files: ' + outFile + '.corpus.c, ' + outFile + '.corpus.ll' + (
-		', ' + outFile + '.corpus.po' if args.po else '')
-	#print ''
+	print 'Saving to files: ' + outFile + '.corpus.c, ' + outFile + '.corpus.ll' + ', ' + outFile + '.corpus.po'
+	# print ''
 	j = 1
 	if args.print_vocabs:
 		vocabc = set()
 		vocabir = set()
-	if args.po:
-		if args.print_vocabs:
-			vocabpo = set()
-		corpuspo = open(outFile + '.corpus.po', 'w')
+		vocabpo = set()
 	stats = Stats()
 	Var.clear()
 	Var.repopulate()
 	with open(outFile + '.corpus.c', 'w') as corpusc:
 		with open(outFile + '.corpus.ll', 'w') as corpusir:
-			statements = set()
-			while (not limited) or (j <= limit):
-				Branch.resetCounter()
-				#print '\r\t' + str(j),
-				#if limited:
-				#	print '/' + str(limit),
-				sys.stdout.flush()
-				Assignments.resetCounter()
-				done = False
-				while not done:
-					try:
-						s = Statements.getStatements()
-						if config.getboolean('General', 'SimplifyVars'):
-							for x in s:
-								k = 0
-								for v in x.collectVars():
-									v._name = 'X' + str(k)
-									k += 1
-						if ' '.join(map(lambda x: str(x), s)) not in statements:
-							done = True
-					except RuntimeError:
-						pass
-				statements.add(' '.join(map(lambda x: str(x), s)))
-				llline = llvm.translateToLLVM(s, config, args=args, vocab=vocabir if args.print_vocabs else None,
-											  var_count=len(Var._vars),
-											  assignments_counter=sum([str(x).count(' = ') for x in s]))
-				cline = ''
-				for x in s:
-					cline += str(x)
-				cline += '\n'
-				corpusc.write(cline)
-				if args.print_vocabs:
-					vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
-				corpusir.write(llline + '\n')
-				stats.updateStats(cline, llline)
-				if args.po:
-					separator = ' ; ' if config.getboolean('PostOrder', 'AppendSemicolon') else ' '
+			with open(outFile + '.corpus.po', 'w') as corpuspo:
+				statements = set()
+				while (not limited) or (j <= limit):
+					Branch.resetCounter()
+					# print '\r\t' + str(j),
+					# if limited:
+					#	print '/' + str(limit),
+					sys.stdout.flush()
+					Assignments.resetCounter()
+					done = False
+					while not done:
+						try:
+							s = Statements.getStatements()
+							if settings.getboolean('General', 'SimplifyVars'):
+								for x in s:
+									k = 0
+									for v in x.collectVars():
+										v._name = 'X' + str(k)
+										k += 1
+							if ' '.join(map(lambda x: str(x), s)) not in statements:
+								done = True
+						except RuntimeError:
+							pass
+					statements.add(' '.join(map(lambda x: str(x), s)))
+					llline = llvm.translateToLLVM(s, config, args=args, vocab=vocabir if args.print_vocabs else None,
+												  var_count=len(Var._vars),
+												  assignments_counter=sum([str(x).count(' = ') for x in s]))
+					cline = ''
+					for x in s:
+						cline += str(x)
+					cline += '\n'
+					corpusc.write(cline)
+					if args.print_vocabs:
+						vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
+					corpusir.write(llline + '\n')
+					stats.updateStats(cline, llline)
+					separator = ' ; ' if settings.getboolean('PostOrder', 'AppendSemicolon') else ' '
 					line = ''
 					for x in s:
 						line += x.po() + separator
@@ -636,7 +636,7 @@ def generateStatements():
 					corpuspo.write(line)
 					if args.print_vocabs:
 						vocabpo.update(map(lambda x: x.strip(), line.split(' ')))
-				j += 1
+					j += 1
 	if args.print_vocabs:
 		with open(outFile + '.vocab.c.json', 'w') as f:
 			f.write('{\n')
@@ -664,21 +664,19 @@ def generateStatements():
 					f.write(', ')
 				f.write('\n')
 			f.write('}')
-		if args.po:
-			corpuspo.close()
-			with open(outFile + '.vocab.po.json', 'w') as f:
-				f.write('{\n')
-				f.write('  "eos": 0, \n')
-				f.write('  "UNK": 1, \n')
-				i = 0
-				n = len(vocabpo)
-				for w in vocabpo:
-					f.write('  "' + w + '": ' + str(i + 2))
-					i += 1
-					if i != n:
-						f.write(', ')
-					f.write('\n')
-				f.write('}')
+		with open(outFile + '.vocab.po.json', 'w') as f:
+			f.write('{\n')
+			f.write('  "eos": 0, \n')
+			f.write('  "UNK": 1, \n')
+			i = 0
+			n = len(vocabpo)
+			for w in vocabpo:
+				f.write('  "' + w + '": ' + str(i + 2))
+				i += 1
+				if i != n:
+					f.write(', ')
+				f.write('\n')
+			f.write('}')
 	with open(outFile + '.stats.csv', 'w') as f:
 		f.write(str(stats))
 	print '\nDone!'
@@ -687,11 +685,11 @@ def generateStatements():
 def generateVocabularies():
 	vocabs = {}
 	vocabs['c'] = set(['(', ')', ';'])
-	vocabs['po'] = set([';'] if config.getboolean('PostOrder', 'AppendSemicolon') else [])
-	vocabs['ll'] = set(['=', ',', ';'] + ([] if config.getboolean('General', 'RemoveI32') else ['i32', 'i32*']) + (
-		[] if config.getboolean('General', 'RemoveAlign4') else ['align', '4']) + (
-						   [] if config.getboolean('General', 'RemoveNSW') else ['nsw']) + (
-						   ['%tmp'] if config.getboolean('LLVM', 'ReplaceTemps') else ['%' + str(i) for i in range(1,
+	vocabs['po'] = set([';'] if settings.getboolean('PostOrder', 'AppendSemicolon') else [])
+	vocabs['ll'] = set(['=', ',', ';'] + ([] if settings.getboolean('LLVM', 'RemoveI32') else ['i32', 'i32*']) + (
+		[] if settings.getboolean('LLVM', 'RemoveAlign4') else ['align', '4']) + (
+						   [] if settings.getboolean('LLVM', 'RemoveNSW') else ['nsw']) + (
+						   ['%tmp'] if settings.getboolean('LLVM', 'ReplaceTemps') else ['%' + str(i) for i in range(1,
 																												   1 + config.getint(
 																													   'Vocabs',
 																													   'TempsPerStatement') * config.getint(
@@ -701,14 +699,12 @@ def generateVocabularies():
 	Var.vocab(vocabs)
 	Op.vocab(vocabs)
 	Assignment.vocab(vocabs)
-	if config.getfloat('Statements', 'BranchRatio') > 0:
-		Condition.vocab(vocabs)
-		Branch.vocab(vocabs)
+	Condition.vocab(vocabs)
+	Branch.vocab(vocabs)
 	with open(args.o + '.c', 'w') as f:
 		f.write(' '.join(vocabs['c']) + '\n')
-	if args.po:
-		with open(args.o + '.po', 'w') as f:
-			f.write(' '.join(vocabs['po']) + '\n')
+	with open(args.o + '.po', 'w') as f:
+		f.write(' '.join(vocabs['po']) + '\n')
 	with open(args.o + '.ll', 'w') as f:
 		f.write(' '.join(vocabs['ll']) + '\n')
 

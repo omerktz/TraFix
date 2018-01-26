@@ -2,10 +2,10 @@ import os
 import re
 
 
-def translateToLLVM(s, config, args=None, vocab=None, check_success=False, assignments_counter=None, var_count=None):
-	separator = ' ; ' if config.getboolean('LLVM', 'AppendSemicolon') else ' '
+def translateToLLVM(s, config, settings, args=None, vocab=None, check_success=False, assignments_counter=None, var_count=None):
+	separator = ' ; ' if settings.getboolean('LLVM', 'AppendSemicolon') else ' '
 	with open('tmp' + str(os.getpid()) + '.c', 'w') as f:
-		f.write('int ' + ('Y' if not config.getboolean('Assignments', 'RenameTargetVars') else ','.join(
+		f.write('int ' + ('Y' if not settings.getboolean('Assignments', 'RenameTargetVars') else ','.join(
 			map(lambda i: 'Y' + str(i), range(
 				assignments_counter if assignments_counter else config.getint('Assigments',
 																			  'MaxAssignments'))))) + ','.join(
@@ -39,10 +39,10 @@ def translateToLLVM(s, config, args=None, vocab=None, check_success=False, assig
 			if line.startswith(';'):
 				line = line[1:].strip()
 			line = re.sub('[ \t]+', ' ', line)
-			if config.getboolean('Branch', 'RemovePreds'):
+			if settings.getboolean('Branch', 'RemovePreds'):
 				if line.startswith('preds '):
 					continue
-			if config.getboolean('Branch', 'SimplifyLabels'):
+			if settings.getboolean('Branch', 'SimplifyLabels'):
 				if line.startswith('<label>:'):
 					label = line[len('<label>:'):]
 					if label == branchlabels[0]:
@@ -67,15 +67,15 @@ def translateToLLVM(s, config, args=None, vocab=None, check_success=False, assig
 							line = 'br label %lAfter' + str(branchIndex)
 			if config.getint('General', 'OptimizationLevel') > 0:
 				line = line[:line.find('!')].strip()[:-1].strip()
-			if config.getboolean('General', 'RemoveAlign4'):
+			if settings.getboolean('LLVM', 'RemoveAlign4'):
 				if line.endswith(', align 4'):
 					line = line[:-len(', align 4')].strip()
-			if config.getboolean('LLVM', 'ReplaceTemps'):
+			if settings.getboolean('LLVM', 'ReplaceTemps'):
 				line = re.sub('%[0-9]+ ', '%tmp ', line)
-			if config.getboolean('General', 'RemoveI32'):
+			if settings.getboolean('LLVM', 'RemoveI32'):
 				line = re.sub('i32\*? ', '', line)
 				line = re.sub('i1 ', '', line)
-			if config.getboolean('General', 'RemoveNSW'):
+			if settings.getboolean('LLVM', 'RemoveNSW'):
 				line = re.sub('nsw ', '', line)
 			if args and args.print_vocabs and vocab:
 				vocab.update(map(lambda y: y.strip(), line.split(' ')))
