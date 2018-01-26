@@ -15,13 +15,15 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 # until enough entries from the test dataset have been successfully translated
 ###
 class ActiveLearner:
-	def __init__(self, input, output_dir, codenator_config='configs/codenator.config',
-				 dynmt_config='configs/dynmt.config', num_translations=5, success_percentage=0.99,
-				 validation_size=1000, train_size_initial=1000, train_size_increment=1000):
+	def __init__(self, input, output_dir, experiment=False, codenator_config='configs/codenator.config',
+				 codenator_setting='configs/codenator_setting.config', dynmt_config='configs/dynmt.config',
+				 num_translations=5, success_percentage=0.99, validation_size=1000, train_size_initial=1000,
+				 train_size_increment=1000):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
 		self.codenator_config = codenator_config
+		self.codenator_setting = codenator_setting
 		self.dynmt_config = dynmt_config
 		self.num_translations = num_translations
 		self.success_percentage = success_percentage
@@ -38,9 +40,9 @@ class ActiveLearner:
 		self.outputs_path = os.path.join(self.output_dir, 'outputs')
 		self.vocab_path = os.path.join(self.output_dir, 'vocab')
 		# initialize
-		self.initialize_datasets()
+		self.initialize_datasets(experiment)
 
-	def initialize_datasets(self):
+	def initialize_datasets(self, experiment):
 		logging.info('Initializing ActiveLearner')
 		# clear output dir
 		if os.path.exists(self.output_dir):
@@ -52,10 +54,13 @@ class ActiveLearner:
 		os.makedirs(self.output_dir)
 		os.system('cp {0} {1}'.format(self.codenator_config,
 									  os.path.join(self.output_dir, os.path.basename(self.codenator_config))))
+		os.system('cp {0} {1}'.format(self.codenator_setting,
+									  os.path.join(self.output_dir, os.path.basename(self.codenator_setting))))
 		os.system(
 			'cp {0} {1}'.format(self.dynmt_config, os.path.join(self.output_dir, os.path.basename(self.dynmt_config))))
 		# update config paths
 		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
+		self.codenator_setting = os.path.join(self.output_dir, os.path.basename(self.codenator_setting))
 		self.dynmt_config = os.path.join(self.output_dir, os.path.basename(self.dynmt_config))
 		# create work directories
 		os.makedirs(self.models_path)
@@ -64,11 +69,17 @@ class ActiveLearner:
 		# generate vocabularies
 		logging.info('Generating vocabularies')
 		os.system(
-			'python {0} --vocabs -o {1} -c {2}'.format(self.codenator, self.vocab_path, self.codenator_config))
+			'python {0} --vocabs -o {1} -c {2} -s {3}'.format(self.codenator, self.vocab_path, self.codenator_config,
+															  self.codenator_setting))
 		# create initial datasets
 		logging.info('Generating initial datasets')
 		basename = os.path.basename(self.input)
-		os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
+		if not experiment:
+			os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
+		else:
+			os.system('python {0} -n {1) -c {2} -o {3} -s {4}'.format(self.codenator, 1000, self.codenator_config,
+																	  os.path.join(self.output_dir, basename),
+																	  self.codenator_setting))
 		for ext in ['ll', 'c', 'po']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
@@ -77,12 +88,15 @@ class ActiveLearner:
 						 shell=True).strip())
 		logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
 		os.system(
-			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'validate0'),
-													 self.codenator_config, args.validation_size))
+			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator,
+															os.path.join(self.datasets_path, 'validate0'),
+															self.codenator_config, self.validation_size,
+															self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate0')))
 		os.system(
-			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
-													 self.codenator_config, args.train_size_initial))
+			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
+															self.codenator_config, self.train_size_initial,
+															self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
 	# train model until no more progress is made on validation set and translate test set
@@ -100,7 +114,7 @@ class ActiveLearner:
 																			   self.vocab_path,
 																			   os.path.join(self.models_path,
 																							'model%d' % i),
-																			   args.dynmt_config, (
+																			   self.dynmt_config, (
 																					   ' -p %s' % os.path.join(
 																				   self.models_path,
 																				   'model%d' % previous)) if (
@@ -111,8 +125,8 @@ class ActiveLearner:
 			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt, os.path.join(
 				self.datasets_path, 'train%d' % i), os.path.join(self.datasets_path, 'validate%d' % i), os.path.join(
 				self.datasets_path, 'test%d' % i), self.vocab_path, os.path.join(self.models_path, 'model%d' % i),
-																					   args.dynmt_config,
-																					   args.num_translations).split(
+																					   self.dynmt_config,
+																					   self.num_translations).split(
 				' '), stdout=f, stderr=f).wait()
 
 	# generate new datasets and combine with previous set of datasets
@@ -139,16 +153,18 @@ class ActiveLearner:
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
-			'python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
-													 os.path.join(self.datasets_path, 'validate%d' % i),
-													 self.codenator_config, args.validation_size))
+			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator,
+															os.path.join(self.datasets_path, 'validate%d' % i),
+															self.codenator_config, self.validation_size,
+															self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate%d' % i)))
 		combine_dataset(os.path.join(self.datasets_path, 'validate%d' % i),
-						os.path.join(self.datasets_path, 'validate%d' % (i - 1)), limit=args.validation_size)
+						os.path.join(self.datasets_path, 'validate%d' % (i - 1)), limit=self.validation_size)
 		logging.info('Updating training dataset (iteration {0})'.format(i))
-		os.system('python {0} -o {1} -c {2} -n {3}'.format(self.codenator,
-														   os.path.join(self.datasets_path, 'train%d' % i),
-														   self.codenator_config, args.train_size_increment))
+		os.system('python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator,
+																  os.path.join(self.datasets_path, 'train%d' % i),
+																  self.codenator_config, self.train_size_increment,
+																  self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train%d' % i)))
 		for ext in ['ll', 'c', 'po']:
 			os.system(
@@ -166,7 +182,7 @@ class ActiveLearner:
 			with open(os.path.join(self.datasets_path, 'test%d.corpus.c' % (i + 1)), 'w') as fc:
 				with open(os.path.join(self.datasets_path, 'test%d.corpus.po' % (i + 1)), 'w') as fpo:
 					with open(os.path.join(self.datasets_path, 'test%d.corpus.ll' % (i + 1)), 'w') as fll:
-						with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, args.num_translations)),
+						with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
 								  'r') as fin:
 							for l in list(csv.reader(fin))[1:]:
 								fc.write(l[1] + '\n')
@@ -175,7 +191,7 @@ class ActiveLearner:
 								num_remaining += 1
 			with open(os.path.join(self.output_dir, 'successes.csv'), 'a') as fout:
 				csvout = csv.writer(fout)
-				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, args.num_translations)),
+				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, self.num_translations)),
 						  'r') as fin:
 					for l in list(csv.reader(fin))[1:]:
 						csvout.writerow(l[1:])
@@ -185,7 +201,7 @@ class ActiveLearner:
 		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w') as f:
 			Popen('python {0} {1} {2} -d {3}'.format(self.evaluate,
 													 os.path.join(self.datasets_path, 'test%d' % i),
-													 args.num_translations,
+													 self.num_translations,
 													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
 				  stdout=f,
 				  stderr=f).wait()
@@ -211,7 +227,7 @@ class ActiveLearner:
 		with open(os.path.join(self.output_dir, 'failures.csv'), 'w') as fout:
 			csvout = csv.writer(fout)
 			csvout.writerow(['c', 'po', 'll'] + map(lambda j: 'out' + str(j), range(self.num_translations)))
-			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, args.num_translations)),
+			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
 					  'r') as fin:
 				for l in list(csv.reader(fin))[1:]:
 					csvout.writerow(l[1:])
@@ -235,15 +251,19 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Evaluate NMT as active learner")
 	parser.add_argument('input', type=str, help="Input dataset for translation")
 	parser.add_argument('output', type=str, help="Output directory")
+	parser.add_argument('-e', '--experiment', action='store_const', const=True,
+						help='Generate own test input and run as experiment')
 	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator.config',
 						help="Codenator configuration file (default: \'%(default)s\')")
+	parser.add_argument('-s', '--codenator_setting', type=str, default='configs/codenator_setting.config',
+						help="Codenator settings file (default: \'%(default)s\')")
 	parser.add_argument('-d', '--dynmt-config', type=str, default='configs/dynmt.config',
 						help="Dynmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
 	parser.add_argument('-p', '--percentage', type=float, default=0.99,
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
-	parser.add_argument('-s', '--validation-size', type=int, default=1000,
+	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
 	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
@@ -255,7 +275,8 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
-	ActiveLearner(input=args.input, output_dir=args.output, codenator_config=args.codenator_config,
+	ActiveLearner(input=args.input, output_dir=args.output, experiment=args.experiment,
+				  codenator_config=args.codenator_config, codenator_setting=args.codenator_setting,
 				  dynmt_config=args.dynmt_config, num_translations=args.num_translations,
 				  success_percentage=args.percentage, validation_size=args.validation_size,
 				  train_size_initial=args.train_size_initial, train_size_increment=args.train_size_increment).run(
