@@ -23,6 +23,8 @@ def convertCToLLVM(c, config):
 
 
 def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=None):
+	if po in out:
+		return (i, c, po, ll, constants, c, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, c, po, ll, constants, None, 1)  # fail
 	else:
