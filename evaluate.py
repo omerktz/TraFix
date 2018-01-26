@@ -14,11 +14,11 @@ def convertPostOrderToC(po):
 	return po2c.parse(po)
 
 
-def convertCToLLVM(c, config):
+def convertCToLLVM(c, config, settings):
 	if not c:
 		return c
 	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
-	return c2llvm.translateToLLVM(s, config, check_success=True,
+	return c2llvm.translateToLLVM(s, config, settings, check_success=True,
 								  assignments_counter=sum([str(x).count(' = ') for x in c]))
 
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 						action='count')
 	parser.add_argument('-c', '--config', dest='config', type=str, default='configs/codenator.config',
 						help="configuration file used for llvm compilation (default: \'%(default)s\')")
-	parser.add_argument('-s', '--settings', dest='settings', type=str, default='configs/codenator_settings.config',
+	parser.add_argument('-s', '--settings', dest='settings', type=str, default='configs/codenator_setting.config',
 						help="general settings used for llvm compilation (default: \'%(default)s\')")
 	parser.add_argument('-d', '--failed-dataset', dest='failed_dataset', type=str,
 						help="dataset for which to write failed translations")

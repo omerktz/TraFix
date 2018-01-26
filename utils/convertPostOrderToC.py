@@ -5,7 +5,7 @@ class Num:
     @staticmethod
     def check(token,stack):
         try:
-            return re.match('^\-?[0-9]+$',token)
+            return re.match('^\-?[0-9]+$',token) or re.match('^N[0-9]*$',token)
         except:
             return False
     @staticmethod
@@ -213,4 +213,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('23 X7 X++ == COND X7 Y = ; 4 Y = ; TRUE 10 Y = ; X1 24 * Y = ; X7 28 64 X3 / - - Y = ; FALSE IF ; ')[1].c()
+    print parse('Y 1 N0 X0 N1 / * / = ; Y X7 N2 + = ; Y X9 X6 - = ;')[1].c()

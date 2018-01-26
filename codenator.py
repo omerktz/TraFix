@@ -21,7 +21,7 @@ parser.add_argument('-o', '--out', dest='o', type=str, default='out',
 					help="output files names (default: \'%(default)s\')")
 parser.add_argument('-c', '--config', dest='c', type=str, default='configs/codenator.config',
 					help="configuration file (default: \'%(default)s\')")
-parser.add_argument('-s', '--settings', dest='s', type=str, default='configs/codenator_settings.config',
+parser.add_argument('-s', '--settings', dest='s', type=str, default='configs/codenator_setting.config',
 					help="settings file (default: \'%(default)s\')")
 parser.add_argument('--vocabs', help="generate full vocabularies (doesn't generate code samples)", action='count')
 parser.add_argument('--print-vocabs', help="print vocabs from generated code samples", action='count')
@@ -54,19 +54,20 @@ class Number(Expr):
 	_constants_map = {}
 
 	def __init__(self):
-		self._num = random.randint(Number._minNumber, Number._maxNumber)
-
-	def __str__(self):
-		return str(self._num)
-
-	def po(self):
-		if self._num <= Number._maxUnabstractedValue:
-			return str(self._num)
+		value = random.randint(Number._minNumber, Number._maxNumber)
+		if value <= Number._maxUnabstractedValue:
+			self._num = str(value)
 		else:
 			constant = 'N' + str(Number._constants)
 			Number._constants += 1
-			Number._constants_map[constant] = self._num
-			return constant
+			Number._constants_map[constant] = value
+			self._num = constant
+
+	def __str__(self):
+		return self._num
+
+	def po(self):
+		return self._num
 
 	def __eq__(self, other):
 		if not isinstance(other, Number):
@@ -89,11 +90,11 @@ class Number(Expr):
 	def vocab(vocabs):
 		# vocabs['c'].update(map(str, range(Number._minNumber, Number._maxNumber + 1)))
 		vocabs['po'].update(
-			map(lambda i: 'N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + range(
-				Number._maxUnabstractedValue + 1))
+			map(lambda i: 'N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + map(str, range(
+				Number._maxUnabstractedValue + 1)))
 		vocabs['ll'].update(
-			map(lambda i: '@N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + range(
-				Number._maxUnabstractedValue + 1) + ['-1'])
+			map(lambda i: '@N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + map(str, range(
+				Number._maxUnabstractedValue + 1) + ['-1']))
 
 
 class Var(Expr):
@@ -647,7 +648,7 @@ def generateStatements():
 							except RuntimeError:
 								pass
 						statements.add(' '.join(map(lambda x: str(x), s)))
-						llline = llvm.translateToLLVM(s, config, args=args,
+						llline = llvm.translateToLLVM(s, config, settings, args=args,
 													  vocab=vocabir if args.print_vocabs else None,
 													  var_count=len(Var._vars),
 													  assignments_counter=sum([str(x).count(' = ') for x in s]))
