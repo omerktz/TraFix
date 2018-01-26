@@ -11,7 +11,7 @@ def main(args):
 	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-po.dynmt')) if args['previous'] is not None else ''
 	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.po {1}.corpus.ll {1}.corpus.po ' \
-								  '{2}.corpus.ll {2}.corpus.po {3} {4}.ll {43}.po --epochs={5} --batch-size={6} --eval-after={7} ' \
+								  '{2}.corpus.ll {2}.corpus.po {3} {4}.ll {4}.po --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-len={8} --max-pred={9} --max-patience={10} --beam-size={11} --plot ' \
 								  '--lstm-layers={12} --models-to-save={13}{14}{15}{16}{17}{18}' \
 		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
