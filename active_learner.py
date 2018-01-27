@@ -18,7 +18,7 @@ class ActiveLearner:
 	def __init__(self, input, output_dir, experiment=False, codenator_config='configs/codenator.config',
 				 codenator_setting='configs/codenator_setting.config', dynmt_config='configs/dynmt.config',
 				 num_translations=5, success_percentage=0.99, validation_size=1000, train_size_initial=1000,
-				 train_size_increment=1000):
+				 train_size_increment=1000, initial_model=None):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
@@ -30,6 +30,7 @@ class ActiveLearner:
 		self.validation_size = validation_size
 		self.train_size_initial = train_size_initial
 		self.train_size_increment = train_size_increment
+		self.initial_model = initial_model
 		# set external scripts paths
 		self.codenator = 'codenator.py'
 		self.api_dynmt = 'api_dynmt.py'
@@ -66,6 +67,9 @@ class ActiveLearner:
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
 		os.makedirs(self.datasets_path)
+		# copy initial model
+		os.system('cp {0} {1}'.format(self.initial_model, os.path.join(self.output_dir, 'initial_model')))
+		self.initial_model = os.path.join(self.output_dir, 'initial_model')
 		# generate vocabularies
 		logging.info('Generating vocabularies')
 		os.system(
@@ -104,23 +108,28 @@ class ActiveLearner:
 	# train model until no more progress is made on validation set and translate test set
 	def train_and_translate(self, i, previous=None):
 		# train
-		logging.info('Training model (iteration {0})'.format(i))
-		with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
-																			   os.path.join(self.datasets_path,
-																							'train%d' % i),
-																			   os.path.join(self.datasets_path,
-																							'validate%d' % i),
-																			   os.path.join(self.datasets_path,
-																							'test%d' % i),
-																			   self.vocab_path,
-																			   os.path.join(self.models_path,
-																							'model%d' % i),
-																			   self.dynmt_config, (
-																					   ' -p %s' % os.path.join(
-																				   self.models_path,
-																				   'model%d' % previous)) if (
-						previous is not None) else '').split(' '), stdout=f, stderr=f).wait()
+		if (i == 0) and self.initial_model:
+			logging.info('Using initial model (iteration {0})'.format(i))
+			os.system('cp {0} {1}'.format(self.initial_model,
+										  os.path.join(self.models_path, 'model0.ll-po.dynmt_bestmodel.txt')))
+		else:
+			logging.info('Training model (iteration {0})'.format(i))
+			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
+				Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
+																				   os.path.join(self.datasets_path,
+																								'train%d' % i),
+																				   os.path.join(self.datasets_path,
+																								'validate%d' % i),
+																				   os.path.join(self.datasets_path,
+																								'test%d' % i),
+																				   self.vocab_path,
+																				   os.path.join(self.models_path,
+																								'model%d' % i),
+																				   self.dynmt_config, (
+																						   ' -p %s' % os.path.join(
+																					   self.models_path,
+																					   'model%d' % previous)) if (
+							previous is not None) else '').split(' '), stdout=f, stderr=f).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w') as f:
@@ -185,8 +194,9 @@ class ActiveLearner:
 				with open(os.path.join(self.datasets_path, 'test%d.corpus.po' % (i + 1)), 'w') as fpo:
 					with open(os.path.join(self.datasets_path, 'test%d.corpus.ll' % (i + 1)), 'w') as fll:
 						with open(os.path.join(self.datasets_path, 'test%d.constants' % (i + 1)), 'w') as fconstants:
-							with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
-								  'r') as fin:
+							with open(
+									os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
+									'r') as fin:
 								for l in list(csv.reader(fin))[1:]:
 									fc.write(l[1] + '\n')
 									fpo.write(l[2] + '\n')
@@ -273,6 +283,8 @@ if __name__ == "__main__":
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=5000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
+	parser.add_argument('-m', '--initial-model', type=str,
+						help="trained model to to use as basis for current active learner")
 	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
@@ -283,5 +295,5 @@ if __name__ == "__main__":
 				  codenator_config=args.codenator_config, codenator_setting=args.codenator_setting,
 				  dynmt_config=args.dynmt_config, num_translations=args.num_translations,
 				  success_percentage=args.percentage, validation_size=args.validation_size,
-				  train_size_initial=args.train_size_initial, train_size_increment=args.train_size_increment).run(
-		cleanup=args.cleanup)
+				  train_size_initial=args.train_size_initial, train_size_increment=args.train_size_increment,
+				  initial_model=args.initial_model).run(cleanup=args.cleanup)
