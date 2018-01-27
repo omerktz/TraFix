@@ -68,8 +68,13 @@ class ActiveLearner:
 		os.makedirs(self.outputs_path)
 		os.makedirs(self.datasets_path)
 		# copy initial model
-		os.system('cp {0} {1}'.format(self.initial_model, os.path.join(self.output_dir, 'initial_model')))
-		self.initial_model = os.path.join(self.output_dir, 'initial_model')
+		if self.initial_model:
+			if os.path.exists(self.initial_model):
+				os.system('cp {0} {1}'.format(self.initial_model, os.path.join(self.output_dir, 'initial_model')))
+				self.initial_model = os.path.join(self.output_dir, 'initial_model')
+			else:
+				logging.info('Initial model does not exist, starting from empty model')
+				self.initial_model = None
 		# generate vocabularies
 		logging.info('Generating vocabularies')
 		os.system(
@@ -252,6 +257,8 @@ class ActiveLearner:
 				self.initial_test_size,
 				100.0 * num_failures / float(
 					self.initial_test_size), i + 1))
+		os.system('cp {0} {1}'.format(os.path.join(self.models_path, 'model{0}.ll-po.dynmt_bestmodel.txt'.format(i)),
+									  os.path.join(self.output_dir, 'final_model')))
 		if cleanup:
 			logging.info('Cleanup')
 			for f in os.listdir('.'):
