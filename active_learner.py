@@ -269,9 +269,9 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=5000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
-	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
+	parser.add_argument('-n', '--train-size-increment', type=int, default=5000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
 	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')

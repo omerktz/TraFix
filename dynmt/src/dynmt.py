@@ -702,10 +702,10 @@ def evaluate(predicted_sequences, inputs, outputs, print_results=False, predicti
 		enc_gold = ' '.join(output_seq).encode('utf8')
 		enc_out = predicted_output.encode('utf8')
 
-		if print_results:
-			print 'input: {}'.format(enc_in)
-			print 'gold output: {}'.format(enc_gold)
-			print 'prediction: {}\n'.format(enc_out)
+		#if print_results:
+		#	print 'input: {}'.format(enc_in)
+		#	print 'gold output: {}'.format(enc_gold)
+		#	print 'prediction: {}\n'.format(enc_out)
 
 		eval_predictions.append(enc_out.decode('utf8'))
 		eval_golds.append(enc_gold.decode('utf8'))
