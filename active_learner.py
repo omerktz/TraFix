@@ -101,12 +101,15 @@ class ActiveLearner:
 		os.system(
 			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator,
 															os.path.join(self.datasets_path, 'validate0'),
-															self.codenator_config, self.validation_size,
+															self.codenator_config,
+															0 if self.initial_model else self.validation_size,
 															self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'validate0')))
 		os.system(
-			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator, os.path.join(self.datasets_path, 'train0'),
-															self.codenator_config, self.train_size_initial,
+			'python {0} -o {1} -c {2} -n {3} -s {4}'.format(self.codenator,
+															os.path.join(self.datasets_path, 'train0'),
+															self.codenator_config,
+															0 if self.initial_model else self.train_size_initial,
 															self.codenator_setting))
 		os.system('rm {0}.stats.csv'.format(os.path.join(self.datasets_path, 'train0')))
 
