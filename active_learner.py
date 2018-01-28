@@ -188,7 +188,7 @@ class ActiveLearner:
 		for ext in ['ll', 'c', 'po']:
 			os.system(
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
-															  os.path.join(self.datasets_path, 'train%d' % i)), ext)
+															  os.path.join(self.datasets_path, 'train%d' % i), ext))
 		combine_dataset(os.path.join(self.datasets_path, 'train%d' % i),
 						os.path.join(self.datasets_path, 'train%d' % (i - 1)))
 

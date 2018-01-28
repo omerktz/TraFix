@@ -731,9 +731,7 @@ def generateVocabularies():
 						   ['%tmp'] if settings.getboolean('LLVM', 'ReplaceTemps') else ['%' + str(i) for i in range(1,
 																													 1 + config.getint(
 																														 'Vocabs',
-																														 'TempsPerStatement') * config.getint(
-																														 'Assignments',
-																														 'MaxAssignments'))]))
+																														 'MaxTemps'))]))
 	Number.vocab(vocabs)
 	Var.vocab(vocabs)
 	Op.vocab(vocabs)

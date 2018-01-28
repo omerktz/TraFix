@@ -49,9 +49,10 @@ def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=
 				with open(failed_dataset + '.corpus.po', 'a') as fpo:
 					with open(failed_dataset + '.corpus.ll', 'a') as fll:
 						for i in range(len(out)):
-							fc.write(cs[i] + '\n')
-							fpo.write(out[i] + '\n')
-							fll.write(lls[i] + '\n')
+							if len(out[i]) > 0:
+								fc.write(cs[i] + '\n')
+								fpo.write(out[i] + '\n')
+								fll.write(lls[i] + '\n')
 		return (i, c, po, ll, constants, None, 1)  # fail
 
 
