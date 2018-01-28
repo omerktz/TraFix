@@ -18,8 +18,7 @@ def convertCToLLVM(c, config, settings):
 	if not c:
 		return c
 	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
-	return c2llvm.translateToLLVM(s, config, settings, check_success=True,
-								  assignments_counter=sum([str(x).count(' = ') for x in c]))
+	return c2llvm.translateToLLVM(s, config, settings, check_success=True)
 
 
 def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=None):

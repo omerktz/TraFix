@@ -111,11 +111,19 @@ class Var(Expr):
 	@staticmethod
 	def repopulate():
 		def createVar(i):
-			v = Var()
-			v._name = 'X' + str(i)
-			return v
+			return Var(name='X' + str(i))
 
 		Var._vars = map(createVar, xrange(config.getint('Var', 'NumVars')))
+
+	def __init__(self, name=None):
+		if name:
+			self._name = name
+		else:
+			self._name = Var._vars[random.randrange(0, len(Var._vars))]._name
+
+	@staticmethod
+	def isValid():
+		return len(Var._vars) > 0
 
 	def __str__(self):
 		return self._name
@@ -139,46 +147,10 @@ class Var(Expr):
 
 	@staticmethod
 	def vocab(vocabs):
-		SourceVar.vocab(vocabs)
-		TargetVar.vocab(vocabs)
-
-
-class SourceVar(Var):
-	def __init__(self):
-		self._name = Var._vars[random.randrange(0, len(Var._vars))]._name
-
-	@staticmethod
-	def isValid():
-		return len(Var._vars) > 0
-
-	@staticmethod
-	def vocab(vocabs):
 		vars = map(lambda i: 'X' + str(i), range(config.getint('Var', 'NumVars')))
 		# vocabs['c'].update(vars)
 		vocabs['po'].update(vars)
 		vocabs['ll'].update(map(lambda v: '@' + v, vars) + ['load'])
-
-
-class TargetVar(Var):
-	_var = None
-
-	@staticmethod
-	def getTargetVar():
-		if not TargetVar._var:
-			TargetVar._var = Var()
-			TargetVar._var._name = 'Y'
-		return TargetVar._var
-
-	@staticmethod
-	def vocab(vocabs):
-		vars = ['Y'] if not settings.getboolean('Assignments', 'RenameTargetVars') else map(lambda i: 'Y' + str(i),
-																							range(
-																								config.getint(
-																									'Assignments',
-																									'MaxAssignments')))
-		# vocabs['c'].update(vars)
-		vocabs['po'].update(vars)
-		vocabs['ll'].update(map(lambda v: '@' + v, vars))
 
 
 class Op(Expr):
@@ -238,7 +210,7 @@ class UnaryOp(Op):
 	_Ops = ['++', '--']
 
 	def __init__(self):
-		self._op = SourceVar()
+		self._op = Var()
 		self._act = UnaryOp._Ops[random.randint(0, 1)]
 		self._position = (random.randint(0, 1) == 1)
 
@@ -274,11 +246,7 @@ class UnaryOp(Op):
 class Assignment:
 	def __init__(self, i):
 		self._source = getExpr()
-		self._target = TargetVar.getTargetVar()
-		if settings.getboolean('Assignments', 'RenameTargetVars'):
-			target_name = self._target._name + str(i)
-			self._target = Var()
-			self._target._name = target_name
+		self._target = Var()
 
 	def __str__(self):
 		return str(self._target) + ' = ' + str(self._source) + ' ; '
@@ -452,7 +420,7 @@ class Branch:
 								 '<label>:lAfter' + str(i), '<label>:lTrue' + str(i)])
 
 
-_exprs = [Number, SourceVar, BinaryOp, UnaryOp]
+_exprs = [Number, Var, BinaryOp, UnaryOp]
 _weights = map(lambda e: config.getint(e.__name__, 'Weight'), _exprs)
 _inner_weights = map(lambda e: config.getint(e.__name__, 'InnerWeight'), _exprs)
 
@@ -655,8 +623,7 @@ def generateStatements():
 						statements.add(' '.join(map(lambda x: str(x), s)))
 						llline = llvm.translateToLLVM(s, config, settings, args=args,
 													  vocab=vocabir if args.print_vocabs else None,
-													  var_count=len(Var._vars),
-													  assignments_counter=sum([str(x).count(' = ') for x in s]))
+													  var_count=len(Var._vars))
 						cline = ''
 						for x in s:
 							cline += str(x)
