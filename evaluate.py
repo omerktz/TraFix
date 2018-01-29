@@ -20,7 +20,6 @@ def convertCToLLVM(c, config, settings):
 	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
 	return c2llvm.translateToLLVM(s, config, settings, check_success=True)
 
-
 def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=None):
 	if po in out:
 		return (i, c, po, ll, constants, c, 0)  # success
@@ -38,17 +37,18 @@ def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=
 		config_dict.read(config)
 		settings_dict = ConfigParser.ConfigParser()
 		settings_dict.read(settings)
-		lls = map(lambda x: convertCToLLVM(x, config_dict, settings_dict).strip(), cs)
+		lls = map(lambda x: convertCToLLVM(x, config_dict, settings_dict), cs)
 		if not any(lls):
 			return (i, c, po, ll, constants, None, 2)  # unparsable
-		if ll in res:
+		lls = map(lambda l: l.strip() if l is not None else '', lls)
+		if ll in lls:
 			return (i, c, po, ll, constants, cs[lls.index(ll)], 0)  # success
 		if failed_dataset:
 			with open(failed_dataset + '.corpus.c', 'a') as fc:
 				with open(failed_dataset + '.corpus.po', 'a') as fpo:
 					with open(failed_dataset + '.corpus.ll', 'a') as fll:
 						for i in range(len(out)):
-							if len(out[i]) > 0:
+							if len(out[i]) > 0 and len(lls[i]) > 0 and len(cs[i]) > 0:
 								fc.write(cs[i] + '\n')
 								fpo.write(out[i] + '\n')
 								fll.write(lls[i] + '\n')
