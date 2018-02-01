@@ -6,3 +6,4 @@ do
 done
 sleep 5
 wait
+python analysis.py $2 $2/analysis.csv
