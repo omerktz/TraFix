@@ -96,11 +96,11 @@ def remaining_test_size(keys, logs, outputs, out):
 	out.writerow(['', '', 'Raw:'] + map(lambda k: data[0][0] - data[k][0], sorted(data.keys())))
 	out.writerow(['', '', 'Ratio:'] + map(lambda k: (data[0][0] - data[k][0]) / float(data[0][0]), sorted(data.keys())))
 	out.writerow(['', 'Min:'])
-	out.writerow(['', '', 'Raw:'] + map(lambda k: data[0][1] - data[k][1], sorted(data.keys())))
-	out.writerow(['', '', 'Ratio:'] + map(lambda k: (data[0][1] - data[k][1]) / float(data[0][1]), sorted(data.keys())))
-	out.writerow(['', 'Max:'])
 	out.writerow(['', '', 'Raw:'] + map(lambda k: data[0][2] - data[k][2], sorted(data.keys())))
 	out.writerow(['', '', 'Ratio:'] + map(lambda k: (data[0][2] - data[k][2]) / float(data[0][2]), sorted(data.keys())))
+	out.writerow(['', 'Max:'])
+	out.writerow(['', '', 'Raw:'] + map(lambda k: data[0][1] - data[k][1], sorted(data.keys())))
+	out.writerow(['', '', 'Ratio:'] + map(lambda k: (data[0][1] - data[k][1]) / float(data[0][1]), sorted(data.keys())))
 	out.writerow([])
 
 
