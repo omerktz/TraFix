@@ -6,7 +6,7 @@ Usage:
   dynmt.py [--dynet-mem MEM] [--dynet-gpus GPU] [--dynet-devices DEV] [--dynet-autobatch AUTO] [--input-dim=INPUT]
   [--hidden-dim=HIDDEN] [--epochs=EPOCHS] [--lstm-layers=LAYERS] [--optimization=OPTIMIZATION] [--reg=REGULARIZATION]
   [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval] [--ensemble=ENSEMBLE]
-  [--vocab-size=VOCAB] [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
+  [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
   [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED]
   [--previous-model=PREV] TRAIN_INPUTS_PATH TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH
   TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
@@ -37,10 +37,9 @@ Options:
   --learning=LEARNING           learning rate parameter for optimization [default: 0.0001]
   --batch-size=BATCH            batch size [default: 1]
   --beam-size=BEAM              beam size in beam search [default: 5]
-  --vocab-size=VOCAB            max vocabulary size [default: 99999]
   --eval-after=EVALAFTER        amount of train batches to wait before evaluation [default: 1000]
-  --max-len=MAXLEN              max train sequence length [default: 50]
-  --max-pred=MAXPRED            max predicted sequence length [default: 50]
+  --max-len=MAXLEN              max train sequence length
+  --max-pred=MAXPRED            max predicted sequence length
   --grad-clip=GRADCLIP          gradient clipping threshold [default: 5.0]
   --max-patience=MAXPATIENCE    amount of checkpoints without improvement on dev before early stopping [default: 100]
   --plot                        plot a learning curve while training each model
@@ -93,7 +92,7 @@ from matplotlib import pyplot as plt
 
 def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path, test_inputs_path, test_outputs_path,
 		 results_file_path, vocab_input_path, vocab_output_path, input_dim, hidden_dim, epochs, layers, optimization,
-		 plot, override, eval_only, ensemble, batch_size, vocab_size, eval_after, max_len, previous_model):
+		 plot, override, eval_only, ensemble, batch_size, eval_after, max_len, previous_model):
 	# write model config file (.modelinfo)
 	common.write_model_config_file(arguments, train_inputs_path, train_outputs_path, dev_inputs_path,
 								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path,
@@ -104,19 +103,19 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 		print param + '=' + str(arguments[param])
 
 	# load vocabularies
-	vocab_inputs, input_vocabulary, vocab_outputs, output_vocabulary = \
-		prepare_data.load_parallel_data(vocab_input_path, vocab_output_path, vocab_size, max_len)
+	input_vocabulary, output_vocabulary = \
+		prepare_data.load_vocabularies(vocab_input_path, vocab_output_path)
 
 	if not eval_only:
 		# load train and dev data
-		train_inputs, train, train_outputs, train_out_vocab = \
-			prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, vocab_size, max_len)
-		dev_inputs, dev_in_vocab, dev_outputs, dev_out_vocab = \
-			prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, vocab_size, max_len)
+		train_inputs, train_outputs = \
+			prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, max_len)
+		dev_inputs, dev_outputs = \
+			prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, max_len)
 	else:
 		# load test data
-		test_inputs, test_in_vocab, test_outputs, test_out_vocab = \
-			prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, vocab_size, max_len)
+		test_inputs, test_outputs = \
+			prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, max_len)
 
 	# add unk symbols to vocabularies
 	input_vocabulary.append(common.UNK)
@@ -132,24 +131,50 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	output_vocabulary.append(common.BEGIN_SEQ)
 	output_vocabulary.append(common.END_SEQ)
 
-	# symbol 2 int and int 2 symbol
-	x2int = dict(zip(input_vocabulary, range(0, len(input_vocabulary))))
-	y2int = dict(zip(output_vocabulary, range(0, len(output_vocabulary))))
-	int2y = {index: x for x, index in y2int.items()}
-
-	print 'input vocab size: {}'.format(len(x2int))
-	print 'output vocab size: {}'.format(len(y2int))
-
 	# try to load existing model
 	if previous_model:
 		prev_model = previous_model
 	else:
 		prev_model = results_file_path
 	model_file_name = '{}_bestmodel.txt'.format(prev_model)
+
+	old_input_vocabulary = None
+	old_output_vocabulary = None
+	if os.path.isfile(model_file_name) and not override:
+		if os.path.isfile('{}.vocabs.in'.format(prev_model)) and os.path.isfile('{}.vocabs.out'.format(prev_model)):
+			old_input_vocabulary = []
+			with open('{}.vocabs.in'.format(prev_model), 'r') as fin:
+				for line in fin:
+					old_input_vocabulary.append(line.strip())
+			old_output_vocabulary = []
+			with open('{}.vocabs.out'.format(prev_model), 'r') as fin:
+				for line in fin:
+					old_output_vocabulary.append(line.strip())
+			input_vocabulary = old_input_vocabulary[:] + filter(lambda c: c not in old_input_vocabulary,
+																input_vocabulary)
+			output_vocabulary = old_output_vocabulary[:] + filter(lambda c: c not in old_output_vocabulary,
+																  output_vocabulary)
+
+	# symbol 2 int and int 2 symbol
+	x2int = dict(zip(input_vocabulary, range(0, len(input_vocabulary))))
+	y2int = dict(zip(output_vocabulary, range(0, len(output_vocabulary))))
+	int2y = {index: x for x, index in y2int.items()}
+
+	print 'input vocab size: {}'.format(len(input_vocabulary))
+	print 'output vocab size: {}'.format(len(output_vocabulary))
+
+	with open('{}.vocabs.in'.format(results_file_path), 'w') as fout:
+		for x in input_vocabulary:
+			fout.write(x + '\n')
+	with open('{}.vocabs.out'.format(results_file_path), 'w') as fout:
+		for x in output_vocabulary:
+			fout.write(x + '\n')
+
 	if os.path.isfile(model_file_name) and not override:
 		print 'loading existing model from {}'.format(model_file_name)
 		model, params = load_best_model(input_vocabulary, output_vocabulary, prev_model, input_dim, hidden_dim,
-										layers)
+										layers, old_input_vocabulary=old_input_vocabulary,
+										old_output_vocabulary=old_output_vocabulary)
 		print 'loaded existing model successfully'
 	else:
 		print 'could not find existing model or explicit override was requested. started training from scratch...'
@@ -282,12 +307,78 @@ def save_model(model, model_file_path, updates, models_to_save=None):
 			os.remove(files[0])
 
 
-def load_best_model(input_vocabulary, output_vocabulary, results_file_path, input_dim, hidden_dim, layers):
+def extend_lookup(old_param, new_param):
+	old_array = old_param.as_array()
+	new_array = new_param.as_array()
+	assert len(old_array) <= len(new_array)
+	assert len(old_array[0]) <= len(new_array[0])
+	for i in range(len(old_array)):
+		for j in range(len(old_array[i])):
+			new_array[i][j] = old_array[i][j]
+	new_param.init_from_array(new_array)
+
+
+def load_best_model(input_vocabulary, output_vocabulary, results_file_path, input_dim, hidden_dim, layers,
+					old_input_vocabulary=None, old_output_vocabulary=None):
+	if not old_input_vocabulary:
+		old_input_vocabulary = input_vocabulary
+	if not old_output_vocabulary:
+		old_output_vocabulary = output_vocabulary
+
 	tmp_model_path = results_file_path + '_bestmodel.txt'
-	model, params = build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, layers)
+	model, params = build_model(old_input_vocabulary, old_output_vocabulary, input_dim, hidden_dim, layers)
 
 	print 'trying to load model from: {}'.format(tmp_model_path)
 	model.populate(tmp_model_path)
+
+	if (len(input_vocabulary) != len(old_input_vocabulary)) or (len(output_vocabulary) == len(old_output_vocabulary)):
+		print 'vocabulary extension required... creating new model'
+		new_model, new_params = build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, layers)
+
+		extend_lookup(params['input_lookup'], new_params['input_lookup'])
+		extend_lookup(params['output_lookup'], new_params['output_lookup'])
+
+		old_array = params['readout'].as_array()
+		new_array = new_params['readout'].as_array()
+		assert len(old_array) <= len(new_array)
+		assert len(old_array[0]) <= len(new_array[0])
+		for i in range(len(old_array)):
+			for j in range(len(old_array[i])):
+				new_array[i][j] = old_array[i][j]
+		new_params['readout'].set_value(new_array)
+
+		old_array = params['bias'].as_array()
+		new_array = new_params['bias'].as_array()
+		assert len(old_array) <= len(new_array)
+		for i in range(len(old_array)):
+			new_array[i] = old_array[i]
+		new_params['bias'].set_value(new_array)
+
+		new_model.save('tmp_new')
+		model.save('tmp_old')
+		with open('tmp_new', 'r') as fnew:
+			with open('tmp_old', 'r') as fold:
+				with open('tmp_unified', 'w') as fout:
+					old_lines = [l for l in fold.readlines()]
+					new_lines = [l for l in fnew.readlines()]
+					assert len(old_lines) == len(new_lines)
+					assert len(old_lines) % 2 == 0
+					i = 0
+					while i < len(old_lines):
+						if old_lines[i] == new_lines[i]:
+							fout.write(old_lines[i])
+							fout.write(old_lines[i+1])
+						else:
+							fout.write(new_lines[i])
+							fout.write(new_lines[i+1])
+						i += 2
+		new_model.populate('tmp_unified')
+		model = new_model
+		params = new_params
+		os.remove('tmp_old')
+		os.remove('tmp_new')
+		os.remove('tmp_unified')
+
 	return model, params
 
 
@@ -526,8 +617,8 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 					common.plot_to_file(y_vals, x_name='total batches', x_vals=checkpoints_x,
 										file_path=results_file_path + '_learning_curve.png')
 
-			# update progress bar after completing epoch
-			# train_progress_bar.update(e)
+	# update progress bar after completing epoch
+	# train_progress_bar.update(e)
 
 	# update progress bar after completing training
 	# train_progress_bar.finish()
@@ -702,7 +793,7 @@ def evaluate(predicted_sequences, inputs, outputs, print_results=False, predicti
 		enc_gold = ' '.join(output_seq).encode('utf8')
 		enc_out = predicted_output.encode('utf8')
 
-		#if print_results:
+		# if print_results:
 		#	print 'input: {}'.format(enc_in)
 		#	print 'gold output: {}'.format(enc_gold)
 		#	print 'prediction: {}\n'.format(enc_out)
@@ -764,5 +855,5 @@ if __name__ == '__main__':
 		 int(arguments['--input-dim']), int(arguments['--hidden-dim']), int(arguments['--epochs']),
 		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
 		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
-		 int(arguments['--batch-size']), int(arguments['--vocab-size']), int(arguments['--eval-after']),
+		 int(arguments['--batch-size']), int(arguments['--eval-after']),
 		 int(arguments['--max-len']), arguments['--previous-model'])

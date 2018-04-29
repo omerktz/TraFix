@@ -149,7 +149,7 @@ class AttentionBasedDecoder:
         i = 0
 
         # run the decoder through the sequence and predict output symbols
-        while i < self.max_prediction_len:
+        while (self.max_prediction_len is None) or (i < self.max_prediction_len):
 
             # get current h of the decoder
             s = s.add_input(prev_output_vec)
@@ -215,7 +215,8 @@ class AttentionBasedDecoder:
         i = 0
 
         # expand another step if didn't reach max length and there's still beams to expand
-        while i < self.max_prediction_len and len(beam[i - 1]) > 0:
+        #while i < self.max_prediction_len and len(beam[i - 1]) > 0:
+        while ((self.max_prediction_len is None) or (i < self.max_prediction_len)) and len(beam[i - 1]) > 0:
 
             # create all expansions from the previous beam:
             new_hypos = []
@@ -265,7 +266,8 @@ class AttentionBasedDecoder:
                     p = probs_val[index]
                     new_seq = prefix_seq + [self.int2y[index]]
                     new_prob = prefix_prob * p
-                    if new_seq[-1] == common.END_SEQ or i == self.max_prediction_len - 1:
+                    #if new_seq[-1] == common.END_SEQ or i == self.max_prediction_len - 1:
+                    if new_seq[-1] == common.END_SEQ or (self.max_prediction_len and (i == self.max_prediction_len - 1)):
                         # TODO: add to final states only if fits in k best?
                         # if found a complete sequence or max length - add to final states
                         final_states.append((new_seq[1:-1], new_prob))

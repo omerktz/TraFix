@@ -6,8 +6,8 @@ import time
 import itertools
 import csv
 import ConfigParser
-import utils.convertPostOrderToC as po2c
-from utils import llvmUtil as c2llvm
+import postOrderUtil as po2c
+import llvmUtil as c2llvm
 
 
 def runCbmc(timeout):
@@ -85,7 +85,7 @@ def convertPostOrderToC(po):
 
 def convertCToLLVM(c, config):
 	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
-	return c2llvm.translateToLLVM(s, config, check_success=True,
+	return c2llvm.llvm_compiler(s, config, check_success=True,
 								  assignments_counter=sum([str(x).count(' = ') for x in c]))
 
 

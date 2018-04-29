@@ -1,82 +1,85 @@
-import sys
 import os
-import subprocess
-# import parmap
-import time
 import itertools
 import csv
-import ConfigParser
-import utils.convertPostOrderToC as po2c
-from utils import llvmUtil as c2llvm
+import postOrderUtil as po_util
+import llvmUtil as hl2ll
+import re
 
 
-def convertPostOrderToC(po):
-	return po2c.parse(po)
+def parsePostOrder(po):
+	return po_util.parse(po)
 
 
-def convertCToLLVM(c, config, settings):
-	if not c:
-		return c
-	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
-	return c2llvm.translateToLLVM(s, config, settings, check_success=True)
+class MockHL:
+	def __init__(self, s):
+		self._s = s
+		self._vars = set()
+		self._nums = set()
+		for x in s.split(' '):
+			if re.match('^N[0-9]+$',x):
+				self._nums.add(x)
+			elif re.match('^X[0-9]+$',x):
+				self._vars.add(x)
+	def __str__(self):
+		return self._s
+	def collect_vars(self):
+		return self._vars
+	def collect_nums(self):
+		return self._nums
 
-def evaluateProg(i, c, po, ll, constants, out, config, settings, failed_dataset=None):
-	if po in out:
-		return (i, c, po, ll, constants, c, 0)  # success
+def compiler(hl):
+	if not hl:
+		return hl
+	s = [y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))]
+	return hl2ll.llvm_compiler(MockHL(s))
+
+def evaluateProg(i, hl, ll, out, failed_dataset=None):
+	if hl in out:
+		return (i, hl, ll, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
-		return (i, c, po, ll, constants, None, 1)  # fail
+		return (i, hl, ll, None, 1)  # fail
 	else:
-		res = map(convertPostOrderToC, out)
+		res = map(parsePostOrder, out)
 		if all(map(lambda x: not x[0], res)):
-			return (i, c, po, ll, constants, None, 2)  # unparsable
+			return (i, hl, ll, None, 2)  # unparsable
 		cs = map(lambda x: x[1].c().strip() if x[0] else '', res)
 		# compare c code
-		if c in cs:
-			return (i, c, po, ll, constants, c, 0)  # success
-		config_dict = ConfigParser.ConfigParser()
-		config_dict.read(config)
-		settings_dict = ConfigParser.ConfigParser()
-		settings_dict.read(settings)
-		lls = map(lambda x: convertCToLLVM(x, config_dict, settings_dict), cs)
+		lls = map(lambda x: compiler(x), cs)
 		if not any(lls):
-			return (i, c, po, ll, constants, None, 2)  # unparsable
+			return (i,hl, ll, None, 2)  # unparsable
 		lls = map(lambda l: l.strip() if l is not None else '', lls)
 		if ll in lls:
-			return (i, c, po, ll, constants, cs[lls.index(ll)], 0)  # success
+			return (i, hl, ll, cs[lls.index(ll)], 0)  # success
 		if failed_dataset:
-			with open(failed_dataset + '.corpus.c', 'a') as fc:
-				with open(failed_dataset + '.corpus.po', 'a') as fpo:
-					with open(failed_dataset + '.corpus.ll', 'a') as fll:
-						for j in range(len(out)):
-							if len(out[j]) > 0 and len(lls[j]) > 0 and len(cs[j]) > 0:
-								fc.write(cs[j] + '\n')
-								fpo.write(out[j] + '\n')
-								fll.write(lls[j] + '\n')
-		return (i, c, po, ll, constants, None, 1)  # fail
+			with open(failed_dataset + '.corpus.hl', 'a') as fhl:
+				with open(failed_dataset + '.corpus.ll', 'a') as fll:
+					for j in range(len(out)):
+						if len(out[j]) > 0 and len(lls[j]) > 0:
+							fhl.write(out[j] + '\n')
+							fll.write(lls[j] + '\n')
+		return (i, hl, ll, None, 1)  # fail
 
 
-def evaluate(fc, fpo, fll, fconstants, fout, force, config, settings, fs=None, ff=None, failed_dataset=None):
+def evaluate(fhl, fll, fout, force, fs=None, ff=None, failed_dataset=None):
 	nsuccess = 0
 	nfail = 0
-	cs = [l.strip() for l in fc.readlines()]
-	pos = [l.strip() for l in fpo.readlines()]
+	hls = [l.strip() for l in fhl.readlines()]
 	lls = [l.strip() for l in fll.readlines()]
-	constants = [l.strip() for l in fconstants.readlines()]
 	outs = [map(lambda x: x.strip(), l.strip().split('|||')[0:2]) for l in fout.readlines()]
 	groups = {}
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
 	results = map(
-		lambda i: evaluateProg(i, cs[i], pos[i], lls[i], constants[i], groups[i], config, settings, failed_dataset),
+		lambda i: evaluateProg(i, hls[i], lls[i], groups[i], failed_dataset),
 		range(len(lls)))
 	for x in results:
-		if x[6] == 0:
+		if x[4] == 0:
 			if fs:
-				fs.writerow([str(x[0]), x[1], x[2], x[3], x[4], x[5]])
+				fs.writerow([str(x[0]), x[1], x[2], x[3]])
 			nsuccess += 1
 		else:
 			if ff:
-				ff.writerow([str(x[0]), x[1], x[2], x[3], x[4]])
+				ff.writerow([str(x[0]), x[1], x[2], x[3]])
 			nfail += 1
 	if force:
 		for f in os.listdir('.'):
@@ -85,19 +88,17 @@ def evaluate(fc, fpo, fll, fconstants, fout, force, config, settings, fs=None, f
 	return (nsuccess, nfail)
 
 
-def main(f, k, force, config, settings, failed_dataset=None):
+def main(f, k, force, failed_dataset=None):
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
-			csv.writer(fsuccess).writerow(['line', 'c', 'po', 'll', 'constants', 'out'])
-			csv.writer(ffail).writerow(['line', 'c', 'po', 'll', 'constants'])
-			with open(f + '.corpus.c', 'r') as fc:
-				with open(f + '.corpus.po', 'r') as fpo:
-					with open(f + '.corpus.ll', 'r') as fll:
-						with open(f + '.constants', 'r') as fconstants:
-							with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-								(nsuccess, nfail) = evaluate(fc, fpo, fll, fconstants, fout, force, config, settings,
-															 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
-															 failed_dataset=failed_dataset)
+			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'out'])
+			csv.writer(ffail).writerow(['line', 'hl', 'll'])
+			with open(f + '.corpus.hl', 'r') as fhl:
+				with open(f + '.corpus.ll', 'r') as fll:
+					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
+						(nsuccess, nfail) = evaluate(fjlo, fll, fout, force,
+													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
+													 failed_dataset=failed_dataset)
 	print str(nsuccess) + ' statements translated successfully'
 	print str(nfail) + ' statements failed to translate'
 
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 						help="dataset for which to write failed translations")
 	args = parser.parse_args()
 
-	main(args.dataset, args.num_translations, args.force, args.config, args.settings, args.failed_dataset)
+	main(args.dataset, args.num_translations, args.force, args.failed_dataset)
 	if args.force:
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):

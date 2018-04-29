@@ -1,10 +1,10 @@
-import random
-import sys
 import ConfigParser
 import ast
 import argparse
-import json
-from utils import llvmUtil as llvm
+import llvmUtil
+import numpy.random as npr
+import os
+import re
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -21,49 +21,52 @@ parser.add_argument('-o', '--out', dest='o', type=str, default='out',
 					help="output files names (default: \'%(default)s\')")
 parser.add_argument('-c', '--config', dest='c', type=str, default='configs/codenator.config',
 					help="configuration file (default: \'%(default)s\')")
-parser.add_argument('-s', '--settings', dest='s', type=str, default='configs/codenator_setting.config',
-					help="settings file (default: \'%(default)s\')")
-parser.add_argument('--vocabs', help="generate full vocabularies (doesn't generate code samples)", action='count')
-parser.add_argument('--print-vocabs', help="print vocabs from generated code samples", action='count')
+parser.add_argument('-e', '--exclude', dest='e', type=str,
+					help="dataset to exclude from current generation")
+parser.add_argument('-a', '--append', dest='a', type=str,
+					help="initial dataset to extend")
+parser.add_argument('-t', '--truncate', dest='t', type=int,
+					help="truncate resulting dataset")
 
 args = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
 config.read(args.c)
-settings = ConfigParser.ConfigParser()
-settings.read(args.s)
+
+
+def choose_by_weight(values, weights):
+	if len(values) == 1:
+		return values[0]
+	sum_weights = float(sum(weights))
+	return npr.choice(values, p=map(lambda x: x/sum_weights, weights))
 
 
 class Expr:
-	@staticmethod
-	def isValid():
-		return True
-
-	def collectVarNames(self):
+	def collect_vars(self):
 		return set()
 
-	def collectVars(self):
+	def collect_nums(self):
 		return set()
 
 
 class Number(Expr):
 	_minNumber = config.getint('Number', 'MinValue')
 	_maxNumber = config.getint('Number', 'MaxValue')
-	_maxUnabstractedValue = settings.getint('Number', 'MaxUnabstractedValue')
+	_maxUnAbstractedValue = config.getint('Number', 'MaxUnabstractedValue')
 	_numConstants = config.getint('Number', 'NumbersPerStatement')
 	_constants_map = {}
 
-	def __init__(self):
-		value = random.randint(Number._minNumber, Number._maxNumber)
-		if value <= Number._maxUnabstractedValue:
+	def __init__(self, nesting_level=0):
+		value = npr.randint(Number._minNumber, Number._maxNumber+1)
+		if value <= Number._maxUnAbstractedValue:
 			self._num = str(value)
 		else:
 			if len(Number._constants_map.keys()) == Number._numConstants:
-				constant = 'N' + str(random.randint(0, Number._numConstants - 1))
+				constant = 'N' + str(npr.randint(0, Number._numConstants))
 			else:
-				availableConstants = filter(lambda n: n not in Number._constants_map.keys(),
+				available_constants = filter(lambda n: n not in Number._constants_map.keys(),
 											map(lambda i: 'N' + str(i), range(Number._numConstants)))
-				constant = availableConstants[random.randint(0, len(availableConstants) - 1)]
+				constant = npr.choice(available_constants)
 			Number._constants_map[constant] = value
 			self._num = constant
 
@@ -78,27 +81,14 @@ class Number(Expr):
 			return False
 		return other._num == self._num
 
-	@staticmethod
-	def resetCounter():
-		Number._constants = 0
+	def collect_nums(self):
+		if self._num.startswith('N'):
+			return {self._num}
+		return set()
 
 	@staticmethod
-	def resetMapping():
+	def reset():
 		Number._constants_map = {}
-
-	@staticmethod
-	def getMapping():
-		return Number._constants_map
-
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(map(str, range(Number._minNumber, Number._maxNumber + 1)))
-		vocabs['po'].update(
-			map(lambda i: 'N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + map(str, range(
-				Number._maxUnabstractedValue + 1)))
-		vocabs['ll'].update(
-			map(lambda i: '@N' + str(i), range(config.getint('Number', 'NumbersPerStatement'))) + map(str, range(
-				Number._maxUnabstractedValue + 1) + ['-1']))
 
 
 class Var(Expr):
@@ -110,20 +100,16 @@ class Var(Expr):
 
 	@staticmethod
 	def repopulate():
-		def createVar(i):
+		def create_var(i):
 			return Var(name='X' + str(i))
 
-		Var._vars = map(createVar, xrange(config.getint('Var', 'NumVars')))
+		Var._vars = map(create_var, xrange(config.getint('Var', 'NumVars')))
 
-	def __init__(self, name=None):
+	def __init__(self, name=None, nesting_level=0):
 		if name:
 			self._name = name
 		else:
-			self._name = Var._vars[random.randrange(0, len(Var._vars))]._name
-
-	@staticmethod
-	def isValid():
-		return len(Var._vars) > 0
+			self._name = npr.choice(Var._vars)._name
 
 	def __str__(self):
 		return self._name
@@ -139,38 +125,28 @@ class Var(Expr):
 	def __hash__(self):
 		return hash(self._name)
 
-	def collectVarNames(self):
-		return set([self._name])
+	def collect_vars(self):
+		return {self._name}
 
-	def collectVars(self):
-		return set([self])
-
-	@staticmethod
-	def vocab(vocabs):
-		vars = map(lambda i: 'X' + str(i), range(config.getint('Var', 'NumVars')))
-		# vocabs['c'].update(vars)
-		vocabs['po'].update(vars)
-		vocabs['ll'].update(map(lambda v: '@' + v, vars) + ['load'])
+	def collect_nums(self):
+		return set()
 
 
 class Op(Expr):
-	@staticmethod
-	def vocab(vocabs):
-		BinaryOp.vocab(vocabs)
-		UnaryOp.vocab(vocabs)
+	pass
 
 
 class BinaryOp(Op):
 	_Ops = ['+', '-', '*', '/', '%']
 
-	def __init__(self):
-		inner_weights = _inner_weights
-		self._op1 = getExpr(inner_weights)
-		self._act = BinaryOp._Ops[random.randrange(0, len(BinaryOp._Ops))]
-		self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
-		while (self._op2 == self._op1) or ((self._act == '/') and isinstance(self._op2, Number) and (
-				self._op2._num == 0)):  # or (isinstance(self._op1,Number) and isinstance(self._op2,Number)):
-			self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
+	def __init__(self, nesting_level=0):
+		self._op1 = get_expr(nesting_level+1)
+		self._act = npr.choice(BinaryOp._Ops)
+		self._op2 = get_expr(nesting_level+1)
+		while (self._op2 == self._op1) or \
+				((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or \
+				(isinstance(self._op1, Number) and isinstance(self._op2, Number)):
+			self._op2 = get_expr(nesting_level+1)
 
 	def __str__(self):
 		res = ''
@@ -193,26 +169,20 @@ class BinaryOp(Op):
 			return False
 		return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2)
 
-	def collectVarNames(self):
-		return self._op1.collectVarNames().union(self._op2.collectVarNames())
+	def collect_vars(self):
+		return self._op1.collect_vars().union(self._op2.collect_vars())
 
-	def collectVars(self):
-		return self._op1.collectVars().union(self._op2.collectVars())
-
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(BinaryOp._Ops)
-		vocabs['po'].update(BinaryOp._Ops)
-		vocabs['ll'].update(['add', 'sub', 'mul', 'sdiv', 'srem'])
+	def collect_nums(self):
+		return self._op1.collect_nums().union(self._op2.collect_nums())
 
 
 class UnaryOp(Op):
 	_Ops = ['++', '--']
 
-	def __init__(self):
+	def __init__(self, nesting_level=0):
 		self._op = Var()
-		self._act = UnaryOp._Ops[random.randint(0, 1)]
-		self._position = (random.randint(0, 1) == 1)
+		self._act = npr.choice(UnaryOp._Ops)
+		self._position = npr.choice([True, False])
 
 	def __str__(self):
 		res = ''
@@ -231,57 +201,45 @@ class UnaryOp(Op):
 			return False
 		return (other._act == self._act) and (other._op == self._op)
 
-	def collectVarNames(self):
-		return self._op.collectVarNames()
+	def collect_vars(self):
+		return self._op.collect_vars()
 
-	def collectVars(self):
-		return self._op.collectVars()
-
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(UnaryOp._Ops)
-		vocabs['po'].update(['X' + o for o in UnaryOp._Ops] + [o + 'X' for o in UnaryOp._Ops])
+	def collect_nums(self):
+		return self._op.collect_nums()
 
 
 class Assignment:
-	def __init__(self, i):
-		self._source = getExpr()
+	def __init__(self, nesting_level=0):
+		self._source = get_expr()
 		self._target = Var()
 
 	def __str__(self):
 		return str(self._target) + ' = ' + str(self._source) + ' ; '
 
 	def po(self):
-		return self._target.po() + ' ' + self._source.po() + ' ='
+		return self._target.po() + ' ' + self._source.po() + ' = '
 
 	def __eq__(self, other):
 		if not isinstance(other, Assignment):
 			return False
 		return other._source == self._source
 
-	def collectVarNames(self):
-		return self._source.collectVarNames().union(self._target.collectVarNames())
+	def collect_vars(self):
+		return self._source.collect_vars().union(self._target.collect_vars())
 
-	def collectVars(self):
-		return self._source.collectVars()
-
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(['=', ';'])
-		vocabs['po'].update(['='])
-		vocabs['ll'].update(['store'])
+	def collect_nums(self):
+		return self._source.collect_nums().union(self._target.collect_nums())
 
 
 class Condition:
 	_Relations = ['>', '>=', '<', '<=', '==', '!=']
 
 	def __init__(self):
-		inner_weights = _inner_weights
-		self._op1 = getExpr(inner_weights)
-		self._act = Condition._Relations[random.randrange(0, len(Condition._Relations))]
-		self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
-		while (self._op2 == self._op1):  # or (isinstance(self._op1, Number) and isinstance(self._op2, Number)):
-			self._op2 = getExpr([0 if isinstance(self._op1, Number) else inner_weights[0]] + inner_weights[1:])
+		self._op1 = get_expr()
+		self._act = npr.choice(Condition._Relations)
+		self._op2 = get_expr()
+		while self._op2 == self._op1 or (isinstance(self._op1, Number) and isinstance(self._op2, Number)):
+			self._op2 = get_expr()
 
 	def __str__(self):
 		res = ''
@@ -297,83 +255,35 @@ class Condition:
 		return res
 
 	def po(self):
-		return self._op1.po() + ' ' + self._op2.po() + ' ' + self._act
+		return self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + ' COND '
 
 	def __eq__(self, other):
 		if not isinstance(other, Condition):
 			return False
 		return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2)
 
-	def collectVarNames(self):
-		return self._op1.collectVarNames().union(self._op2.collectVarNames())
+	def collect_vars(self):
+		return self._op1.collect_vars().union(self._op2.collect_vars())
 
-	def collectVars(self):
-		return self._op1.collectVars().union(self._op2.collectVars())
-
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(Condition._Relations)
-		vocabs['po'].update(Condition._Relations)
-		vocabs['ll'].update(['eq', 'ne', 'sgt', 'slt', 'sge', 'sle'])
-
-
-class Assignments:
-	_max_statements = config.getint('Assignments', 'MaxAssignments')
-	_statements_weights = ast.literal_eval(config.get('Assignments', 'Weights'))
-	_assignments_counter = 0
-
-	@staticmethod
-	def getAssignments(max_statements=_max_statements, statements_weights=_statements_weights):
-		num_statements_weights = reduce(lambda x, y: x + y,
-										map(lambda i: [i + 1] * statements_weights[i], range(max_statements)), [])
-		num_statements = num_statements_weights[random.randrange(0, len(num_statements_weights))]
-		result = map(lambda i: Assignment(Assignments._assignments_counter + i), range(num_statements))
-		Assignments._assignments_counter += num_statements
-		return result
-
-	@staticmethod
-	def resetCounter():
-		Assignments._assignments_counter = 0
-
-
-class Statements:
-	_branchRatio = config.getfloat('Statements', 'BranchRatio')
-
-	@staticmethod
-	def getStatements(max_statements=Assignments._max_statements,
-					  statements_weights=Assignments._statements_weights):
-		if random.random() >= Statements._branchRatio:
-			return Assignments.getAssignments(max_statements, statements_weights)
-		else:
-			return [Branch()]
+	def collect_nums(self):
+		return self._op1.collect_nums().union(self._op2.collect_nums())
 
 
 class Branch:
 	_elseRatio = config.getfloat('Branch', 'ElseRatio')
-	_max_inner_statements = config.getint('Branch', 'MaxInnerAssignments')
-	_inner_statements_weights = ast.literal_eval(config.get('Branch', 'InnerWeights'))
-	_allow_nested = config.getboolean('Branch', 'AllowNested')
-	_branch_counter = 0;
 
-	def __init__(self):
-		self._cond = Condition()
-
+	def __init__(self, nesting_level=0):
 		def body_generator():
-			return Statements.getStatements(Branch._max_inner_statements,
-											Branch._inner_statements_weights) if Branch._allow_nested else Assignments.getAssignments(
-				Branch._max_inner_statements, Branch._inner_statements_weights)
+			return Statements(types=[Assignment], nesting_level=nesting_level+1)
 
+		self._cond = Condition()
 		self._if = body_generator()
-		if random.random() > Branch._elseRatio:
+		if npr.random() > Branch._elseRatio:
 			self._else = body_generator()
-			while (self._else == self._if):
+			while self._else == self._if:
 				self._else = body_generator()
 		else:
 			self._else = None
-
-	@staticmethod
-	def resetCounter():
-		Branch._branch_counter = 0
 
 	def __eq__(self, other):
 		if not isinstance(other, Branch):
@@ -387,334 +297,172 @@ class Branch:
 		return True
 
 	def __str__(self):
-		res = 'if ( ' + str(self._cond) + ' ) { ' + ' '.join(map(lambda x: str(x), self._if)) + ' } '
+		res = 'if ( ' + str(self._cond) + ' ) { ' + str(self._if) + ' } '
 		if self._else:
-			res += 'else { ' + ' '.join(map(lambda x: str(x), self._else)) + ' } '
+			res += 'else { ' + str(self._else) + ' } '
 		return res
 
 	def po(self):
-		separator = ' ; ' if settings.getboolean('PostOrder', 'AppendSemicolon') else ' '
-		return self._cond.po() + ' COND ' + separator.join(map(lambda x: x.po(), self._if) + ['']) + 'TRUE ' + (
-			separator.join(map(lambda x: x.po(), self._else) + ['']) + 'FALSE ' if self._else else '') + 'IF'
+		return self._cond.po() + self._if.po() + 'TRUE ' + (
+			(self._else.po() + 'FALSE ') if self._else else '') + ' IF '
 
-	def collectVarNames(self):
-		_if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._if), set())
-		_else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVarNames(), self._else), set())
-		_cond = self._cond.collectVarNames()
-		return _if.union(_else).union(_cond)
+	def collect_vars(self):
+		return self._if.collect_vars().union(self._else.collect_vars() if self._else else set()).union(self._cond.collect_vars())
 
-	def collectVars(self):
-		_if = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVars(), self._if), set())
-		_else = reduce(lambda y, z: y.union(z), map(lambda x: x.collectVars(), self._else), set())
-		_cond = self._cond.collectVars()
-		return _if.union(_else).union(_cond)
+	def collect_nums(self):
+		return self._if.collect_nums().union(self._else.collect_nums() if self._else else set()).union(self._cond.collect_nums())
 
-	@staticmethod
-	def vocab(vocabs):
-		# vocabs['c'].update(['if', 'else', '{', '}'])
-		vocabs['po'].update(['COND', 'TRUE', 'FALSE', 'IF'])
-		# currently at most 1 branch per statement
-		vocabs['ll'].update(['br', 'label', 'icmp'])
-		for i in range(config.getint('Branch', 'BranchPerStatement')):
-			vocabs['ll'].update(['%lFalse' + str(i), '%lAfter' + str(i), '%lTrue' + str(i), '<label>:lFalse' + str(i),
-								 '<label>:lAfter' + str(i), '<label>:lTrue' + str(i)])
+
+class Loop:
+
+	def __init__(self, nesting_level=0):
+		def body_generator():
+			return Statements(types=[Assignment], nesting_level=nesting_level+1)
+
+		self._cond = Condition()
+		self._body = body_generator()
+
+	def __eq__(self, other):
+		if not isinstance(other, Loop):
+			return False
+		if (other._cond != self._cond) or (other._body != self._body):
+			return False
+		return True
+
+	def __str__(self):
+		return 'while ( ' + str(self._cond) + ' ) { ' + str(self._body) + ' } '
+
+	def po(self):
+		return self._cond.po() + self._body.po() + ' WHILE '
+
+	def collect_vars(self):
+		return self._body.collect_vars().union(self._cond.collect_vars())
+
+	def collect_nums(self):
+		return self._body.collect_nums().union(self._cond.collect_nums())
 
 
 _exprs = [Number, Var, BinaryOp, UnaryOp]
-_weights = map(lambda e: config.getint(e.__name__, 'Weight'), _exprs)
-_inner_weights = map(lambda e: config.getint(e.__name__, 'InnerWeight'), _exprs)
+def get_expr(nesting_level=0):
+	weights = map(lambda e: config.getfloat(e.__name__, 'Weight'), _exprs)
+	degrade = map(lambda e: config.getfloat(e.__name__, 'Degrade'), _exprs)
+	nested_weights = map(lambda i: weights[i]/pow(degrade[i], nesting_level), xrange(len(weights)))
+	expression = choose_by_weight(_exprs, nested_weights)
+	return expression(nesting_level=nesting_level)
 
 
-def getExpr(weights=_weights):
-	assert len(weights) == len(_exprs)
-	exprs = []
-	for i in range(len(weights)):
-		exprs += [_exprs[i]] * weights[i]
-	random.shuffle(exprs)
-	expr = exprs[random.randrange(0, len(exprs))]
-	while not expr.isValid():
-		expr = exprs[random.randrange(0, len(exprs))]
-	return expr()
+class Statements:
+	_max_statements = config.getint('Statements', 'MaxStatements')
+	_statements_weights = ast.literal_eval(config.get('Statements', 'Weights'))
 
+	def __init__(self, types=[Assignment, Branch, Loop], nesting_level=0):
+		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(Statements._max_statements))
+		num_statements = choose_by_weight(range(1, Statements._max_statements + 1), weights)
+		self._inner = map(lambda i: Statements.generate_statement(types)(nesting_level=nesting_level), xrange(num_statements))
 
-class Stats:
-	class OperatorCount:
-		def __init__(self, name, op):
-			self._name = name
-			self._op = op
-			self._total = 0
-			self._statements = 0
-			self._inputs = 0
+	@staticmethod
+	def generate_statement(types):
+		return choose_by_weight(types, map(lambda x: config.getfloat(x.__name__, 'Weight'), types))
 
-		def updateCounts(self, s):
-			self._total += sum(map(lambda o: s.count(' ' + o + ' '), self._op))
-			self._statements += sum(
-				map(lambda x: 1 if len(filter(lambda o: ' ' + o + ' ' in x, self._op)) > 0 else 0, s.split(';')))
-			self._inputs += 1 if len(filter(lambda o: ' ' + o + ' ' in s, self._op)) > 0 else 0
+	def collect_vars(self):
+		return reduce(lambda y, z: y.union(z), map(lambda x: x.collect_vars(), self._inner), set())
 
-		def toString(self, count_inputs, count_statemtns, count_total):
-			return self._name + ',' + str(self._inputs) + ',' + "{0:.2f}".format(
-				100.0 * self._inputs / float(count_inputs) if count_inputs > 0 else 0.0) + ',' + str(
-				self._statements) + ',' + "{0:.2f}".format(
-				100.0 * self._statements / float(count_statemtns) if count_statemtns > 0 else 0.0) + ',' + str(
-				self._total) + ',' + "{0:.2f}".format(
-				100.0 * self._total / float(count_total) if count_total > 0 else 0.0)
-
-	class Counter:
-		def __init__(self, f):
-			self._f = f
-			self._min = None
-			self._max = None
-
-		def updateCounts(self, s):
-			val = self._f(s)
-			if self._min:
-				self._min = min(self._min, val)
-			else:
-				self._min = val
-			if self._max:
-				self._max = max(self._max, val)
-			else:
-				self._max = val
-
-		def __str__(self):
-			return str(self._min) + ',' + str(self._max)
-
-	class LengthCounter(Counter):
-		def __init__(self):
-			Stats.Counter.__init__(self, lambda x: len(filter(lambda x: x != ' ', list(x.strip()))))
-
-	class StatementsCounter(Counter):
-		def __init__(self):
-			Stats.Counter.__init__(self, lambda x: x.count(';'))
-
-	class WordCounter(Counter):
-		def __init__(self):
-			Stats.Counter.__init__(self, lambda x: x.strip().count(' ') + 1)
-
-	def __init__(self):
-		self._num_inputs = 0
-		self._num_statements = 0
-		self._ifs = 0
-		self._elses = 0
-		self._statement_count = dict(
-			map(lambda x: (x + 1, 0), range(config.getint('Assignments', 'MaxAssignments'))))
-		self._ops = [Stats.OperatorCount('+', ['+']), Stats.OperatorCount('-', ['-']),
-					 Stats.OperatorCount('*', ['*']),
-					 Stats.OperatorCount('/', ['/']), Stats.OperatorCount('%', ['%']),
-					 Stats.OperatorCount('++', ['++']), Stats.OperatorCount('--', ['--']),
-					 Stats.OperatorCount('Binary', ['+', '-', '*', '/', '%']),
-					 Stats.OperatorCount('Unary', ['++', '--']),
-					 Stats.OperatorCount('All', ['+', '-', '*', '/', '%', '++', '--'])]
-		self._c_statement_length = Stats.LengthCounter()
-		self._ir_statement_length = Stats.LengthCounter()
-		self._c_statement_count = Stats.StatementsCounter()
-		self._ir_statement_count = Stats.StatementsCounter()
-		self._c_word_count = Stats.WordCounter()
-		self._ir_word_count = Stats.WordCounter()
-
-	def updateStats(self, c, ll):
-		self._num_inputs += 1
-		self._num_statements += c.count(';')
-		if '} else {' not in c:
-			self._statement_count[c.count(';')] += 1
-		else:
-			tmp = c.split('} else {')
-			self._statement_count[tmp[0].count(';')] += 1
-			self._statement_count[tmp[1].count(';')] += 1
-		if c.startswith('if'):
-			self._ifs += 1
-		if '} else {' in c:
-			self._elses += 1
-		map(lambda o: o.updateCounts(c), self._ops)
-		self._c_statement_length.updateCounts(c)
-		self._c_statement_count.updateCounts(c)
-		self._c_word_count.updateCounts(c)
-		self._ir_statement_length.updateCounts(ll)
-		self._ir_statement_count.updateCounts(ll)
-		self._ir_word_count.updateCounts(ll)
+	def collect_nums(self):
+		return reduce(lambda y, z: y.union(z), map(lambda x: x.collect_nums(), self._inner), set())
 
 	def __str__(self):
-		res = ''
-		res += '[General]\n'
-		res += 'Inputs,' + str(self._num_inputs) + '\n'
-		res += 'Statements,' + str(self._num_statements) + '\n'
-		res += '\n[Branches]\n'
-		res += 'If,%,Else,%\n'
-		res += str(self._ifs) + ',' + "{0:.2f}".format(
-			0.0 if self._num_inputs == 0 else (100.0 * self._ifs / float(self._num_inputs))) + ',' + str(
-			self._elses) + ',' + "{0:.2f}".format(
-			0.0 if self._num_inputs == 0 else (100.0 * self._elses / float(self._num_inputs))) + '\n'
-		res += '\n[Lengths]\n'
-		res += ',Min,Max\n'
-		res += 'C,' + str(self._c_statement_length) + '\n'
-		res += 'IR,' + str(self._ir_statement_length) + '\n'
-		res += '\n[Statements]\n'
-		res += ',Min,Max\n'
-		res += 'C,' + str(self._c_statement_count) + '\n'
-		res += 'IR,' + str(self._ir_statement_count) + '\n'
-		res += '\n[Word Counts]\n'
-		res += ',Min,Max\n'
-		res += 'C,' + str(self._c_word_count) + '\n'
-		res += 'IR,' + str(self._ir_word_count) + '\n'
-		res += '\n[Operators]\n'
-		res += ',Samples,%,Statements,%,Total,t%\n'
-		res += '\n'.join(map(lambda x: x.toString(self._num_inputs, self._num_statements, self._ops[-1]._total),
-							 self._ops[:-1])) + '\n'
-		res += '\n[Statements]\n'
-		res += 'Num,Count,%\n'
-		res += '\n'.join(map(lambda x: str(x) + ',' + str(self._statement_count[x]) + ',' + "{0:.2f}".format(
-			100.0 * self._statement_count[x] / float(self._num_inputs) if self._num_inputs > 0 else 0.0),
-							 range(1, config.getint('Assignments', 'MaxAssignments') + 1)))
-		return res
+		return ' ; '.join(map(str, self._inner))
+
+	def po(self):
+		return ' '.join(map(lambda x: x.po(), self._inner))
+
+	def __eq__(self, other):
+		if not isinstance(other, Statements):
+			return False
+		if len(self._inner) != len(other._inner):
+			return False
+		for i in xrange(len(self._inner)):
+			if self._inner[i] != other._inner[i]:
+				return False
+		return True
 
 
-def generateStatements():
+def compiler(s):
+	return llvmUtil.llvm_compiler(s)
+
+
+def preprocess_hl(s):
+	return s.po()
+
+def generate_statements():
 	if args.n is not None:
 		limit = args.n
 		limited = True
 	else:
 		limit = 0
 		limited = False
-	outFile = args.o
-	# from cleanup import cleanup
-	# cleanup(outDir)
+	out_file = args.o
+	j = 1
+	Var.clear()
+	Var.repopulate()
+	corpus_hl = []
+	corpus_ll = []
+	exclude = set()
+	if args.e is not None:
+		if os.path.exists(args.e+'.corpus.hl'):
+			print 'Excluding dataset: ' + str(args.e)
+			with open(args.e+'.corpus.hl', 'r') as f:
+				for l in f.readlines():
+					exclude.add(l.strip())
+	if args.a is not None:
+		if os.path.exists(args.a+'.corpus.hl') and os.path.exists(args.a+'.corpus.ll'):
+			print 'Initial dataset: ' + str(args.e)
+			with open(args.a+'.corpus.hl', 'r') as fhl:
+				with open(args.a + '.corpus.ll', 'r') as fll:
+					hl_lines = map(lambda x: x.strip(), fhl.readlines())
+					ll_lines = map(lambda x: x.strip(), fll.readlines())
+			assert len(corpus_hl) == len(corpus_ll)
+			for i in xrange(len(hl_lines)):
+				if hl_lines[i] not in exclude:
+					corpus_hl.append(hl_lines[i])
+					corpus_ll.append(ll_lines[i])
+					exclude.add(hl_lines[i])
 	if limited:
 		print 'Generating ' + str(limit) + ' statements'
 	else:
 		print 'Generating statements until manually stopped (ctrl+C)'
-	print 'Saving to files: ' + outFile + '.corpus.c, ' + outFile + '.corpus.ll' + ', ' + outFile + '.corpus.po'
-	# print ''
-	j = 1
-	if args.print_vocabs:
-		vocabc = set()
-		vocabir = set()
-		vocabpo = set()
-	stats = Stats()
-	Var.clear()
-	Var.repopulate()
-	with open(outFile + '.corpus.c', 'w') as corpusc:
-		with open(outFile + '.corpus.ll', 'w') as corpusir:
-			with open(outFile + '.corpus.po', 'w') as corpuspo:
-				with open(outFile + '.constants', 'w') as constants:
-					statements = set()
-					while (not limited) or (j <= limit):
-						done = False
-						while not done:
-							try:
-								Branch.resetCounter()
-								Assignments.resetCounter()
-								Number.resetCounter()
-								Number.resetMapping()
-								s = Statements.getStatements()
-								if settings.getboolean('General', 'SimplifyVars'):
-									for x in s:
-										k = 0
-										vars = set()
-										for v in x.collectVars():
-											if v not in vars:
-												v._name = 'X' + str(k)
-												vars.add(v)
-												k += 1
-								if ' '.join(map(lambda x: str(x), s)) not in statements:
-									done = True
-							except RuntimeError:
-								pass
-						statements.add(' '.join(map(lambda x: str(x), s)))
-						llline = llvm.translateToLLVM(s, config, settings, args=args,
-													  vocab=vocabir if args.print_vocabs else None,
-													  var_count=len(Var._vars))
-						cline = ''
-						for x in s:
-							cline += str(x)
-						cline += '\n'
-						corpusc.write(cline)
-						# if args.print_vocabs:
-						#	vocabc.update(map(lambda x: x.strip(), cline.split(' ')))
-						corpusir.write(llline + '\n')
-						stats.updateStats(cline, llline)
-						separator = ' ; ' if settings.getboolean('PostOrder', 'AppendSemicolon') else ' '
-						line = ''
-						for x in s:
-							line += x.po() + separator
-						line += '\n'
-						corpuspo.write(line)
-						if args.print_vocabs:
-							vocabpo.update(map(lambda x: x.strip(), line.split(' ')))
-						constants.write(json.dumps(Number.getMapping()) + '\n')
-						j += 1
-	if args.print_vocabs:
-		# with open(outFile + '.vocab.c.json', 'w') as f:
-		#	f.write('{\n')
-		#	f.write('  "eos": 0, \n')
-		#	f.write('  "UNK": 1, \n')
-		#	i = 0
-		#	n = len(vocabc)
-		#	for w in vocabc:
-		#		f.write('  "' + w + '": ' + str(i + 2))
-		#		i += 1
-		#		if i != n:
-		#			f.write(', ')
-		#		f.write('\n')
-		#	f.write('}')
-		with open(outFile + '.vocab.ll.json', 'w') as f:
-			f.write('{\n')
-			f.write('  "eos": 0, \n')
-			f.write('  "UNK": 1, \n')
-			i = 0
-			n = len(vocabir)
-			for w in vocabir:
-				f.write('  "' + w + '": ' + str(i + 2))
-				i += 1
-				if i != n:
-					f.write(', ')
-				f.write('\n')
-			f.write('}')
-		with open(outFile + '.vocab.po.json', 'w') as f:
-			f.write('{\n')
-			f.write('  "eos": 0, \n')
-			f.write('  "UNK": 1, \n')
-			i = 0
-			n = len(vocabpo)
-			for w in vocabpo:
-				f.write('  "' + w + '": ' + str(i + 2))
-				i += 1
-				if i != n:
-					f.write(', ')
-				f.write('\n')
-			f.write('}')
-	with open(outFile + '.stats.csv', 'w') as f:
-		f.write(str(stats))
-	print '\nDone!'
-
-
-def generateVocabularies():
-	vocabs = {}
-	# vocabs['c'] = set(['(', ')', ';'])
-	vocabs['po'] = set([';'] if settings.getboolean('PostOrder', 'AppendSemicolon') else [])
-	vocabs['ll'] = set(['=', ',', ';'] + ([] if settings.getboolean('LLVM', 'RemoveI32') else ['i32', 'i32*']) + (
-		[] if settings.getboolean('LLVM', 'RemoveAlign4') else ['align', '4']) + (
-						   [] if settings.getboolean('LLVM', 'RemoveNSW') else ['nsw']) + (
-						   ['%tmp'] if settings.getboolean('LLVM', 'ReplaceTemps') else ['%' + str(i) for i in range(1,
-																													 1 + config.getint(
-																														 'Vocabs',
-																														 'MaxTemps'))]))
-	Number.vocab(vocabs)
-	Var.vocab(vocabs)
-	Op.vocab(vocabs)
-	Assignment.vocab(vocabs)
-	Condition.vocab(vocabs)
-	Branch.vocab(vocabs)
-	# with open(args.o + '.c', 'w') as f:
-	#	f.write(' '.join(vocabs['c']) + '\n')
-	with open(args.o + '.po', 'w') as f:
-		f.write(' '.join(vocabs['po']) + '\n')
-	with open(args.o + '.ll', 'w') as f:
-		f.write(' '.join(vocabs['ll']) + '\n')
+	print 'Saving to files: ' + out_file + '.corpus.hl, ' + out_file + '.corpus.ll'
+	while (not limited) or (j <= limit):
+		done = False
+		hl_line = ''
+		s = None
+		Number.reset()
+		while not done:
+			try:
+				s = Statements()
+				hl_line = re.sub('[ \t]+', ' ', preprocess_hl(s))
+				if hl_line not in exclude:
+					done = True
+			except RuntimeError:
+				pass
+		exclude.add(hl_line)
+		ll_line = re.sub('[ \t]+', ' ', compiler(s))
+		corpus_ll.append(ll_line)
+		corpus_hl.append(hl_line)
+		j += 1
+	print 'Shuffling and writing dataset'
+	j = 0
+	with open(out_file + '.corpus.hl', 'w') as fhl:
+		with open(out_file + '.corpus.ll', 'w') as fll:
+			for i in npr.permutation(len(corpus_hl)):
+				if args.t:
+					if j >= args.t:
+						break
+				fhl.write(corpus_hl[i] + '\n')
+				fll.write(corpus_ll[i] + '\n')
+				j += 1
+	print 'Done!'
 
 
 if __name__ == "__main__":
-	if args.vocabs:
-		generateVocabularies()
-	else:
-		generateStatements()
+	generate_statements()
