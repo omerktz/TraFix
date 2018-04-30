@@ -80,7 +80,7 @@ class ActiveLearner:
 		if not experiment:
 			os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
 		else:
-			os.system('python {0} -n {1} -c {2} -o {3}'.format(self.codenator, 2000, self.codenator_config,
+			os.system('python {0} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
 																	  os.path.join(self.output_dir, basename)))
 		for ext in ['ll', 'hl']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
@@ -93,7 +93,7 @@ class ActiveLearner:
 
 		while True:
 			os.system(
-				'python {0} -o {1} -c {2} -n {3} -e {4}'.format(self.codenator,
+				'python {0} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
 																os.path.join(self.datasets_path, 'train0'),
 																self.codenator_config,
 																0 if self.initial_model else self.train_size_initial,
@@ -105,7 +105,7 @@ class ActiveLearner:
 
 		while True:
 			os.system(
-				'python {0} -o {1} -c {2} -n {3} -e {4}'.format(self.codenator,
+				'python {0} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
 														 os.path.join(self.datasets_path, 'validate0'),
 														 self.codenator_config,
 														 0 if self.initial_model else self.validation_size,
@@ -168,7 +168,7 @@ class ActiveLearner:
 	def update_datasets(self, i):
 
 		logging.info('Updating training dataset (iteration {0})'.format(i))
-		os.system('python {0} -o {1} -c {2} -n {3} -e {4} -a {5}'.format(self.codenator,
+		os.system('python {0} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
 																  os.path.join(self.datasets_path, 'train%d' % i),
 																  self.codenator_config, self.train_size_increment,
 																  os.path.join(self.datasets_path, 'test0'),
@@ -182,7 +182,7 @@ class ActiveLearner:
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		while True:
 			os.system(
-				'python {0} -o {1} -c {2} -n {3} -e {4} -a {5}'.format(self.codenator,
+				'python {0} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
 																os.path.join(self.datasets_path, 'validate%d' % i),
 																self.codenator_config, self.validation_size,
 																os.path.join(self.datasets_path, 'test0'),
@@ -217,7 +217,7 @@ class ActiveLearner:
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w') as f:
-			Popen('python {0} {1} {2} -d {3}'.format(self.evaluate,
+			Popen('python {0} {1} {2} -d {3} -v'.format(self.evaluate,
 													 os.path.join(self.datasets_path, 'test%d' % i),
 													 self.num_translations,
 													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),

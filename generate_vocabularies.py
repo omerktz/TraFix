@@ -1,10 +1,8 @@
-import codecs
 import logging
 
 def parse_vocabulary(path):
 	vocab = []
-	with codecs.open(path, encoding='utf8') as f:
-		# split sequences by spaces
+	with open(path, 'r') as f:
 		for l in f.readlines():
 			vocab += filter(lambda x: len(x) > 0, l.split())
 	return list(set(vocab))

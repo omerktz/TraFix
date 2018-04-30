@@ -461,6 +461,8 @@ def generate_statements():
 		corpus_hl.append(hl_line)
 		j += 1
 	logging.info('Shuffling and writing dataset')
+	if args.t:
+		logging.info('Truncating to '+str(args.t)+' entries')
 	j = 0
 	with open(out_file + '.corpus.hl', 'w') as fhl:
 		with open(out_file + '.corpus.ll', 'w') as fll:
