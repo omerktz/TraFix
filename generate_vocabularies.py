@@ -16,15 +16,15 @@ def generate_vocabs(dataset):
 
 def vocabs_contained(container, containee):
 	hl_container = set()
-	with open(container + '.vocabs.hl', 'w') as f:
+	with open(container + '.vocabs.hl', 'r') as f:
 		hl_container.update(set(f.readline().strip().split(' ')))
 	ll_container = set()
-	with open(container + '.vocabs.ll', 'w') as f:
+	with open(container + '.vocabs.ll', 'r') as f:
 		ll_container.update(set(f.readline().strip().split(' ')))
 	hl_containee = set()
-	with open(containee + '.vocabs.hl', 'w') as f:
+	with open(containee + '.vocabs.hl', 'r') as f:
 		hl_containee.update(set(f.readline().strip().split(' ')))
 	ll_containee = set()
-	with open(containee + '.vocabs.ll', 'w') as f:
+	with open(containee + '.vocabs.ll', 'r') as f:
 		ll_containee.update(set(f.readline().strip().split(' ')))
 	return hl_containee.issubset(hl_container) and ll_containee.issubset(ll_container)
