@@ -91,18 +91,29 @@ class ActiveLearner:
 						 shell=True).strip())
 		logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
 
-		while True:
-			os.system(
-				'python {0} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
-																os.path.join(self.datasets_path, 'train0'),
-																self.codenator_config,
-																0 if self.initial_model else self.train_size_initial,
-																os.path.join(self.datasets_path, 'test0')))
+		os.system(
+			'python {0} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
+															os.path.join(self.datasets_path, 'train0'),
+															self.codenator_config,
+															0 if self.initial_model else self.train_size_initial,
+															os.path.join(self.datasets_path, 'test0')))
+		if self.initial_model:
+			if not vocabs_utils.vocabs_contained(self.initial_model, os.path.join(self.datasets_path, 'test0')):
+			for ext in ['ll', 'hl']:
+				os.system('cp {0} {1}'.format(os.path.join(self.datasets_path, 'test0.vocabs.'+ext),
+											  os.path.join(self.datasets_path, 'train0.vocabs.' + ext)))
+		else:
 			vocabs_utils.generate_vocabs(os.path.join(self.datasets_path, 'train0'))
-			if vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train0'),
+			while not vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train0'),
 											 os.path.join(self.datasets_path, 'test0')):
-				break
-			logging.info('Recreating training set due to insufficient vocabulary')
+				logging.info('Extending training set due to insufficient vocabulary')
+				os.system(
+					'python {0} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
+																	os.path.join(self.datasets_path, 'train0'),
+																	self.codenator_config, self.train_size_initial/10,
+																	os.path.join(self.datasets_path, 'test0'),
+																	os.path.join(self.datasets_path, 'train0')))
+				vocabs_utils.generate_vocabs(os.path.join(self.datasets_path, 'train0'))
 
 		while True:
 			os.system(
@@ -111,6 +122,8 @@ class ActiveLearner:
 														 self.codenator_config,
 														 0 if self.initial_model else self.validation_size,
 																os.path.join(self.datasets_path, 'test0')))
+			if self.initial_model:
+				break
 			vocabs_utils.generate_vocabs(os.path.join(self.datasets_path, 'validate0'))
 			if vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train0'),
 											 os.path.join(self.datasets_path, 'validate0')):
@@ -180,6 +193,16 @@ class ActiveLearner:
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
 															  os.path.join(self.datasets_path, 'train%d' % i), ext))
 		vocabs_utils.generate_vocabs(os.path.join(self.datasets_path, 'train%d' % i))
+		while not vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train%d' % i),
+												os.path.join(self.datasets_path, 'test0')):
+			logging.info('Extending training set due to insufficient vocabulary')
+			os.system(
+				'python {0} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
+																		  os.path.join(self.datasets_path, 'train%d' % i),
+																		  self.codenator_config, self.train_size_increment / 10,
+																		  os.path.join(self.datasets_path, 'test0'),
+																		  os.path.join(self.datasets_path, 'train%d' % i)))
+			vocabs_utils.generate_vocabs(os.path.join(self.datasets_path, 'train%d' % i))
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		while True:

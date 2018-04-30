@@ -39,7 +39,15 @@ def llvm_compiler(s, check_success=False):
 
 def llvm_preprocess(s):
 	res = ''
-	for line in s.split(';'):
+	labels = {}
+	lines = map(lambda x: x.strip(), s.split(';'))
+	for line in lines:
+		if line.startswith('<label>:'):
+			num = line[8:]
+			if ' ' in num:
+				num = num[:num.find(' ')]
+			labels[num] = str(len(labels.keys()))
+	for line in lines:
 		line = line.strip()
 		if len(line) == 0:
 			continue
@@ -55,6 +63,10 @@ def llvm_preprocess(s):
 			line = re.sub('i1 ', '', line)
 		if llvm_config.getboolean('Process', 'RemoveNSW'):
 			line = re.sub('nsw ', '', line)
+		if llvm_config.getboolean('Process', 'ReplaceLabels'):
+			for label in labels.keys():
+				line = re.sub('<label>:'+label, '<label>:'+labels[label], line)
+				line = re.sub('label %'+label, 'label %'+labels[label], line)
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()
