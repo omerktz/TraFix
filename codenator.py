@@ -1,13 +1,22 @@
 import ConfigParser
 import ast
 import argparse
-import llvmUtil
 import numpy.random as npr
 import os
 import re
 import sys
 import logging
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
+
+
+hl2ll = None
+def load_compiler(f):
+	global hl2ll
+	if f.endswith('.py'):
+		f = f[:-3]
+	if f.endswith('.pyc'):
+		f = f[:-4]
+	hl2ll =  __import__(f)
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -18,6 +27,7 @@ class SmartFormatter(argparse.HelpFormatter):
 
 
 parser = argparse.ArgumentParser(description="Generate random code samples", formatter_class=SmartFormatter)
+parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
 parser.add_argument('-n', '--num', dest='n', type=int,
 					help="R|number of samples to generate\n(if not given, generates samples until manually stopped)")
 parser.add_argument('-o', '--out', dest='o', type=str, default='out',
@@ -38,6 +48,7 @@ args = parser.parse_args()
 config = ConfigParser.ConfigParser()
 config.read(args.c)
 
+load_compiler(args.compiler)
 
 def choose_by_weight(values, weights):
 	if len(values) == 1:
@@ -393,7 +404,7 @@ class Statements:
 
 
 def compiler(s):
-	return llvmUtil.llvm_compiler(s)
+	return hl2ll.compiler(s)
 
 
 def preprocess_hl(s):
@@ -421,7 +432,7 @@ def generate_statements():
 					exclude.add(l.strip())
 	if args.a is not None:
 		if os.path.exists(args.a+'.corpus.hl') and os.path.exists(args.a+'.corpus.ll'):
-			logging.info('Initial dataset: ' + str(args.e))
+			logging.info('Initial dataset: ' + str(args.a))
 			with open(args.a+'.corpus.hl', 'r') as fhl:
 				with open(args.a + '.corpus.ll', 'r') as fll:
 					hl_lines = map(lambda x: x.strip(), fhl.readlines())
@@ -451,15 +462,15 @@ def generate_statements():
 		while not done:
 			try:
 				s = Statements()
-				hl_line = re.sub('[ \t]+', ' ', preprocess_hl(s))
+				hl_line = re.sub('[ \t]+', ' ', preprocess_hl(s)).strip()
 				if hl_line not in exclude:
 					done = True
 			except RuntimeError:
 				pass
 		exclude.add(hl_line)
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
-		corpus_ll.append(ll_line)
-		corpus_hl.append(hl_line)
+		corpus_ll.append(ll_line.strip())
+		corpus_hl.append(hl_line.strip())
 		j += 1
 	logging.info('Shuffling and writing dataset')
 	if args.t:
@@ -479,4 +490,5 @@ def generate_statements():
 
 if __name__ == "__main__":
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
+	logging.info('Compiler provided by '+args.compiler)
 	generate_statements()

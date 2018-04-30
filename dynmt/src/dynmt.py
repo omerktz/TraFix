@@ -844,7 +844,7 @@ if __name__ == '__main__':
 		dnparams.set_random_seed(int(arguments['--seed']))
 	dnparams.init()
 
-	max_prediction_len = int(arguments['--max-pred'])
+	max_prediction_len = int(arguments['--max-pred']) if arguments['--max-pred'] else None
 	plot_param = arguments['--plot']
 	beam_param = int(arguments['--beam-size'])
 	results_file_path_param = arguments['RESULTS_PATH']

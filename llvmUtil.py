@@ -7,7 +7,7 @@ llvm_config = ConfigParser.ConfigParser()
 llvm_config.read('configs/llvm.config')
 llvm_separator = ' ; '
 
-def llvm_compiler(s, check_success=False):
+def compiler(s, check_success=False):
 	src_file = create_source_file(s)
 	tgt_file = 'tmp' + str(os.getpid()) + '.ll'
 	os.system('clang -S -emit-llvm -O' + str(
@@ -35,9 +35,9 @@ def llvm_compiler(s, check_success=False):
 			llline += line + llvm_separator
 	os.remove(src_file)
 	os.remove(tgt_file)
-	return llvm_preprocess(llline)
+	return process(llline)
 
-def llvm_preprocess(s):
+def process(s):
 	res = ''
 	labels = {}
 	lines = map(lambda x: x.strip(), s.split(';'))
@@ -66,7 +66,7 @@ def llvm_preprocess(s):
 		if llvm_config.getboolean('Process', 'ReplaceLabels'):
 			for label in labels.keys():
 				line = re.sub('<label>:'+label, '<label>:'+labels[label], line)
-				line = re.sub('label %'+label, 'label %'+labels[label], line)
+				line = re.sub('label %'+label, '<label>%'+labels[label], line)
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()

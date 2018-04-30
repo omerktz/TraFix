@@ -2,7 +2,6 @@ import os
 import itertools
 import csv
 import postOrderUtil as po_util
-import llvmUtil as hl2ll
 import re
 import logging
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
@@ -10,6 +9,16 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 def parsePostOrder(po):
 	return po_util.parse(po)
+
+
+hl2ll = None
+def load_compiler(f):
+	global hl2ll
+	if f.endswith('.py'):
+		f = f[:-3]
+	if f.endswith('.pyc'):
+		f = f[:-4]
+	hl2ll =  __import__(f)
 
 
 class MockHL:
@@ -33,7 +42,7 @@ def compiler(hl):
 	if not hl:
 		return hl
 	s = [y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))]
-	return hl2ll.llvm_compiler(MockHL(s))
+	return hl2ll.compiler(MockHL(s))
 
 def evaluateProg(i, hl, ll, out, failed_dataset=None):
 	if hl in out:
@@ -90,7 +99,9 @@ def evaluate(fhl, fll, fout, force, fs=None, ff=None, failed_dataset=None):
 	return (nsuccess, nfail)
 
 
-def main(f, k, force, failed_dataset=None):
+def main(f, k, compiler, force, failed_dataset=None):
+	logging.info('Compiler provided by '+args.compiler)
+	load_compiler(compiler)
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
 			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'out'])
@@ -111,6 +122,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Evaluate dataset translations")
 	parser.add_argument('dataset', type=str, help="dataset to translate")
 	parser.add_argument('num_translations', type=int, help="number of translations in output for each input")
+	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
 	parser.add_argument('-f', '--force-cleanup', dest='force', help="force delete all tmp files when finished",
 						action='count')
 	parser.add_argument('-c', '--config', dest='config', type=str, default='configs/codenator.config',
@@ -124,7 +136,7 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
-	main(args.dataset, args.num_translations, args.force, args.failed_dataset)
+	main(args.dataset, args.num_translations, args.compiler, args.force, args.failed_dataset)
 	if args.force:
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):

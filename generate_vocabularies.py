@@ -5,26 +5,16 @@ def parse_vocabulary(path):
 	with open(path, 'r') as f:
 		for l in f.readlines():
 			vocab += filter(lambda x: len(x) > 0, l.split())
-	return list(set(vocab))
+	return set(vocab)
 
-def generate_vocabs(dataset):
-	logging.info('Generating vocabularies for '+dataset)
-	with open(dataset+'.vocabs.ll', 'w') as f:
-		f.write(' '.join(parse_vocabulary(dataset+'.corpus.ll'))+'\n')
-	with open(dataset + '.vocabs.hl', 'w') as f:
-		f.write(' '.join(parse_vocabulary(dataset + '.corpus.hl')) + '\n')
-
-def vocabs_contained(container, containee):
-	hl_container = set()
-	with open(container + '.vocabs.hl', 'r') as f:
-		hl_container.update(set(f.readline().strip().split(' ')))
-	ll_container = set()
-	with open(container + '.vocabs.ll', 'r') as f:
-		ll_container.update(set(f.readline().strip().split(' ')))
-	hl_containee = set()
-	with open(containee + '.vocabs.hl', 'r') as f:
-		hl_containee.update(set(f.readline().strip().split(' ')))
-	ll_containee = set()
-	with open(containee + '.vocabs.ll', 'r') as f:
-		ll_containee.update(set(f.readline().strip().split(' ')))
-	return hl_containee.issubset(hl_container) and ll_containee.issubset(ll_container)
+def generate_vocabs(datasets, out):
+	vocab_hl = set()
+	vocab_ll = set()
+	logging.info('Generating vocabularies for ' + str(datasets))
+	for dataset in datasets:
+		vocab_ll.update(parse_vocabulary(dataset+'.corpus.ll'))
+		vocab_hl.update(parse_vocabulary(dataset+'.corpus.hl'))
+	with open(out+'.vocabs.ll', 'w') as f:
+		f.write(' '.join(list(vocab_ll))+'\n')
+	with open(out+'.vocabs.hl', 'w') as f:
+		f.write(' '.join(list(vocab_hl))+'\n')

@@ -85,8 +85,8 @@ def convertPostOrderToC(po):
 
 def convertCToLLVM(c, config):
 	s = [y + ';' for y in filter(lambda x: len(x) > 0, c.split(';'))]
-	return c2llvm.llvm_compiler(s, config, check_success=True,
-								  assignments_counter=sum([str(x).count(' = ') for x in c]))
+	return c2llvm.compiler(s, config, check_success=True,
+						   assignments_counter=sum([str(x).count(' = ') for x in c]))
 
 
 def evaluateProg(i, p, expected, c, po, ll, out, postOrder, convert, llvm, cbmc, config):

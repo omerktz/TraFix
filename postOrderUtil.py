@@ -51,13 +51,17 @@ class BinOp:
         self.operand1 = op1
         self.operand2 = op2
     def c(self):
-        operand1 = self.operand1.c()
-        if self.operand1.type == 'EXPR':
-            operand1 = '( '+operand1+' )'
-        operand2 = self.operand2.c()
-        if self.operand2.type == 'EXPR':
-            operand2 = '( '+operand2+' )'
-        return operand1+' '+self.op+' '+operand2
+        res = ''
+        if isinstance(self.operand1, BinOp):
+            res += '( '+self.operand1.c()+' )'
+        else:
+            res += self.operand1.c()
+        res += ' '+self.op+' '
+        if isinstance(self.operand2, BinOp):
+            res += '( '+self.operand2.c()+' )'
+        else:
+            res += self.operand2.c()
+        return res
 
 class UniOp:
     type = 'EXPR'
@@ -112,7 +116,17 @@ class Cond:
         self.operand1 = op1
         self.operand2 = op2
     def c(self):
-        return self.operand1.c() + ' ' + self.op + ' ' + self.operand2.c()
+        res = ''
+        if isinstance(self.operand1, BinOp):
+            res += '( '+self.operand1.c()+' )'
+        else:
+            res += self.operand1.c()
+        res += ' '+self.op+' '
+        if isinstance(self.operand2, BinOp):
+            res += '( '+self.operand2.c()+' )'
+        else:
+            res += self.operand2.c()
+        return res
 
 class CondB:
     type = 'CONDB'
@@ -242,4 +256,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('N4 X5 - X3 --X X8 ++X + N7 N9 X5 * % + N16 X1 + * + N13 X12 X2 % - X10 + X7 X5 --X % N12 N2 X11 * % / * > COND X7 X12 ++X = X12 N0 = X1 N18 = WHILE X9 N14 = N1 X2 X8 --X * X2 - % N8 - X10 X++ N3 X4 / X9 / % >= COND X12 X8 = TRUE X5 N10 X1 % = FALSE IF X7 X8 X14 N11 X6 + / % X1 ++X - X3 X10 --X N17 / X12 % + * =')[1].c()
+    print parse('X1 N16 X14 + * N6 X6 ++X / >= COND X8 X9 X-- X2 X-- X7 --X X13 --X / * * X12 - = X1 X8 X0 ++X N15 X7 + + * = X5 2 X5 X3 N12 X10 X++ - - / X14 - X4 X-- / % = X7 X13 N7 * X5 N14 % X6 N19 + + X8 - + = WHILE')[1].c()
