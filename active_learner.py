@@ -98,7 +98,6 @@ class ActiveLearner:
 															0 if self.initial_model else self.train_size_initial,
 															os.path.join(self.datasets_path, 'test0')))
 		if self.initial_model:
-			if not vocabs_utils.vocabs_contained(self.initial_model, os.path.join(self.datasets_path, 'test0')):
 			for ext in ['ll', 'hl']:
 				os.system('cp {0} {1}'.format(os.path.join(self.datasets_path, 'test0.vocabs.'+ext),
 											  os.path.join(self.datasets_path, 'train0.vocabs.' + ext)))
