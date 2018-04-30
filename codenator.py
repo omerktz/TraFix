@@ -438,11 +438,12 @@ def generate_statements():
 		logging.info('Generating statements until manually stopped (ctrl+C)')
 	logging.info('Saving to files: ' + out_file + '.corpus.hl, ' + out_file + '.corpus.ll')
 	while (not limited) or (j <= limit):
-		if limited:
-			print str(j).zfill(len(str(limit)))+'/'+str(limit)+'\r',
-		else:
-			print str(j)+'\r',
-		sys.stdout.flush()
+		if args.debug:
+			if limited:
+				print str(j).zfill(len(str(limit)))+'/'+str(limit)+'\r',
+			else:
+				print str(j)+'\r',
+			sys.stdout.flush()
 		done = False
 		hl_line = ''
 		s = None

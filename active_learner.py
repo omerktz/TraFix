@@ -102,6 +102,7 @@ class ActiveLearner:
 			if vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train0'),
 											 os.path.join(self.datasets_path, 'test0')):
 				break
+			logging.info('Recreating training set due to insufficient vocabulary')
 
 		while True:
 			os.system(
@@ -114,6 +115,7 @@ class ActiveLearner:
 			if vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train0'),
 											 os.path.join(self.datasets_path, 'validate0')):
 				break
+			logging.info('Recreating validation set due to vocabulary')
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -191,6 +193,7 @@ class ActiveLearner:
 			if vocabs_utils.vocabs_contained(os.path.join(self.datasets_path, 'train%d' % i),
 											 os.path.join(self.datasets_path, 'validate%d' % i)):
 				break
+			logging.info('Recreating validation set due to vocabulary')
 
 	# return True if successfully translated *enough* entries
 	def results_sufficient(self, i):
