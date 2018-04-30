@@ -4,6 +4,8 @@ import csv
 import postOrderUtil as po_util
 import llvmUtil as hl2ll
 import re
+import logging
+from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 def parsePostOrder(po):
@@ -96,11 +98,11 @@ def main(f, k, force, failed_dataset=None):
 			with open(f + '.corpus.hl', 'r') as fhl:
 				with open(f + '.corpus.ll', 'r') as fll:
 					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-						(nsuccess, nfail) = evaluate(fjlo, fll, fout, force,
+						(nsuccess, nfail) = evaluate(fhl, fll, fout, force,
 													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
 													 failed_dataset=failed_dataset)
-	print str(nsuccess) + ' statements translated successfully'
-	print str(nfail) + ' statements failed to translate'
+	logging.info(str(nsuccess) + ' statements translated successfully')
+	logging.info(str(nfail) + ' statements failed to translate')
 
 
 if __name__ == "__main__":
@@ -117,7 +119,10 @@ if __name__ == "__main__":
 						help="general settings used for llvm compilation (default: \'%(default)s\')")
 	parser.add_argument('-d', '--failed-dataset', dest='failed_dataset', type=str,
 						help="dataset for which to write failed translations")
+	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
+	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
+	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
 	main(args.dataset, args.num_translations, args.force, args.failed_dataset)
 	if args.force:

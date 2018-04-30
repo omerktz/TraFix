@@ -5,6 +5,9 @@ import llvmUtil
 import numpy.random as npr
 import os
 import re
+import sys
+import logging
+from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class SmartFormatter(argparse.HelpFormatter):
@@ -27,6 +30,8 @@ parser.add_argument('-a', '--append', dest='a', type=str,
 					help="initial dataset to extend")
 parser.add_argument('-t', '--truncate', dest='t', type=int,
 					help="truncate resulting dataset")
+parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
+parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 
 args = parser.parse_args()
 
@@ -410,13 +415,13 @@ def generate_statements():
 	exclude = set()
 	if args.e is not None:
 		if os.path.exists(args.e+'.corpus.hl'):
-			print 'Excluding dataset: ' + str(args.e)
+			logging.info('Excluding dataset: ' + str(args.e))
 			with open(args.e+'.corpus.hl', 'r') as f:
 				for l in f.readlines():
 					exclude.add(l.strip())
 	if args.a is not None:
 		if os.path.exists(args.a+'.corpus.hl') and os.path.exists(args.a+'.corpus.ll'):
-			print 'Initial dataset: ' + str(args.e)
+			logging.info('Initial dataset: ' + str(args.e))
 			with open(args.a+'.corpus.hl', 'r') as fhl:
 				with open(args.a + '.corpus.ll', 'r') as fll:
 					hl_lines = map(lambda x: x.strip(), fhl.readlines())
@@ -428,11 +433,16 @@ def generate_statements():
 					corpus_ll.append(ll_lines[i])
 					exclude.add(hl_lines[i])
 	if limited:
-		print 'Generating ' + str(limit) + ' statements'
+		logging.info('Generating ' + str(limit) + ' statements')
 	else:
-		print 'Generating statements until manually stopped (ctrl+C)'
-	print 'Saving to files: ' + out_file + '.corpus.hl, ' + out_file + '.corpus.ll'
+		logging.info('Generating statements until manually stopped (ctrl+C)')
+	logging.info('Saving to files: ' + out_file + '.corpus.hl, ' + out_file + '.corpus.ll')
 	while (not limited) or (j <= limit):
+		if limited:
+			print str(j).zfill(len(str(limit)))+'/'+str(limit)+'\r',
+		else:
+			print str(j)+'\r',
+		sys.stdout.flush()
 		done = False
 		hl_line = ''
 		s = None
@@ -450,7 +460,7 @@ def generate_statements():
 		corpus_ll.append(ll_line)
 		corpus_hl.append(hl_line)
 		j += 1
-	print 'Shuffling and writing dataset'
+	logging.info('Shuffling and writing dataset')
 	j = 0
 	with open(out_file + '.corpus.hl', 'w') as fhl:
 		with open(out_file + '.corpus.ll', 'w') as fll:
@@ -461,8 +471,9 @@ def generate_statements():
 				fhl.write(corpus_hl[i] + '\n')
 				fll.write(corpus_ll[i] + '\n')
 				j += 1
-	print 'Done!'
+		logging.info('Done!')
 
 
 if __name__ == "__main__":
+	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	generate_statements()

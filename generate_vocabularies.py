@@ -1,4 +1,6 @@
 import codecs
+import logging
+
 def parse_vocabulary(path):
 	vocab = []
 	with codecs.open(path, encoding='utf8') as f:
@@ -8,6 +10,7 @@ def parse_vocabulary(path):
 	return list(set(vocab))
 
 def generate_vocabs(dataset):
+	logging.info('Generating vocabularies for '+dataset)
 	with open(dataset+'.vocabs.ll', 'w') as f:
 		f.write(' '.join(parse_vocabulary(dataset+'.corpus.ll'))+'\n')
 	with open(dataset + '.vocabs.hl', 'w') as f:
