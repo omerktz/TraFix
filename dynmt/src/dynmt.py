@@ -856,4 +856,4 @@ if __name__ == '__main__':
 		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
 		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
 		 int(arguments['--batch-size']), int(arguments['--eval-after']),
-		 int(arguments['--max-len']), arguments['--previous-model'])
+		 int(arguments['--max-len']) if arguments['--max-len'] else None, arguments['--previous-model'])
