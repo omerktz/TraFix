@@ -61,8 +61,7 @@ def load_parallel_data(input_seqs_path, output_seqs_path, max_seq_len = None):
 
                 # throw away too long sequences
                 # trimmed = tokens[:max_seq_len]\
-                if max_seq_len:
-                    if input_seq_len < max_seq_len and output_seq_len < max_seq_len:
+                if (max_seq_len is None) or (input_seq_len < max_seq_len and output_seq_len < max_seq_len)
                         tokenized_input_seqs.append(input_tokens)
                         tokenized_output_seqs.append(output_tokens)
 
