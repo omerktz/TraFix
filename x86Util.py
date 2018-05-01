@@ -21,24 +21,23 @@ def compiler(s, check_success=False):
 	for l in lines:
 		splitlines += l.split(' ; ')
 	lines = splitlines
-	start = min(filter(lambda i: lines[i].strip() == 'f:', range(len(lines))))
+	start = min(filter(lambda i: lines[i].strip() == 'main:', range(len(lines))))
 	lines = lines[start+2:]
-	x86line = ''
+	x86lines = []
 	for line in lines:
 		line = line.strip().replace(',', ' ,').replace('(', ' ( ').replace(')', ' ) ')
 		line = re.sub('[ \t]+', ' ', line)
 		if line.startswith(';'):
 			line = line[1:].strip()
 		if len(line) > 0:
-			x86line += line + x86_separator
+			x86lines += [line.strip()]
 	os.remove(src_file)
 	os.remove(tgt_file)
-	return process(x86line)
+	return process(x86lines)
 
-def process(s):
+def process(lines):
 	res = ''
 	labels = {}
-	lines = map(lambda x: x.strip(), s.split(';'))
 	for line in lines:
 		if re.match('\.L[0-9]+:', line):
 			num = line[2:-1]
@@ -53,6 +52,7 @@ def process(s):
 		if x86_config.getboolean('Process', 'ReplaceLabels'):
 			for label in labels.keys():
 				line = re.sub('\.L'+label, '.L'+labels[label], line)
+		line = re.sub(':', ' :', line)
 		if line.startswith('.'):
 			if line.endswith(':'):
 				last_label = line

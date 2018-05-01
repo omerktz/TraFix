@@ -21,26 +21,25 @@ def compiler(s, check_success=False):
 	for l in lines:
 		splitlines += l.split(' ; ')
 	lines = splitlines
-	start = min(filter(lambda i: lines[i].startswith('define') and 'f()' in lines[i], range(len(lines))))
+	start = min(filter(lambda i: lines[i].startswith('define') and 'main()' in lines[i], range(len(lines))))
 	lines = lines[start+1:]
 	end = min(filter(lambda i: lines[i] == '}', range(len(lines))))
 	lines = lines[:end-1]
-	llline = ''
+	lllines = []
 	for line in lines:
 		line = line.strip().replace(',', ' ,')
 		line = re.sub('[ \t]+', ' ', line)
 		if line.startswith(';'):
 			line = line[1:].strip()
 		if len(line) > 0:
-			llline += line + llvm_separator
+			lllines += [line.strip()]
 	os.remove(src_file)
 	os.remove(tgt_file)
-	return process(llline)
+	return process(lllines)
 
-def process(s):
+def process(lines):
 	res = ''
 	labels = {}
-	lines = map(lambda x: x.strip(), s.split(';'))
 	for line in lines:
 		if line.startswith('<label>:'):
 			num = line[8:]
