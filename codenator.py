@@ -290,7 +290,7 @@ class Branch:
 
 	def __init__(self, nesting_level=0):
 		def body_generator():
-			return Statements(types=[Assignment], nesting_level=nesting_level+1)
+			return Statements(types=[Assignment], nesting_level=nesting_level+1, max_statements=config.getint('BRANCH','MaxInnerStatements'))
 
 		self._cond = Condition()
 		self._if = body_generator()
@@ -333,7 +333,7 @@ class Loop:
 
 	def __init__(self, nesting_level=0):
 		def body_generator():
-			return Statements(types=[Assignment], nesting_level=nesting_level+1)
+			return Statements(types=[Assignment], nesting_level=nesting_level+1, max_statements=config.getint('LOOP','MaxInnerStatements'))
 
 		self._cond = Condition()
 		self._body = body_generator()
@@ -371,9 +371,9 @@ class Statements:
 	_max_statements = config.getint('Statements', 'MaxStatements')
 	_statements_weights = ast.literal_eval(config.get('Statements', 'Weights'))
 
-	def __init__(self, types=[Assignment, Branch, Loop], nesting_level=0):
-		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(Statements._max_statements))
-		num_statements = choose_by_weight(range(1, Statements._max_statements + 1), weights)
+	def __init__(self, types=[Assignment, Branch, Loop], nesting_level=0, max_statements=_max_statements):
+		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(max_statements))
+		num_statements = choose_by_weight(range(1, max_statements + 1), weights)
 		self._inner = map(lambda i: Statements.generate_statement(types)(nesting_level=nesting_level), xrange(num_statements))
 
 	@staticmethod
