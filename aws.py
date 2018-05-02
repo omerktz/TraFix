@@ -76,8 +76,7 @@ class AWShandler:
 		self.log_info('Updating code')
 		self._client.exec_command('cd {0}; git pull'.format(self._main_dir))
 		self.log_info('Executing experiment')
-		# client.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, i, self._compiler))
-		self._client.exec_command('cd {0}; echo {1} > log{1}; tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
+		self._client.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 
 	def download_from_instance(self):
 		self.log_info('Downloading results')
