@@ -3,6 +3,7 @@ import re
 import ConfigParser
 from compilerUtil import create_source_file
 import angr
+import cle
 
 vex_config = ConfigParser.ConfigParser()
 vex_config.read('configs/vex.config')
@@ -18,6 +19,7 @@ def compiler(s, check_success=False):
 		if not os.path.exists(tgt_file):
 			return None
 	binary = angr.Project(tgt_file, load_options={'auto_load_libs': False})
+	loader = binary.loader
 	cfg = binary.analyses.CFGFast()
 	addr = filter(lambda a: cfg.functions[a].name == 'main', cfg.functions.keys())[0]
 	func = cfg.functions[addr]
@@ -39,9 +41,9 @@ def compiler(s, check_success=False):
 	lines = []
 	for a in sorted(vexlines.keys()):
 		lines += vexlines[a]
-	return process(lines)
+	return process(lines, loader)
 
-def process(lines):
+def process(lines, loader):
 	res = ''
 	labels = {}
 	globals = {}
@@ -53,7 +55,9 @@ def process(lines):
 			labels[num] = str(len(labels.keys()))
 		else:
 			for x in re.findall('\( 0x[0-9a-fA-F]+ \)', line):
-				globals[x[2:-2]] = 'global'+str(len(globals.keys()))
+				symbol = loader.find_symbol(int(x[2:-2], 16))
+				if symbol:
+					globals[x[2:-2]] = symbol.name
 	for line in lines:
 		line = line.strip()
 		if len(line) == 0:
@@ -66,14 +70,12 @@ def process(lines):
 				line = re.sub(hex(int(label,16)), 'L' + labels[label], line)
 		if vex_config.getboolean('Process', 'RemoveI32'):
 			line = re.sub(':I32', '', line)
-		if vex_config.getboolean('Process', 'NormalizeNumbers'):
-			for num in re.findall('0x[0-9a-fA-F]+',line):
-				value = int(num, 16)
-				if value <= vex_config.getint('Process', 'MaxNormalizeNumber'):
-					line = re.sub(num, str(int(num,16)), line)
 		if vex_config.getboolean('Process', 'ReplaceGlobals'):
 			for g in globals.keys():
 				line = re.sub('\( '+g+' \)', '( '+globals[g]+' )', line)
+		if vex_config.getboolean('Process', 'NormalizeNumbers'):
+			for num in re.findall('0x[0-9a-fA-F]+',line):
+				line = re.sub(num, str(int(num,16)), line)
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()
