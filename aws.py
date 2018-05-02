@@ -135,7 +135,7 @@ if __name__ == "__main__":
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-m', '--main', type=str, default='Codenator',
 						help="name of main directory on instace (default: \'%(default)s)\'")
-	parser.add_argument('-p', '--protection', type=bool, default=False,
+	parser.add_argument('-p', '--protection', type=bool, default=True,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
