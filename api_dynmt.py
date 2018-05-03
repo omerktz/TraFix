@@ -12,7 +12,7 @@ def main(args):
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
 	command = 'python ' + dynmt + ' --dynet-autobatch 1 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
-								  '--max-patience={8} --beam-size={9} --plot ' \
+								  '--max-patience={8} --beam-size={9} ' \
 								  '--lstm-layers={10} --models-to-save={11}{12}{13}{14}{15}{16}' \
 		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
 				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
