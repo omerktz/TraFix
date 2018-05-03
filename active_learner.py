@@ -127,7 +127,7 @@ class ActiveLearner:
 										  os.path.join(self.models_path, 'model0.ll-po.dynmt.vocabs.out')))
 		else:
 			logging.info('Training model (iteration {0})'.format(i))
-			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w') as f:
+			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
 				Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
 																				   os.path.join(self.datasets_path,
 																								'train%d' % i),
@@ -143,10 +143,10 @@ class ActiveLearner:
 																						   ' -p %s' % os.path.join(
 																					   self.models_path,
 																					   'model%d' % previous)) if (
-							previous is not None) else '').split(' '), stdout=f, stderr=f).wait()
+							previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
-		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w') as f:
+		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
 			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt,
 																					   os.path.join(self.datasets_path,
 																									'train%d' % i),
@@ -160,7 +160,7 @@ class ActiveLearner:
 																									'model%d' % i),
 																					   self.dynmt_config,
 																					   self.num_translations).split(
-				' '), stdout=f, stderr=f).wait()
+				' '), stdout=f, stderr=f, bufsize=0).wait()
 
 	# generate new datasets and combine with previous set of datasets
 	def update_datasets(self, i):
@@ -215,13 +215,12 @@ class ActiveLearner:
 			return num_remaining
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
-		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w') as f:
+		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
 			Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
 													 os.path.join(self.datasets_path, 'test%d' % i),
 													 self.num_translations, self.compiler,
 													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
-				  stdout=f,
-				  stderr=f).wait()
+				  stdout=f, stderr=f, bufsize=0).wait()
 		self.remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(self.remaining))
 		return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
