@@ -47,6 +47,7 @@ class AWShandler:
 		instance.wait_until_running()
 		status = instance.state
 		while (status['Code'] != 16) or (status['Name'] != 'running'):
+			time.sleep(5)
 			status = instance.state
 		self.log_info('Instance id: {0}'.format(instance.id))
 		return instance
