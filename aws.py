@@ -42,11 +42,11 @@ class AWShandler:
 											  InstanceType=self._instance_type, SecurityGroups=[self._security_group],
 											  DisableApiTermination=self._termination_protection,
 											  KeyName=self._key_filename[:self._key_filename.rfind('.')])[0]
-		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name.format(self._compiler[:-7], self._index)}])
 		instance.wait_until_running()
 		status = instance.state
 		while (status['Code'] != 16) or (status['Name'] != 'running'):
 			status = instance.state
+		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name.format(self._compiler[:-7], self._index)}])
 		self.log_info('Instance id: {0}'.format(instance.id))
 		return instance
 
@@ -152,10 +152,9 @@ if __name__ == "__main__":
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
 
-	instance_wrapper((args, 0))
-	# pool = multiprocessing.Pool(processes=args.count)
-	# pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
-	# pool.close()
-	# pool.join()
+	pool = multiprocessing.Pool(processes=args.count)
+	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
+	pool.close()
+	pool.join()
 
 
