@@ -11,7 +11,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 class AWShandler:
 	def __init__(self, compiler, output, index, image='ami-9c2198e3', username='ubuntu', key='omer1.pem',
-				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=True,
+				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=False,
 				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5):
 		self._index = index
 		self._ami_id = image
@@ -73,17 +73,22 @@ class AWShandler:
 		return client
 
 	def exec_instance(self):
+		def exec_command(command):
+			sin, sout, serr = self._client.exec_command(command)
+			sout.channel.recv_exit_status()
 		self.log_info('Updating code')
-		self._client.exec_command('cd {0}; git pull'.format(self._main_dir))
+		exec_command('cd {0}; git pull; chmod +x *.sh'.format(self._main_dir))
 		self.log_info('Executing experiment')
-		self._client.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
+
 
 	def download_from_instance(self):
 		self.log_info('Downloading results')
 		sftp = self._client.open_sftp()
 		sftp.chdir(self._main_dir)
 		sftp.get('output{0}.tar.gz'.format(self._index), os.path.join(self._output, 'output{0}.tar.gz'.format(self._index)))
-		os.system('cd {0}; tar -xzf output{1}.tar.gz --warning=no-timestamp ; cd - > /dev/null'.format(self._output, self._index))
+		os.system('cd {0}; tar -xzf output{1}.tar.gz --warning=no-timestamp ; cd ..'.format(self._output, self._index))
 
 
 	def kill_instance(self):
@@ -135,7 +140,7 @@ if __name__ == "__main__":
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-m', '--main', type=str, default='Codenator',
 						help="name of main directory on instace (default: \'%(default)s)\'")
-	parser.add_argument('-p', '--protection', type=bool, default=True,
+	parser.add_argument('-p', '--protection', type=bool, default=False,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
@@ -147,8 +152,10 @@ if __name__ == "__main__":
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
 
-	pool = multiprocessing.Pool(processes=args.count)
-	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
-	pool.close()
+	instance_wrapper((args, 0))
+	# pool = multiprocessing.Pool(processes=args.count)
+	# pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
+	# pool.close()
+	# pool.join()
 
 
