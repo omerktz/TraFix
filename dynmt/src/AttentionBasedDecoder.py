@@ -267,7 +267,7 @@ class AttentionBasedDecoder:
                     new_seq = prefix_seq + [self.int2y[index]]
                     new_prob = prefix_prob * p
                     #if new_seq[-1] == common.END_SEQ or i == self.max_prediction_len - 1:
-                    if new_seq[-1] == common.END_SEQ or (self.max_prediction_len and (i == self.max_prediction_len - 1)):
+                    if new_seq[-1] == common.END_SEQ or ((self.max_prediction_len is not None) and (i == self.max_prediction_len - 1)):
                         # TODO: add to final states only if fits in k best?
                         # if found a complete sequence or max length - add to final states
                         final_states.append((new_seq[1:-1], new_prob))
