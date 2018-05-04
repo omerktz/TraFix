@@ -10,7 +10,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class AWShandler:
-	def __init__(self, compiler, output, index, image='ami-9c2198e3', username='ubuntu', key='omer1.pem',
+	def __init__(self, compiler, output, index, image='ami-194cc966', username='ubuntu', key='omer1.pem',
 				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=False,
 				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5):
 		self._index = index
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
-	parser.add_argument('-i', '--image', type=str, default='ami-9c2198e3',
+	parser.add_argument('-i', '--image', type=str, default='ami-194cc966',
 						help="AWS image id (default: \'%(default)s\')")
 	parser.add_argument('-u', '--username', type=str, default='ubuntu',
 						help="instance user name (default: \'%(default)s\')")
