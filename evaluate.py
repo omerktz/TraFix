@@ -41,7 +41,7 @@ class MockHL:
 def compiler(hl):
 	if not hl:
 		return hl
-	s = [y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))]
+	s = ''.join([y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))])
 	return hl2ll.compiler(MockHL(s))
 
 def evaluateProg(i, hl, ll, out, failed_dataset=None):
@@ -58,7 +58,7 @@ def evaluateProg(i, hl, ll, out, failed_dataset=None):
 		lls = map(lambda x: compiler(x), cs)
 		if not any(lls):
 			return (i,hl, ll, None, 2)  # unparsable
-		lls = map(lambda l: l.strip() if l is not None else '', lls)
+		lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
 		if ll in lls:
 			return (i, hl, ll, cs[lls.index(ll)], 0)  # success
 		if failed_dataset:
@@ -74,9 +74,9 @@ def evaluateProg(i, hl, ll, out, failed_dataset=None):
 def evaluate(fhl, fll, fout, force, fs=None, ff=None, failed_dataset=None):
 	nsuccess = 0
 	nfail = 0
-	hls = [l.strip() for l in fhl.readlines()]
-	lls = [l.strip() for l in fll.readlines()]
-	outs = [map(lambda x: x.strip(), l.strip().split('|||')[0:2]) for l in fout.readlines()]
+	hls = [re.sub('[ \t]+', ' ', l.strip()) for l in fhl.readlines()]
+	lls = [re.sub('[ \t]+', ' ', l.strip()) for l in fll.readlines()]
+	outs = [map(lambda x: re.sub('[ \t]+', ' ', x.strip()), l.strip().split('|||')[0:2]) for l in fout.readlines()]
 	groups = {}
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
@@ -125,10 +125,6 @@ if __name__ == "__main__":
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
 	parser.add_argument('-f', '--force-cleanup', dest='force', help="force delete all tmp files when finished",
 						action='count')
-	parser.add_argument('-c', '--config', dest='config', type=str, default='configs/codenator.config',
-						help="configuration file used for llvm compilation (default: \'%(default)s\')")
-	parser.add_argument('-s', '--settings', dest='settings', type=str, default='configs/codenator_setting.config',
-						help="general settings used for llvm compilation (default: \'%(default)s\')")
 	parser.add_argument('-d', '--failed-dataset', dest='failed_dataset', type=str,
 						help="dataset for which to write failed translations")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')

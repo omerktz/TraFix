@@ -245,7 +245,7 @@ class Statement:
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
 def parse(code):
-    tokens = code.strip().split(' ')
+    tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:
         matches = filter(lambda t: t.check(tokens[0],stack), postOrderTypes)
@@ -253,7 +253,9 @@ def parse(code):
             return (False, None)
         if matches[0].handle(tokens[0],stack):
             tokens = tokens[1:]
+    while Statement.check(None, stack):
+        Statement.handle(None,stack)
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('X1 N16 X14 + * N6 X6 ++X / >= COND X8 X9 X-- X2 X-- X7 --X X13 --X / * * X12 - = X1 X8 X0 ++X N15 X7 + + * = X5 2 X5 X3 N12 X10 X++ - - / X14 - X4 X-- / % = X7 X13 N7 * X5 N14 % X6 N19 + + X8 - + = WHILE')[1].c()
+    print parse('N2 X0 * N15 < COND X5 X11 N14 X5 X10 * - - N3 / = TRUE IF X10 X7 = X9 X10 X7 + N0 N19 X2  - + + X1 N18 X2 % / * N4 / =')[1].c()
