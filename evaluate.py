@@ -42,7 +42,7 @@ def compiler(hl):
 	if not hl:
 		return hl
 	s = ''.join([y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))])
-	return hl2ll.compiler(MockHL(s))
+	return hl2ll.compiler(MockHL(s), check_success=True)
 
 def evaluateProg(i, hl, ll, out, failed_dataset=None):
 	if hl in out:
