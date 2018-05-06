@@ -36,7 +36,7 @@ def compiler(s, check_success=False):
 	return process(x86lines)
 
 def process(lines):
-	res = ''
+	remaining_lines = []
 	labels = {}
 	for line in lines:
 		if re.match('\.L[0-9]+:', line):
@@ -49,6 +49,11 @@ def process(lines):
 		line = line.strip()
 		if len(line) == 0:
 			continue
+		if line == 'nop':
+			continue
+		if x86_config.getboolean('Process', 'RemoveCLTD'):
+			if line == 'cltd':
+				continue
 		if x86_config.getboolean('Process', 'ReplaceLabels'):
 			for label in labels.keys():
 				line = re.sub('\.L'+label, '.L'+labels[label], line)
@@ -58,8 +63,13 @@ def process(lines):
 				last_label = line
 			continue
 		if last_label:
-			res += last_label+' ; '
+			remaining_lines.append(last_label)
 			last_label = None
-		res += line+' ; '
-	res = re.sub('[ \t]+', ' ', res)
+		remaining_lines.append(line)
+	remaining_lines = remaining_lines[2:-2]
+	while remaining_lines[0]. startswith('pushl %e'):
+		remaining_lines = remaining_lines[1:]
+	while remaining_lines[-1]. startswith('popl %e'):
+		remaining_lines = remaining_lines[:-1]
+	res = re.sub('[ \t]+', ' ', ' ; '.join(remaining_lines))
 	return res.strip()
