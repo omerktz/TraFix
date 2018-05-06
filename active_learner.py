@@ -204,7 +204,7 @@ class ActiveLearner:
 							'r') as fin:
 						for l in list(csv.reader(fin))[1:]:
 							fhl.write(l[1] + '\n')
-							fll.write(l[3] + '\n')
+							fll.write(l[2] + '\n')
 							num_remaining += 1
 			with open(os.path.join(self.output_dir, 'successes.csv'), 'a') as fout:
 				csvout = csv.writer(fout)
