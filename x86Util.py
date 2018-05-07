@@ -67,9 +67,9 @@ def process(lines):
 			last_label = None
 		remaining_lines.append(line)
 	remaining_lines = remaining_lines[2:-2]
-	while remaining_lines[0]. startswith('pushl %e'):
+	while (len(remaining_lines) > 0) and (remaining_lines[0].startswith('pushl %e')):
 		remaining_lines = remaining_lines[1:]
-	while remaining_lines[-1]. startswith('popl %e'):
+	while (len(remaining_lines) > 0) and (remaining_lines[-1].startswith('popl %e')):
 		remaining_lines = remaining_lines[:-1]
 	res = re.sub('[ \t]+', ' ', ' ; '.join(remaining_lines))
 	return res.strip()
