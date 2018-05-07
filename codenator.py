@@ -230,7 +230,7 @@ class Assignment:
 		self._target = Var()
 
 	def __str__(self):
-		return str(self._target) + ' = ' + str(self._source) + ' ; '
+		return str(self._target) + ' = ' + str(self._source)
 
 	def po(self):
 		return self._target.po() + ' ' + self._source.po() + ' = '
@@ -388,7 +388,7 @@ class Statements:
 		return reduce(lambda y, z: y.union(z), map(lambda x: x.collect_nums(), self._inner), set())
 
 	def __str__(self):
-		return ' ; '.join(map(str, self._inner))
+		return ' ; '.join(map(str, self._inner)+[''])
 
 	def po(self):
 		return ' '.join(map(lambda x: x.po(), self._inner))
