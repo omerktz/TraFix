@@ -66,6 +66,7 @@ def process(lines):
 			for label in labels.keys():
 				line = re.sub('<label>:'+label+'$', '<label>:'+labels[label], line)
 				line = re.sub('label %'+label+'$', '<label>%'+labels[label], line)
+				line = re.sub('label %'+label+' ', '<label>%'+labels[label]+' ', line)
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()
