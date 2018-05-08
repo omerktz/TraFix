@@ -77,7 +77,7 @@ def num_of_iterations(keys, logs, outputs, out):
 
 def remaining_test_size(keys, logs, outputs, out):
 	def logic(log, output):
-		return get_datasets_size(output, 'test', '.corpus.c')
+		return get_datasets_size(output, 'test', '.corpus.hl')
 
 	data = analyze_all_results_average(logic, keys, logs, outputs, missing_is_zero=False)
 	out.writerow(['Remaining test size'])
@@ -106,7 +106,7 @@ def remaining_test_size(keys, logs, outputs, out):
 
 def train_size(keys, logs, outputs, out):
 	def logic(log, output):
-		return get_datasets_size(output, 'train', '.corpus.c')
+		return get_datasets_size(output, 'train', '.corpus.hl')
 
 	data = analyze_all_results_average(logic, keys, logs, outputs, missing_is_zero=False)
 	out.writerow(['Train set size'])
