@@ -4,9 +4,9 @@ Sequence to sequence learning with an attention mechanism implemented using dyne
 
 Usage:
   dynmt.py [--dynet-mem MEM] [--dynet-gpus GPU] [--dynet-devices DEV] [--dynet-autobatch AUTO] [--input-dim=INPUT]
-  [--hidden-dim=HIDDEN] [--epochs=EPOCHS] [--lstm-layers=LAYERS] [--optimization=OPTIMIZATION] [--reg=REGULARIZATION]
-  [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval] [--ensemble=ENSEMBLE]
-  [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
+  [--hidden-dim=HIDDEN] [--epochs=EPOCHS] [--min-epochs=MINEPOCHS] [--lstm-layers=LAYERS] [--optimization=OPTIMIZATION]
+  [--reg=REGULARIZATION] [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval]
+  [--ensemble=ENSEMBLE] [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
   [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED]
   [--previous-model=PREV] TRAIN_INPUTS_PATH TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH
   TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
@@ -31,6 +31,7 @@ Options:
   --input-dim=INPUT             input embeddings dimension [default: 300]
   --hidden-dim=HIDDEN           LSTM hidden layer dimension [default: 100]
   --epochs=EPOCHS               amount of training epochs [default: 1]
+  --min-epochs=MINEPOCHS        minimum number of epochs to train [default: 0]
   --lstm-layers=LAYERS          amount of layers in LSTM [default: 1]
   --optimization=OPTIMIZATION   chosen optimization method (ADAM/SGD/ADAGRAD/MOMENTUM/ADADELTA) [default: ADADELTA]
   --reg=REGULARIZATION          regularization parameter for optimization [default: 0]
@@ -92,7 +93,7 @@ from matplotlib import pyplot as plt
 
 def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path, test_inputs_path, test_outputs_path,
 		 results_file_path, vocab_input_path, vocab_output_path, input_dim, hidden_dim, epochs, layers, optimization,
-		 plot, override, eval_only, ensemble, batch_size, eval_after, max_len, previous_model):
+		 plot, override, eval_only, ensemble, batch_size, eval_after, min_epochs, max_len, previous_model):
 	# write model config file (.modelinfo)
 	common.write_model_config_file(arguments, train_inputs_path, train_outputs_path, dev_inputs_path,
 								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path,
@@ -205,7 +206,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 		model, params, last_epoch, best_epoch = train_model(model, encoder, decoder, params, train_inputs,
 															train_outputs, dev_inputs, dev_outputs, y2int, int2y,
 															epochs, optimization, results_file_path, plot, batch_size,
-															eval_after)
+															eval_after, min_epochs)
 		print 'last epoch is {}'.format(last_epoch)
 		print 'best epoch is {}'.format(best_epoch)
 		print 'finished training'
@@ -435,7 +436,7 @@ def build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, laye
 
 
 def train_model(model, encoder, decoder, params, train_inputs, train_outputs, dev_inputs, dev_outputs, y2int, int2y,
-				epochs, optimization, results_file_path, plot, batch_size, eval_after):
+				epochs, optimization, results_file_path, plot, batch_size, eval_after, min_epochs):
 	print 'training...'
 
 	np.random.seed(17)
@@ -598,7 +599,7 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 					best_dev_epoch,
 					patience)
 
-				if patience == max_patience:
+				if (patience == max_patience) and (e >= min_epochs):
 					print 'out of patience after {0} checkpoints'.format(str(e))
 					# train_progress_bar.finish()
 					if plot:
@@ -855,5 +856,5 @@ if __name__ == '__main__':
 		 int(arguments['--input-dim']), int(arguments['--hidden-dim']), int(arguments['--epochs']),
 		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
 		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
-		 int(arguments['--batch-size']), int(arguments['--eval-after']),
+		 int(arguments['--batch-size']), int(arguments['--eval-after']), int(arguments['--min-epochs']),
 		 int(arguments['--max-len']) if arguments['--max-len'] else None, arguments['--previous-model'])
