@@ -233,7 +233,7 @@ class Assignment:
 		return str(self._target) + ' = ' + str(self._source)
 
 	def po(self):
-		return self._target.po() + ' ' + self._source.po() + ' = '
+		return self._source.po() + ' ' + self._target.po() + ' = '
 
 	def __eq__(self, other):
 		if not isinstance(other, Assignment):
