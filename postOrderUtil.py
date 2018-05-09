@@ -86,7 +86,7 @@ class Assignment:
     @staticmethod
     def check(token,stack):
         try:
-            return (token == '=') and (stack[-2].type == 'VAR') and (stack[-1].type in ['NUM','VAR','EXPR'])
+            return (token == '=') and (stack[-1].type == 'VAR') and (stack[-2].type in ['NUM','VAR','EXPR'])
         except:
             return False
     @staticmethod
