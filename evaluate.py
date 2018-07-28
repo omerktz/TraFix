@@ -4,7 +4,9 @@ import csv
 import postOrderUtil as po_util
 import re
 import logging
+import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
+import ConfigParser
 
 
 def parsePostOrder(po):
@@ -44,53 +46,87 @@ def compiler(hl):
 	s = ''.join([y + ' ; ' for y in filter(lambda x: len(x) > 0, hl.split(';'))])
 	return hl2ll.compiler(MockHL(s), check_success=True)
 
-def evaluateProg(i, hl, ll, out, failed_dataset=None):
+
+def generate_number_replacements(line, config):
+	max_unabstracted_number = config.getint("Number", "MaxUnAbstractedValue")
+	max_constants = config.getint("Number", "NumbersPerStatement")
+	replacements = {}
+	parts = line.strip().split(" ")
+	for i in range(len(parts)):
+		if hl2ll.is_number(parts[i]):
+			number = hl2ll.get_number(parts[i])
+			if int(number) > max_unabstracted_number:
+				constant = 'N' + str(npr.randint(0, max_constants))
+				replacements[number] = constant
+				parts[i] = constant
+	return (" ".join(parts), replacements)
+
+
+def apply_number_replacements(line, replacements):
+	parts = line.strip().split(" ")
+	for i in range(len(parts)):
+		if parts[i] in replacements.keys():
+			parts[i] = replacements[parts[i]]
+	return " ".join(parts)
+
+
+def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	if hl in out:
-		return (i, hl, ll, hl, 0)  # success
+		return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
-		return (i, hl, ll, None, 1)  # fail
+		return (i, hl, ll, replacements, None, 1)  # fail
 	else:
+		out = map(lambda x: apply_number_replacements(x, replacements), out)
 		res = map(parsePostOrder, out)
 		if all(map(lambda x: not x[0], res)):
-			return (i, hl, ll, None, 2)  # unparsable
+			return (i, hl, ll, replacements, None, 2)  # unparsable
 		cs = map(lambda x: x[1].c().strip() if x[0] else '', res)
 		# compare c code
 		lls = map(lambda x: compiler(x), cs)
 		if not any(lls):
-			return (i,hl, ll, None, 2)  # unparsable
+			return (i,hl, ll, replacements, None, 2)  # unparsable
 		lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
+		ll = apply_number_replacements(ll, replacements)
 		if ll in lls:
-			return (i, hl, ll, cs[lls.index(ll)], 0)  # success
+			return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 		if failed_dataset:
 			with open(failed_dataset + '.corpus.hl', 'a') as fhl:
 				with open(failed_dataset + '.corpus.ll', 'a') as fll:
-					for j in range(len(out)):
-						if len(out[j]) > 0 and len(lls[j]) > 0:
-							fhl.write(out[j] + '\n')
-							fll.write(lls[j] + '\n')
-		return (i, hl, ll, None, 1)  # fail
+					with open(failed_dataset + '.corpus.replacements', 'a') as freplacements:
+						for j in range(len(out)):
+							if len(out[j]) > 0 and len(lls[j]) > 0:
+								(h, replaces) = generate_number_replacements(out[j], config)
+								l = apply_number_replacements(lls[j], replaces)
+								fhl.write(h + '\n')
+								fll.write(l + '\n')
+								reverse_replaces = {}
+								for k in replaces.keys():
+									reverse_replaces[replaces[k]] = k
+								freplacements.write(json.dumps(reverse_replaces) + '\n')
+		return (i, hl, ll, replacements, None, 1)  # fail
 
 
-def evaluate(fhl, fll, fout, force, fs=None, ff=None, failed_dataset=None):
+def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
 	nsuccess = 0
 	nfail = 0
 	hls = [re.sub('[ \t]+', ' ', l.strip()) for l in fhl.readlines()]
 	lls = [re.sub('[ \t]+', ' ', l.strip()) for l in fll.readlines()]
 	outs = [map(lambda x: re.sub('[ \t]+', ' ', x.strip()), l.strip().split('|||')[0:2]) for l in fout.readlines()]
+	replacements = [json.loads(l.strip()) for l in freplacemetns.readlines()]
 	groups = {}
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
 	results = map(
-		lambda i: evaluateProg(i, hls[i], lls[i], groups[i], failed_dataset),
+		lambda i: evaluateProg(i, hls[i], lls[i], groups[i], replacements[i], config, failed_dataset),
 		range(len(lls)))
 	for x in results:
-		if x[4] == 0:
+		if x[5] == 0:
 			if fs:
-				fs.writerow([str(x[0]), x[1], x[2], x[3]])
+				fs.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
 			nsuccess += 1
 		else:
 			if ff:
-				ff.writerow([str(x[0]), x[1], x[2], x[3]])
+				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
 			nfail += 1
 	if force:
 		for f in os.listdir('.'):
@@ -99,17 +135,18 @@ def evaluate(fhl, fll, fout, force, fs=None, ff=None, failed_dataset=None):
 	return (nsuccess, nfail)
 
 
-def main(f, k, compiler, force, failed_dataset=None):
+def main(f, k, compiler, force, config, failed_dataset=None):
 	logging.info('Compiler provided by '+args.compiler)
 	load_compiler(compiler)
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
-			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'out'])
-			csv.writer(ffail).writerow(['line', 'hl', 'll'])
+			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'replacements', 'out'])
+			csv.writer(ffail).writerow(['line', 'hl', 'll', 'replacements'])
 			with open(f + '.corpus.hl', 'r') as fhl:
 				with open(f + '.corpus.ll', 'r') as fll:
 					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-						(nsuccess, nfail) = evaluate(fhl, fll, fout, force,
+						with open(f + '.corpus.replacements', 'r') as freplacements:
+							(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
 													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
 													 failed_dataset=failed_dataset)
 	logging.info(str(nsuccess) + ' statements translated successfully')
@@ -127,12 +164,17 @@ if __name__ == "__main__":
 						action='count')
 	parser.add_argument('-d', '--failed-dataset', dest='failed_dataset', type=str,
 						help="dataset for which to write failed translations")
+	parser.add_argument('-c', '--config', dest='c', type=str, default='configs/codenator.config',
+						help="configuration file (default: \'%(default)s\')")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
-	main(args.dataset, args.num_translations, args.compiler, args.force, args.failed_dataset)
+	config = ConfigParser.ConfigParser()
+	config.read(args.c)
+
+	main(args.dataset, args.num_translations, args.compiler, args.force, config, args.failed_dataset)
 	if args.force:
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):

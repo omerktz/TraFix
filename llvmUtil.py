@@ -2,6 +2,7 @@ import os
 import re
 import ConfigParser
 from compilerUtil import create_source_file
+from regex import match
 
 llvm_config = ConfigParser.ConfigParser()
 llvm_config.read('configs/llvm.config')
@@ -70,3 +71,9 @@ def process(lines):
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()
+
+def is_number(n):
+	return match("^[0-9]+$", n)
+
+def get_number(n):
+	return n

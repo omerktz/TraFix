@@ -2,16 +2,16 @@ import os
 import re
 import ConfigParser
 from compilerUtil import create_source_file
+from regex import match
 
 x86_config = ConfigParser.ConfigParser()
 x86_config.read('configs/x86.config')
 x86_separator = ' ; '
 
 def compiler(s, check_success=False):
-	src_file = create_source_file(s)
+	src_file = create_source_file(s, '#pragma GCC optimize ("O' + str(x86_config.getint('Compile', 'OptimizationLevel')) + '")\n')
 	tgt_file = 'tmp' + str(os.getpid()) + '.x86'
-	os.system('gcc -m32 -S -O' + str(
-		x86_config.getint('Compile', 'OptimizationLevel')) + ' -o ' + tgt_file + ' ' + src_file + ' > /dev/null 2>&1')
+	os.system('gcc -m32 -S -Os -o ' + tgt_file + ' ' + src_file + ' > /dev/null 2>&1')
 	if check_success:
 		if not os.path.exists(tgt_file):
 			return None
@@ -73,3 +73,9 @@ def process(lines):
 		remaining_lines = remaining_lines[:-1]
 	res = re.sub('[ \t]+', ' ', ' ; '.join(remaining_lines))
 	return res.strip()
+
+def is_number(n):
+	return match("^\$[0-9]+$", n)
+
+def get_number(n):
+	return n[1:]

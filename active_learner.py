@@ -85,7 +85,7 @@ class ActiveLearner:
 			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
 																	  os.path.join(self.output_dir, basename),
 																	  self.compiler))
-		for ext in ['ll', 'hl']:
+		for ext in ['ll', 'hl', 'replacements']:
 			os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
 										  os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
 		self.initial_test_size = int(
@@ -172,7 +172,7 @@ class ActiveLearner:
 																  os.path.join(self.datasets_path, 'test0'),
 																  os.path.join(self.datasets_path, 'train%d' % (i-1)),
 																  self.compiler))
-		for ext in ['ll', 'hl']:
+		for ext in ['ll', 'hl', 'replacements']:
 			os.system(
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
 															  os.path.join(self.datasets_path, 'train%d' % i), ext))
@@ -199,13 +199,15 @@ class ActiveLearner:
 			num_remaining = 0
 			with open(os.path.join(self.datasets_path, 'test%d.corpus.hl' % (i + 1)), 'w') as fhl:
 				with open(os.path.join(self.datasets_path, 'test%d.corpus.ll' % (i + 1)), 'w') as fll:
-					with open(
-							os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
-							'r') as fin:
-						for l in list(csv.reader(fin))[1:]:
-							fhl.write(l[1] + '\n')
-							fll.write(l[2] + '\n')
-							num_remaining += 1
+					with open(os.path.join(self.datasets_path, 'test%d.corpus.replacements' % (i + 1)), 'w') as freplacements:
+						with open(
+								os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
+								'r') as fin:
+							for l in list(csv.reader(fin))[1:]:
+								fhl.write(l[1] + '\n')
+								fll.write(l[2] + '\n')
+								freplacements.write(l[3] + '\n')
+								num_remaining += 1
 			with open(os.path.join(self.output_dir, 'successes.csv'), 'a') as fout:
 				csvout = csv.writer(fout)
 				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, self.num_translations)),
