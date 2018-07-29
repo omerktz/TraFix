@@ -7,6 +7,7 @@ import logging
 import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 import ConfigParser
+import numpy.random as npr
 
 
 def parsePostOrder(po):
