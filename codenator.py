@@ -369,14 +369,15 @@ def preprocess_hl(s):
 
 
 def generate_number_replacements(line):
-	max_unabstracted_number = config.getint("Number", "MaxUnAbstractedValue")
+	min_abstracted_number = config.getint("Number", "MinAbstractedValue")
+	max_abstracted_number = config.getint("Number", "MaxAbstractedValue")
 	max_constants = config.getint("Number", "NumbersPerStatement")
 	replacements = {}
 	parts = line.strip().split(" ")
 	for i in range(len(parts)):
 		if hl2ll.is_number(parts[i]):
 			number = hl2ll.get_number(parts[i])
-			if int(number) > max_unabstracted_number:
+			if (int(number) >= min_abstracted_number) and (int(number) <= max_abstracted_number):
 				constant = 'N' + str(npr.randint(0, max_constants))
 				replacements[number] = constant
 				parts[i] = constant
