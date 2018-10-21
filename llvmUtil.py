@@ -65,9 +65,9 @@ def process(lines):
 			line = re.sub('nsw ', '', line)
 		if llvm_config.getboolean('Process', 'ReplaceLabels'):
 			for label in labels.keys():
-				line = re.sub('<label>:'+label+'$', '<label>:'+labels[label], line)
-				line = re.sub('label %'+label+'$', '<label>%'+labels[label], line)
-				line = re.sub('label %'+label+' ', '<label>%'+labels[label]+' ', line)
+				line = re.sub('<label>:'+label+'$', '<label>'+labels[label]+' :', line)
+				line = re.sub('label %'+label+'$', '<label>'+labels[label], line)
+				line = re.sub('label %'+label+' ', '<label>'+labels[label]+' ', line)
 		res += line+' ; '
 	res = re.sub('[ \t]+', ' ', res)
 	return res.strip()

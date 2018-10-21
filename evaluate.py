@@ -90,8 +90,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 		return (i,hl, ll, replacements, None, 2)  # unparsable
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
 	ll = apply_number_replacements(ll, replacements)
-	# if ll in lls:
-	# 	return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
+	if ll in lls:
+		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 	graph_comparisons = map(lambda l: gc.compare_codes(ll, l), lls)
 	if any(graph_comparisons):
 		return (i, hl, ll, replacements, cs[graph_comparisons.index(True)], 0)  # success
