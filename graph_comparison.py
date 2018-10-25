@@ -153,15 +153,18 @@ def compare_graphs(graph1, graph2):
 		numeric_args2 = len(filter(is_number, inst2.uses))
 		if numeric_args1 != numeric_args2:
 			return False
-		if inst1.is_symmetric:
-			func = itertools.product
-		else:
-			func = zip
-		args = func(inst1.uses, inst2.uses)
-		matching_numeric_args = len(filter(lambda (x, y): is_number(x) and (x == y), args))
-		expected_numeric_args_pairs = 4 if ((numeric_args1 == 2) and (inst1.uses[0] == inst1.uses[1])) else numeric_args1
-		if expected_numeric_args_pairs != matching_numeric_args:
-			return False
+		# # Following lines verify that all numeric values match.
+		# # These lines are commented out to allow for "close" matches, where the only error is a numeric value.
+		# # This relies on the assumption that substituting numbers to "fix" the code is relatively easy
+		# if inst1.is_symmetric:
+		# 	func = itertools.product
+		# else:
+		# 	func = zip
+		# args = func(inst1.uses, inst2.uses)
+		# matching_numeric_args = len(filter(lambda (x, y): is_number(x) and (x == y), args))
+		# expected_numeric_args_pairs = 4 if ((numeric_args1 == 2) and (inst1.uses[0] == inst1.uses[1])) else numeric_args1
+		# if expected_numeric_args_pairs != matching_numeric_args:
+		# 	return False
 		cdg1 = graph1.cdg[index1]
 		cdg2 = graph2.cdg[index2]
 		if len(cdg1) != len(cdg2):
