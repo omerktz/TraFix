@@ -7,8 +7,8 @@ import logging
 import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 import ConfigParser
-import numpy.random as npr
 import graph_comparison as gc
+from abstract_numerals import *
 
 
 def parsePostOrder(po):
@@ -49,45 +49,20 @@ def compiler(hl):
 	return hl2ll.compiler(MockHL(s), check_success=True)
 
 
-def generate_number_replacements(line, config):
-	min_abstracted_number = config.getint("Number", "MinAbstractedValue")
-	max_abstracted_number = config.getint("Number", "MaxAbstractedValue")
-	max_constants = config.getint("Number", "NumbersPerStatement")
-	replacements = {}
-	parts = line.strip().split(" ")
-	for i in range(len(parts)):
-		if hl2ll.is_number(parts[i]):
-			number = hl2ll.get_number(parts[i])
-			if (int(number) >= min_abstracted_number) and (int(number) <= max_abstracted_number):
-				constant = 'N' + str(npr.randint(0, max_constants))
-				replacements[number] = constant
-				parts[i] = constant
-	return (" ".join(parts), replacements)
-
-
-def apply_number_replacements(line, replacements):
-	parts = line.strip().split(" ")
-	for i in range(len(parts)):
-		if parts[i] in replacements.keys():
-			parts[i] = replacements[parts[i]]
-	return " ".join(parts)
-
-
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
-		return (i, hl, ll, replacements, None, 1)  # fail
+		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements(x, replacements), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
-		print res
 		return (i, hl, ll, replacements, None, 2)  # unparsable
 	cs = map(lambda x: x[1].c().strip() if x[0] else '', res)
 	# compare c code
 	lls = map(lambda x: compiler(x), cs)
 	if not any(lls):
-		return (i,hl, ll, replacements, None, 2)  # unparsable
+		return (i,hl, ll, replacements, None, 3)  # does not compile
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
 	ll = apply_number_replacements(ll, replacements)
 	if ll in lls:
@@ -101,15 +76,13 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 				with open(failed_dataset + '.corpus.replacements', 'a') as freplacements:
 					for j in range(len(out)):
 						if len(out[j]) > 0 and len(lls[j]) > 0:
-							(h, replaces) = generate_number_replacements(out[j], config)
+							(h, replaces) = generate_number_replacements(out[j], config, hl2ll)
 							l = apply_number_replacements(lls[j], replaces)
 							fhl.write(h + '\n')
 							fll.write(l + '\n')
-							reverse_replaces = {}
-							for k in replaces.keys():
-								reverse_replaces[replaces[k]] = k
-							freplacements.write(json.dumps(reverse_replaces) + '\n')
-	return (i, hl, ll, replacements, None, 1)  # fail
+							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
+	print i, cs, ll, lls
+	return (i, hl, ll, replacements, None, 4)  # fail
 
 
 def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
@@ -144,6 +117,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 def main(f, k, compiler, force, config, failed_dataset=None):
 	logging.info('Compiler provided by '+args.compiler)
 	load_compiler(compiler)
+	gc.set_instruction_class(hl2ll.Instruction)
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
 			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'replacements', 'out'])

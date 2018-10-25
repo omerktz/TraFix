@@ -1,81 +1,23 @@
 import re
 import itertools
 
+# overriden with Instruction class from compiler api
+Instruction = None
+def set_instruction_class(instruction_class):
+	global Instruction
+	Instruction = instruction_class
+
 class VarInstruction:
 	def __init__(self, var):
-		self.defines = var
+		self.defines = [var]
 		self.code = 'Var '+var
 		self.is_jump = False
 		self.is_label = False
 		self.targets = []
 		self.is_branch = False
-		self.condition = None
 		self.is_condition = False
 		self.uses = []
 		self.is_symmetric = False
-
-
-class Instruction:
-	def __init__(self, code):
-		self.code = code
-		self.is_jump = False
-		self.is_label = False
-		self.targets = []
-		self.defines = None
-		self.is_branch = False
-		self.condition = None
-		self.is_condition = False
-		self.uses = []
-		self.is_symmetric = False
-		self.parse_instruction(code)
-
-	def parse_instruction(self, code):
-		if code in ['__entry__', '__exit__']:
-			self.op = code
-			return
-		if re.match('^<label>[0-9]+ :$', code):
-			self.is_label = True
-			return
-		if code.startswith('br '):
-			self.is_jump = True
-			self.op = 'br'
-			code = code[3:]
-			if ',' in self.code:
-				self.is_branch = True
-				parts = map(lambda x: x.strip(), code.split(','))
-				labels = parts[1:]
-				self.condition = parts[0]
-				self.uses.append(self.condition)
-			else:
-				labels = [code]
-			self.targets = ['<label>'+x[7:]+' :' for x in labels]
-		elif code.startswith('store'):
-			code = code[6:]
-			parts = map(lambda x: x.strip(), code.split(','))
-			self.op = 'store'
-			self.defines = parts[1][1:]
-			self.uses.append(parts[0])
-		elif ' = ' in self.code:
-			self.defines = self.code.split(' = ')[0].strip()
-			code = code[code.index('=')+1:].strip()
-			self.op = code[:code.index(' ')]
-			if code.startswith('load'):
-				self.uses.append(code.split(',')[1].strip()[1:])
-			else:
-				code = code[len(self.op)+1:].strip()
-				if self.op == 'icmp':
-					self.is_condition = True
-					self.relation = code[:code.index(' ')]
-					code = code[len(self.relation)+1:].strip()
-				self.uses += map(lambda x: x.strip(), code.split(','))
-				# normalize conditions
-				if self.is_condition:
-					if self.relation in ['sgt', 'sge']:
-						self.relation = 'sl' + self.relation[2]
-						self.uses.reverse()
-				if self.op in ['add', 'mul'] or (self.is_condition and self.relation in ['eq', 'ne']):
-					self.is_symmetric = True
-
 
 class Graph:
 	def __init__(self, code):
@@ -83,14 +25,14 @@ class Graph:
 		cleaned_code = ' __entry__ ; ' + re.sub('i32\*?', '', re.sub('i1', '', code)).replace('  ', ' ') + ' __exit__ ; '
 		# parse code
 		split_code = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), cleaned_code.split(';')))
-		self.instructions = dict(zip(range(len(split_code)), [Instruction(c) for c in split_code]))
+		self.instructions = dict(zip(range(len(split_code)), [Instruction(split_code[i], i) for i in range(len(split_code))]))
 		# build cfg
 		self.childs = dict([(i, []) for i in self.instructions])
 		self.parents = dict([(i, []) for i in self.instructions])
 		for i in self.instructions:
 			if self.instructions[i].is_jump:
 				for label in self.instructions[i].targets:
-					index = filter(lambda j: self.instructions[j].code == label, self.instructions)[0]
+					index = filter(lambda j: label in self.instructions[j].labels, self.instructions)[0]
 					self.childs[i].append(index)
 					self.parents[index].append(i)
 			else:
@@ -112,7 +54,7 @@ class Graph:
 			del self.parents[j]
 			del self.instructions[j]
 		# create nodes for vars
-		all_vars = set(filter(lambda v: v is not None and re.match('^X[0-9]+$', v), set.union(*map(lambda i: set(self.instructions[i].uses), self.instructions)).union(set(map(lambda i: self.instructions[i].defines, self.instructions)))))
+		all_vars = set(filter(lambda v: v is not None and re.match('^X[0-9]+$', v), set.union(*map(lambda i: set(self.instructions[i].uses), self.instructions)).union(set.union(*map(lambda i: set(self.instructions[i].defines), self.instructions)))))
 		for var in all_vars:
 			self.instructions[var] = VarInstruction(var)
 		entry_childs = self.childs[0][:]
@@ -125,8 +67,8 @@ class Graph:
 			self.childs[v] = entry_childs
 		# build ddg
 		ddg_init = dict([(i, set()) for i in self.instructions])
-		ddg_gen = dict(map(lambda i: (i, [(self.instructions[i].defines, i)]) if self.instructions[i].defines is not None else (i, []), self.instructions))
-		ddg_kill = dict(map(lambda i: (i, [(self.instructions[i].defines, j) for j in self.instructions]) if self.instructions[i].defines is not None else (i, []), self.instructions))
+		ddg_gen = dict(map(lambda i: (i, [(d, i) for d in self.instructions[i].defines]), self.instructions))
+		ddg_kill = dict(map(lambda i: (i, itertools.product(self.instructions[i].defines, self.instructions.keys())), self.instructions))
 		self.reaching_definitions = self.get_fixed_point(ddg_init, ddg_gen, ddg_kill, set.union, self.parents, self.childs)
 		self.ddg = dict(map(lambda i: (i, map(lambda u: map(lambda y: y[1], filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
 		self.rddg = dict([(i, set()) for i in self.instructions])
@@ -287,14 +229,17 @@ def compare_codes(code1, code2):
 	return compare_graphs(Graph(code1), Graph(code2))
 
 
+def load_external(f):
+	if f.endswith('.py'):
+		f = f[:-3]
+	if f.endswith('.pyc'):
+		f = f[:-4]
+	return __import__(f)
+
+
 if __name__ == "__main__":
-	simple = '%1 = load i32 , i32* @X3 ; %2 = load i32 , i32* @X10 ; %3 = mul i32 %2 , 0 ; %4 = mul i32 %1 , %3 ; store i32 %4 , i32* @X11 ;'
-	print compare_codes(simple, simple)
-	simple2 = '%1 = load i32 , i32* @X10 ; %2 = load i32 , i32* @X4 ; %3 = mul i32 %1 , 0 ; %4 = mul i32 %3 , %2 ; store i32 %4 , i32* @X11 ;'
-	print compare_codes(simple, simple2)
-	loop = 'br <label>0 ; <label>0 : ; %2 = load i32 , i32* @X8 ; %3 = mul i32 %2 , 3 ; %4 = icmp slt i32 6 , %3 ; br i1 %4 , <label>1 , <label>2 ; <label>1 : ; store i32 5 , i32* @X0 ; br <label>0 ; <label>2 : ;'
-	print compare_codes(loop, loop)
-	branch = '%1 = load i32 , i32* @X3 ; %2 = load i32 , i32* @X7 ; %3 = mul i32 %1 , %2 ; %4 = load i32 , i32* @X5 ; %5 = srem i32 %4 , 8 ; %6 = add i32 9 , %5 ; %7 = load i32 , i32* @X9 ; %8 = mul i32 0 , %7 ; %9 = srem i32 %6 , %8 ; %10 = icmp sge i32 %3 , %9 ; br i1 %10 , <label>0 , <label>1 ; <label>0 : ; %12 = load i32 , i32* @X11 ; store i32 %12 , i32* @X11 ; br <label>2 ; <label>1 : ; %14 = load i32 , i32* @X2 ; %15 = add i32 2 , %14 ; %16 = load i32 , i32* @X1 ; %17 = srem i32 5 , %16 ; %18 = load i32 , i32* @X9 ; %19 = add i32 %17 , %18 ; %20 = mul i32 %15 , %19 ; store i32 %20 , i32* @X2 ; br <label>2 ; <label>2 : ;'
-	print compare_codes(branch, branch)
-	tmp = 'br <label>0 ; <label>0 : ; %2 = load , @X4 ; %3 = sub %2 , N16 ; %4 = sdiv N19 , %3 ; %5 = load , @X4 ; %6 = load , @X1 ; %7 = sub %5 , %6 ; %8 = srem %7 , N7 ; %9 = sub N2 , %8 ; %10 = sub %9 , N11 ; %11 = sub N10 , %10 ; %12 = icmp ne %4 , %11 ; br %12 , <label>1 , <label>2 ; <label>1 : ; %14 = load , @X14 ; %15 = add %14 , N14 ; %16 = load , @X9 ; %17 = add %15 , %16 ; %18 = load , @X14 ; %19 = load , @X6 ; %20 = load , @X9 ; %21 = add %19 , %20 ; %22 = mul %18 , %21 ; %23 = sdiv %17 , %22 ; store %23 , @X11 ; br <label>0 ; <label>2 : ;'
-	print compare_codes(tmp, tmp)
+	import argparse
+	parser = argparse.ArgumentParser(description="Parse codes to PDG and compare graphs")
+	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
+	args = parser.parse_args()
+	set_instruction_class(load_external(args.compiler).Instruction)

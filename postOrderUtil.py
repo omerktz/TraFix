@@ -93,7 +93,7 @@ class Assignment:
     def handle(token,stack):
         stack.append(Assignment(stack.pop(), stack.pop()))
         return True
-    def __init__(self, op2, op1):
+    def __init__(self, op1, op2):
         self.tgt = op1
         self.src = op2
     def c(self):

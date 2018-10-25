@@ -58,6 +58,7 @@ def process(lines):
 			for label in labels.keys():
 				line = re.sub('\.L'+label, '.L'+labels[label], line)
 		line = re.sub(':', ' :', line)
+		line = ' '.join(map(lambda x: x[1:] if match('^\$\-?[0-9]+$', x) else x, line.split(' ')))
 		if line.startswith('.'):
 			if line.endswith(':'):
 				last_label = line
@@ -71,11 +72,105 @@ def process(lines):
 		remaining_lines = remaining_lines[1:]
 	while (len(remaining_lines) > 0) and (remaining_lines[-1].startswith('popl %e')):
 		remaining_lines = remaining_lines[:-1]
-	res = re.sub('[ \t]+', ' ', ' ; '.join(remaining_lines))
+	res = re.sub('[ \t]+', ' ', ' ; '.join(remaining_lines+['']))
 	return res.strip()
 
 def is_number(n):
-	return match("^\$[0-9]+$", n)
+	return match("^[0-9]+$", n)
 
 def get_number(n):
-	return n[1:]
+	return n
+
+class Instruction:
+	def __init__(self, code, i):
+		self.code = code
+		self.is_jump = False
+		self.is_label = False
+		self.targets = []
+		self.defines = []
+		self.is_branch = False
+		self.is_condition = False
+		self.uses = []
+		self.is_symmetric = False
+		self.labels = [i]
+		self.parse_instruction(code, i)
+
+	def parse_instruction(self, code, i):
+		if code in ['__entry__', '__exit__']:
+			self.op = code
+			return
+		if re.match('^\.L[0-9]+ :$', code):
+			self.is_label = True
+			self.labels.append(code)
+			return
+		self.op = code[:code.index(' ')].strip()
+		code = code[len(self.op):].strip()
+		if self.op in ['jmp', 'je', 'jne', 'jg', 'jl', 'jle', 'jge']:
+			self.is_jump = True
+			self.targets = [code + ' :']
+			if self.op != 'jmp':
+				self.is_branch = True
+				self.uses.append('FLAGS')
+				self.targets.append(i+1)
+				self.is_condition = True
+				self.relation = self.op[1:]
+		elif self.op in ['cmpl', 'testl']:
+			self.uses = map(lambda x: x.strip(), code.split(','))
+			self.defines = ['FLAGS']
+		elif self.op == 'movl':
+			parts = map(lambda x: x.strip(), code.split(','))
+			self.uses = [parts[0]]
+			self.defines = [parts[1]]
+		elif self.op in ['addl', 'subl']:
+			self.uses = map(lambda x: x.strip(), code.split(','))
+			self.defines = [self.uses[1]]
+			if re.match('^\-[0-9]+$', self.uses[0]):
+				self.uses = [self.uses[1], self.uses[0][1:]]
+				self.op = 'addl' if self.op == 'subl' else 'subl'
+			self.is_symmetric = self.op == 'addl'
+		elif self.op in ['inc', 'dec']:
+			self.uses = [code, '1']
+			self.defines = [code]
+			self.op = 'addl' if self.op == 'inc' else 'subl'
+			self.is_symmetric = self.op == 'addl'
+		elif self.op == 'imull':
+			parts = map(lambda x: x.strip(), code.split(','))
+			parts = map(lambda n: n[1:] if re.match('^\$\-?[0-9]+$', n) else n, parts)
+			if len(parts) == 1:
+				self.uses = [code, '%eax']
+				self.defines = ['%eax', '%edx']
+			elif len(parts) == 2:
+				self.uses = parts
+				self.defines = [parts[1]]
+			elif len(parts) ==3:
+				self.uses = parts[0:2]
+				self.defines = [parts[2]]
+			else:
+				import sys
+				print 'Invalid asm instruction: '+self.op+' '+code
+				sys.exit(1)
+			self.is_symmetric = True
+		elif self.op == 'idivl':
+			self.uses = [code, '%eax', '%edx']
+			self.defines = ['%eax', '%edx']
+		elif self.op in ['negl', 'notl']:
+			self.uses = [code]
+			self.defines = [code]
+		elif self.op in ['sall', 'sarl', 'shll', 'shrl']:
+			parts = map(lambda x: x.strip(), code.split(','))
+			parts = map(lambda n: n[1:] if re.match('^\$\-?[0-9]+$', n) else n, parts)
+			self.uses = parts[:]
+			self.defines = [parts[1]]
+		elif self.op == 'leal':
+			parts = map(lambda x: x.strip(), code.split(' , '))
+			self.defines = [parts[1]]
+			self.uses = re.sub('  ', ' ', re.sub('[\(\)\,]', '', parts[0])).strip().split(' ')
+			self.uses.reverse()
+			self.op = 'addl'
+			if re.match('^\-[0-9]+$', self.uses[1]):
+				self.uses = [self.uses[0], self.uses[1][1:]]
+				self.op = 'subl'
+		else:
+			import sys
+			print 'Unknown op: ' + self.op + ' ' + code
+			sys.exit(2)

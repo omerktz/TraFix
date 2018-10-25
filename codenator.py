@@ -1,13 +1,14 @@
 import ConfigParser
 import ast
 import argparse
-import numpy.random as npr
 import os
 import re
 import sys
 import logging
 import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
+from abstract_numerals import *
+import numpy.random as npr
 
 
 hl2ll = None
@@ -20,17 +21,10 @@ def load_compiler(f):
 	hl2ll =  __import__(f)
 
 
-class SmartFormatter(argparse.HelpFormatter):
-	def _split_lines(self, text, width):
-		if text.startswith('R|'):
-			return text[2:].splitlines()
-		return argparse.HelpFormatter._split_lines(self, text, width)
-
-
-parser = argparse.ArgumentParser(description="Generate random code samples", formatter_class=SmartFormatter)
+parser = argparse.ArgumentParser(description="Generate random code samples")
 parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
-parser.add_argument('-n', '--num', dest='n', type=int,
-					help="R|number of samples to generate\n(if not given, generates samples until manually stopped)")
+parser.add_argument('-n', '--num', dest='n', type=int, default=0,
+					help="number of samples to generate (default: %(default)s")
 parser.add_argument('-o', '--out', dest='o', type=str, default='out',
 					help="output files names (default: \'%(default)s\')")
 parser.add_argument('-c', '--config', dest='c', type=str, default='configs/codenator.config',
@@ -184,7 +178,7 @@ class UnaryOp(Op):
 		return res
 
 	def po(self):
-		return self._op.po() + ' ' + ('X' if self._position else '') + self._act + ('' if self._position else 'X')
+		return self._op.po() + ' ' + ('' if self._position else 'X') + self._act + ('X' if self._position else '')
 
 	def __eq__(self, other):
 		if not isinstance(other, UnaryOp):
@@ -368,37 +362,8 @@ def preprocess_hl(s):
 	return s.po()
 
 
-def generate_number_replacements(line):
-	min_abstracted_number = config.getint("Number", "MinAbstractedValue")
-	max_abstracted_number = config.getint("Number", "MaxAbstractedValue")
-	max_constants = config.getint("Number", "NumbersPerStatement")
-	replacements = {}
-	parts = line.strip().split(" ")
-	for i in range(len(parts)):
-		if hl2ll.is_number(parts[i]):
-			number = hl2ll.get_number(parts[i])
-			if (int(number) >= min_abstracted_number) and (int(number) <= max_abstracted_number):
-				constant = 'N' + str(npr.randint(0, max_constants))
-				replacements[number] = constant
-				parts[i] = constant
-	return (" ".join(parts), replacements)
-
-
-def apply_number_replacements(line, replacements):
-	parts = line.strip().split(" ")
-	for i in range(len(parts)):
-		if parts[i] in replacements.keys():
-			parts[i] = replacements[parts[i]]
-	return " ".join(parts)
-
-
 def generate_statements():
-	if args.n is not None:
-		limit = args.n
-		limited = True
-	else:
-		limit = 0
-		limited = False
+	limit = args.n
 	out_file = args.o
 	j = 1
 	Var.clear()
@@ -430,17 +395,11 @@ def generate_statements():
 					corpus_ll.append(ll_lines[i])
 					corpus_replacements.append(replacements_lines[i])
 					exclude.add(hl_lines[i])
-	if limited:
-		logging.info('Generating ' + str(limit) + ' statements')
-	else:
-		logging.info('Generating statements until manually stopped (ctrl+C)')
+	logging.info('Generating ' + str(limit) + ' statements')
 	logging.info('Saving to files: ' + out_file + '.corpus.hl, ' + out_file + '.corpus.ll')
-	while (not limited) or (j <= limit):
+	while j <= limit:
 		if args.debug:
-			if limited:
-				print str(j).zfill(len(str(limit)))+'/'+str(limit)+'\r',
-			else:
-				print str(j)+'\r',
+			print str(j).zfill(len(str(limit)))+'/'+str(limit)+'\r',
 			sys.stdout.flush()
 		done = False
 		hl_line = ''
@@ -456,14 +415,11 @@ def generate_statements():
 				pass
 		exclude.add(hl_line)
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
-		(ll_line, replacements) = generate_number_replacements(ll_line)
+		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
 		corpus_ll.append(ll_line.strip())
 		corpus_hl.append(hl_line.strip())
-		reverse_replacement = {}
-		for k in replacements.keys():
-			reverse_replacement[replacements[k]] = k
-		corpus_replacements.append(json.dumps(reverse_replacement))
+		corpus_replacements.append(json.dumps(reverse_mapping(replacements)))
 		j += 1
 	logging.info('Shuffling and writing dataset')
 	if args.t:

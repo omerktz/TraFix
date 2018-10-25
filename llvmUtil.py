@@ -77,3 +77,64 @@ def is_number(n):
 
 def get_number(n):
 	return n
+
+class Instruction:
+	def __init__(self, code, i):
+		self.code = code
+		self.is_jump = False
+		self.is_label = False
+		self.targets = []
+		self.defines = []
+		self.is_branch = False
+		self.is_condition = False
+		self.uses = []
+		self.is_symmetric = False
+		self.labels = []
+		self.parse_instruction(code, i)
+
+	def parse_instruction(self, code, i):
+		if code in ['__entry__', '__exit__']:
+			self.op = code
+			return
+		if re.match('^<label>[0-9]+ :$', code):
+			self.is_label = True
+			self.labels.append(code)
+			return
+		if code.startswith('br '):
+			self.is_jump = True
+			self.op = 'br'
+			code = code[3:]
+			if ',' in self.code:
+				self.is_branch = True
+				parts = map(lambda x: x.strip(), code.split(','))
+				labels = parts[1:]
+				self.uses.append(parts[0])
+			else:
+				labels = [code]
+			self.targets = ['<label>'+x[7:]+' :' for x in labels]
+		elif code.startswith('store'):
+			code = code[6:]
+			parts = map(lambda x: x.strip(), code.split(','))
+			self.op = 'store'
+			self.defines = [parts[1][1:]]
+			self.uses.append(parts[0])
+		elif ' = ' in self.code:
+			self.defines = [self.code.split(' = ')[0].strip()]
+			code = code[code.index('=')+1:].strip()
+			self.op = code[:code.index(' ')]
+			if code.startswith('load'):
+				self.uses.append(code.split(',')[1].strip()[1:])
+			else:
+				code = code[len(self.op)+1:].strip()
+				if self.op == 'icmp':
+					self.is_condition = True
+					self.relation = code[:code.index(' ')]
+					code = code[len(self.relation)+1:].strip()
+				self.uses += map(lambda x: x.strip(), code.split(','))
+				# normalize conditions
+				if self.is_condition:
+					if self.relation in ['sgt', 'sge']:
+						self.relation = 'sl' + self.relation[2]
+						self.uses.reverse()
+				if self.op in ['add', 'mul'] or (self.is_condition and self.relation in ['eq', 'ne']):
+					self.is_symmetric = True
