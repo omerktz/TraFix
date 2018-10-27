@@ -249,7 +249,11 @@ class Branch:
 
 	def __init__(self, nesting_level=0):
 		def body_generator():
-			return Statements(types=[Assignment], nesting_level=nesting_level+1, max_statements=config.getint('Branch','MaxInnerStatements'))
+			return Statements(
+				types=[Assignment, Branch, Loop] if config.getboolean('Branch', 'AllowNested') else [Assignment],
+				nesting_level=nesting_level+1,
+				max_statements=config.getint('Branch', 'MaxInnerStatements')
+			)
 
 		self._cond = Condition()
 		self._if = body_generator()
@@ -289,7 +293,11 @@ class Loop:
 
 	def __init__(self, nesting_level=0):
 		def body_generator():
-			return Statements(types=[Assignment], nesting_level=nesting_level+1, max_statements=config.getint('Loop','MaxInnerStatements'))
+			return Statements(
+				types=[Assignment, Branch, Loop] if config.getboolean('Loop', 'AllowNested') else [Assignment],
+				nesting_level=nesting_level+1,
+				max_statements=config.getint('Loop', 'MaxInnerStatements')
+			)
 
 		self._cond = Condition()
 		self._body = body_generator()
