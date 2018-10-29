@@ -11,8 +11,8 @@ llvm_separator = ' ; '
 def compiler(s, check_success=False):
 	src_file = create_source_file(s)
 	tgt_file = 'tmp' + str(os.getpid()) + '.ll'
-	os.system('clang -S -emit-llvm -O' + str(
-		llvm_config.getint('Compile', 'OptimizationLevel')) + ' -o '+tgt_file+' '+src_file+' > /dev/null 2>&1')
+	optimization_level = ' -O0' if llvm_config.getboolean('Compile', 'Optimized') else ''
+	os.system('clang -S -emit-llvm' + optimization_level + ' -o '+tgt_file+' '+src_file+' > /dev/null 2>&1')
 	if check_success:
 		if not os.path.exists(tgt_file):
 			return None
@@ -54,7 +54,7 @@ def process(lines):
 		if llvm_config.getboolean('Process', 'RemovePreds'):
 			if line.startswith('preds '):
 				continue
-		if llvm_config.getint('Compile', 'OptimizationLevel') > 0:
+		if llvm_config.getboolean('Compile', 'Optimized'):
 			line = line[:line.find('!')].strip()[:-1].strip()
 		if llvm_config.getboolean('Process', 'RemoveAlign4'):
 			line = re.sub(', align 4', ' ', line)

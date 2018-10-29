@@ -9,9 +9,14 @@ x86_config.read('configs/x86.config')
 x86_separator = ' ; '
 
 def compiler(s, check_success=False):
-	src_file = create_source_file(s, '#pragma GCC optimize ("O' + str(x86_config.getint('Compile', 'OptimizationLevel')) + '")\n')
+	if x86_config.getboolean('Compile', 'Optimized'):
+		src_file = create_source_file(s, '')
+		optimization = ''
+	else:
+		src_file = create_source_file(s, '#pragma GCC optimize ("O0")\n')
+		optimization = ' -Os'
 	tgt_file = 'tmp' + str(os.getpid()) + '.x86'
-	os.system('gcc -m32 -S -Os -o ' + tgt_file + ' ' + src_file + ' > /dev/null 2>&1')
+	os.system('gcc -m32 -S' + optimization + ' -o ' + tgt_file + ' ' + src_file + ' > /dev/null 2>&1')
 	if check_success:
 		if not os.path.exists(tgt_file):
 			return None
