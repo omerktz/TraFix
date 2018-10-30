@@ -10,7 +10,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class AWShandler:
-	def __init__(self, compiler, output, index, image='ami-d13bbcae', username='ubuntu', key='omer1.pem',
+	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
 				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=False,
 				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5):
 		self._index = index
