@@ -128,7 +128,7 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
-	parser.add_argument('-i', '--image', type=str, default='ami-d13bbcae',
+	parser.add_argument('-i', '--image', type=str, default='ami-08016dab96d85a8d1',
 						help="AWS image id (default: \'%(default)s\')")
 	parser.add_argument('-u', '--username', type=str, default='ubuntu',
 						help="instance user name (default: \'%(default)s\')")
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 	parser.add_argument('-n', '--naming', type=str, default='omer-{0}-{1}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-m', '--main', type=str, default='Codenator',
-						help="name of main directory on instace (default: \'%(default)s)\'")
+						help="name of main directory on instance (default: \'%(default)s)\'")
 	parser.add_argument('-p', '--protection', type=bool, default=False,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
