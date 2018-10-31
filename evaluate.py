@@ -81,7 +81,6 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 							fhl.write(h + '\n')
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
-	print i, cs, ll, lls
 	return (i, hl, ll, replacements, None, 4)  # fail
 
 
