@@ -55,7 +55,8 @@ def process(lines):
 			if line.startswith('preds '):
 				continue
 		if llvm_config.getboolean('Compile', 'Optimized'):
-			line = line[:line.find('!')].strip()[:-1].strip()
+			if '!' in line:
+				line = line[:line.find('!')].strip()[:-1].strip()
 		if llvm_config.getboolean('Process', 'RemoveAlign4'):
 			line = re.sub(', align 4', ' ', line)
 		if llvm_config.getboolean('Process', 'RemoveI32'):
