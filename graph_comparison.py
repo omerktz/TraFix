@@ -32,7 +32,7 @@ class Graph:
 		for i in self.instructions:
 			if self.instructions[i].is_jump:
 				for label in self.instructions[i].targets:
-					indexes = filter(lambda j: label in self.instructions[j].labels, self.instructions)
+					indexes = filter(lambda j: label in self.instructions[j].labels, self.instructions.keys())
 					if len(indexes) == 0:
 						print "Missing label"
 						import sys
