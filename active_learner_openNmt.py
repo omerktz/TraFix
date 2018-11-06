@@ -112,9 +112,7 @@ class ActiveLearner:
 		# ~ / OpenNMT - py / outputCp / validate.corpus.ll - valid_tgt
 		# ~ / OpenNMT - py / outputCp / validate.corpus.hl - save_data
 		# ~ / OpenNMT - py / outputCp / afterPreprocess
-		os.system(
-			'python {0} -train_src {1} -train_tgt {2} -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
-                                                                                                           ))
+
 
 		os.system(
 			'python {0} {5} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
@@ -125,6 +123,13 @@ class ActiveLearner:
 																   self.compiler))
 
 
+		os.system(
+			'python {0} -train_src {1} -train_tgt {2}'
+			' -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
+                                                                   os.path.join(self.datasets_path, 'train0','.corpos.ll'),
+                                                                   os.path.join(self.datasets_path, 'train0','.corpos.hl'),
+                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.ll'),
+                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.hl')))
 		# vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 		# 							  os.path.join(self.datasets_path, 'train0'),
 		# 							  os.path.join(self.datasets_path, 'validate0')],
