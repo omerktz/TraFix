@@ -3,9 +3,8 @@ from __future__ import print_function
 import time
 from datetime import datetime
 
-import onmt
-
-from onmt.utils.logging import logger
+from logging import logger
+from statistics import Statistics
 
 
 def build_report_manager(opt):
@@ -72,7 +71,7 @@ class ReportMgrBase(object):
             self._report_training(
                 step, num_steps, learning_rate, report_stats)
             self.progress_step += 1
-        return onmt.utils.Statistics()
+        return Statistics()
 
     def _report_training(self, *args, **kwargs):
         """ To be overridden """
@@ -126,7 +125,7 @@ class ReportMgr(ReportMgrBase):
                                    "progress",
                                    learning_rate,
                                    self.progress_step)
-        report_stats = onmt.utils.Statistics()
+        report_stats = Statistics()
 
         return report_stats
 
