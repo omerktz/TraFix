@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 import torch.cuda
 
-import onmt.inputters as inputters
+import open_nmt.onmt.inputters as inputters
 from open_nmt.onmt.utils.misc import aeq
 from open_nmt.onmt.utils import loss
 

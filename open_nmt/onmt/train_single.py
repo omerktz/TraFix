@@ -9,7 +9,7 @@ import os
 import random
 import torch
 
-import onmt.opts as opts
+import open_nmt.onmt.opts as opts
 
 from open_nmt.onmt.inputters.inputter import build_dataset_iter, lazily_load_dataset, \
     _load_fields, _collect_report_features

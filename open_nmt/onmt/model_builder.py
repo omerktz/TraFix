@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 
-import onmt.inputters as inputters
-import onmt.modules
+import open_nmt.onmt.inputters as inputters
+import open_nmt.onmt.modules
 from open_nmt.onmt.encoders.rnn_encoder import RNNEncoder
 from open_nmt.onmt.encoders.transformer import TransformerEncoder
 from open_nmt.onmt.encoders.cnn_encoder import CNNEncoder
@@ -216,12 +216,12 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None):
 
     # Build NMTModel(= encoder + decoder).
     device = torch.device("cuda" if gpu else "cpu")
-    model = onmt.models.NMTModel(encoder, decoder)
+    model = open_nmt.onmt.models.NMTModel(encoder, decoder)
 
     # Build Generator.
     if not model_opt.copy_attn:
         if model_opt.generator_function == "sparsemax":
-            gen_func = onmt.modules.sparse_activations.LogSparsemax(dim=-1)
+            gen_func = open_nmt.onmt.modules.sparse_activations.LogSparsemax(dim=-1)
         else:
             gen_func = nn.LogSoftmax(dim=-1)
         generator = nn.Sequential(

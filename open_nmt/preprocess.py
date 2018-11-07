@@ -13,8 +13,8 @@ import codecs
 import torch
 from open_nmt.onmt.utils.logging import init_logger, logger
 
-import onmt.inputters as inputters
-import onmt.opts as opts
+import open_nmt.onmt.inputters as inputters
+import open_nmt.onmt.opts as opts
 
 
 def check_existing_pt_files(opt):

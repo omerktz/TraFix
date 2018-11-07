@@ -5,7 +5,7 @@ import unittest
 import torch
 from torch.autograd import Variable
 
-import onmt
+import open_nmt.onmt
 
 
 class TestAttention(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestAttention(unittest.TestCase):
                                            source_lengths.max(), dim))
         hidden = Variable(torch.randn(batch_size, dim))
 
-        attn = onmt.modules.GlobalAttention(dim)
+        attn = open_nmt.onmt.modules.GlobalAttention(dim)
 
         _, alignments = attn(hidden, memory_bank,
                              memory_lengths=source_lengths)

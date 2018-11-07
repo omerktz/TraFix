@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 
-import onmt.inputters
+import open_nmt.onmt.inputters
 
 from collections import deque
 from open_nmt.onmt.utils.logging import logger
@@ -109,7 +109,7 @@ class ModelSaver(ModelSaverBase):
         checkpoint = {
             'model': model_state_dict,
             'generator': generator_state_dict,
-            'vocab': onmt.inputters.save_fields_to_vocab(self.fields),
+            'vocab': open_nmt.onmt.inputters.save_fields_to_vocab(self.fields),
             'opt': self.model_opt,
             'optim': self.optim,
         }

@@ -1,6 +1,6 @@
-import onmt
+import open_nmt.onmt
 
 
 def test_load():
-    onmt
+    open_nmt.onmt
     pass
