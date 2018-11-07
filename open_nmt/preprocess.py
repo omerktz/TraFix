@@ -11,7 +11,7 @@ import gc
 import os
 import codecs
 import torch
-from onmt.utils.logging import init_logger, logger
+from open_nmt.onmt.utils.logging import init_logger, logger
 
 import onmt.inputters as inputters
 import onmt.opts as opts

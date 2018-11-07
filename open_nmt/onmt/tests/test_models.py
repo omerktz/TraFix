@@ -8,10 +8,10 @@ import torch
 import onmt
 import onmt.inputters
 import onmt.opts
-from onmt.model_builder import build_embeddings, \
+from open_nmt.onmt.model_builder import build_embeddings, \
     build_encoder, build_decoder
-from onmt.encoders.image_encoder import ImageEncoder
-from onmt.encoders.audio_encoder import AudioEncoder
+from open_nmt.onmt.encoders.image_encoder import ImageEncoder
+from open_nmt.onmt.encoders.audio_encoder import AudioEncoder
 
 parser = argparse.ArgumentParser(description='train.py')
 onmt.opts.model_opts(parser)

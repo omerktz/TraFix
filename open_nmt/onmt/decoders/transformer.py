@@ -7,7 +7,7 @@ import torch.nn as nn
 import numpy as np
 
 import onmt
-from onmt.modules.position_ffn import PositionwiseFeedForward
+from open_nmt.onmt.modules.position_ffn import PositionwiseFeedForward
 
 MAX_SIZE = 5000
 

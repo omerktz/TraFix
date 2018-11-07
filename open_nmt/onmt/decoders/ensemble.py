@@ -9,8 +9,8 @@ All models in the ensemble must share a target vocabulary.
 import torch
 import torch.nn as nn
 
-from onmt.encoders.encoder import EncoderBase
-from onmt.models import NMTModel
+from open_nmt.onmt.encoders.encoder import EncoderBase
+from open_nmt.onmt.models import NMTModel
 import onmt.model_builder
 
 

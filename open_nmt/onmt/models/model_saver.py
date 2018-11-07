@@ -5,7 +5,7 @@ import torch.nn as nn
 import onmt.inputters
 
 from collections import deque
-from onmt.utils.logging import logger
+from open_nmt.onmt.utils.logging import logger
 
 
 def build_model_saver(model_opt, opt, model, fields, optim):

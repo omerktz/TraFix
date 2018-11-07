@@ -6,8 +6,8 @@ import onmt.model_builder
 import onmt.inputters
 import onmt.opts
 
-from onmt.utils.misc import use_gpu
-from onmt.utils.logging import init_logger, logger
+from open_nmt.onmt.utils.misc import use_gpu
+from open_nmt.onmt.utils.logging import init_logger, logger
 
 parser = argparse.ArgumentParser(description='translate.py')
 

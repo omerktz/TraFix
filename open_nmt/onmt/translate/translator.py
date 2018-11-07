@@ -9,7 +9,7 @@ import math
 import torch
 
 from itertools import count
-from onmt.utils.misc import tile
+from open_nmt.onmt.utils.misc import tile
 
 import onmt.model_builder
 import onmt.translate.beam

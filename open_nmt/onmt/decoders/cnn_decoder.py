@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 import onmt.modules
-from onmt.utils.cnn_factory import shape_transform, GatedConv
+from open_nmt.onmt.utils.cnn_factory import shape_transform, GatedConv
 
 SCALE_WEIGHT = 0.5 ** 0.5
 

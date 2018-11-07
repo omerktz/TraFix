@@ -11,8 +11,8 @@ import torch
 import onmt.opts as opts
 import onmt.utils.distributed
 
-from onmt.utils.logging import logger
-from onmt.train_single import main as single_main
+from open_nmt.onmt.utils.logging import logger
+from open_nmt.onmt.train_single import main as single_main
 
 
 def main(opt):

@@ -3,7 +3,7 @@ import torch
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
-from onmt.utils import use_gpu
+from open_nmt.onmt.utils import use_gpu
 
 
 def build_optim(model, opt, checkpoint):

@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from onmt.modules.sparse_activations import sparsemax
-from onmt.utils.misc import aeq, sequence_mask
+from open_nmt.onmt.modules.sparse_activations import sparsemax
+from open_nmt.onmt.utils.misc import aeq, sequence_mask
 
 # This class is mainly used by decoder.py for RNNs but also
 # by the CNN / transformer decoder when copy attention is used

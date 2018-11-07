@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Function
-from onmt.modules.sparse_activations import threshold_and_support
-from onmt.utils.misc import aeq
+from open_nmt.onmt.modules.sparse_activations import threshold_and_support
+from open_nmt.onmt.utils.misc import aeq
 
 
 class SparsemaxLossFunction(Function):

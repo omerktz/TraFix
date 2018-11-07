@@ -9,7 +9,7 @@ import os
 import torch
 import torchtext
 
-from onmt.inputters.dataset_base import DatasetBase, PAD_WORD, BOS_WORD, \
+from open_nmt.onmt.inputters.dataset_base import DatasetBase, PAD_WORD, BOS_WORD, \
     EOS_WORD
 
 

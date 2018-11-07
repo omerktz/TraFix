@@ -2,7 +2,7 @@
 import argparse
 
 from flask import Flask, jsonify, request
-from onmt.translate import TranslationServer, ServerModelError
+from open_nmt.onmt.translate import TranslationServer, ServerModelError
 
 STATUS_OK = "ok"
 STATUS_ERROR = "error"

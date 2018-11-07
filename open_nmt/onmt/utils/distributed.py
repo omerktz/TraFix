@@ -10,7 +10,7 @@ import math
 import pickle
 import torch.distributed
 
-from onmt.utils.logging import logger
+from open_nmt.onmt.utils.logging import logger
 
 
 def is_master(opt, device_id):

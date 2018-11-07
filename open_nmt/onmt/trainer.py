@@ -14,7 +14,7 @@ from __future__ import division
 import onmt.inputters as inputters
 import onmt.utils
 
-from onmt.utils.logging import logger
+from open_nmt.onmt.utils.logging import logger
 
 
 def build_trainer(opt, device_id, model, fields,

@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import pad_packed_sequence as unpack
 
-from onmt.utils.rnn_factory import rnn_factory
+from open_nmt.onmt.utils.rnn_factory import rnn_factory
 
 
 class AudioEncoder(nn.Module):

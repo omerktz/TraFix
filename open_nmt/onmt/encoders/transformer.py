@@ -5,9 +5,9 @@ Implementation of "Attention is All You Need"
 import torch.nn as nn
 
 import onmt
-from onmt.encoders.encoder import EncoderBase
-# from onmt.utils.misc import aeq
-from onmt.modules.position_ffn import PositionwiseFeedForward
+from open_nmt.onmt.encoders.encoder import EncoderBase
+# from open_nmt.onmt.utils.misc import aeq
+from open_nmt.onmt.modules.position_ffn import PositionwiseFeedForward
 
 
 class TransformerEncoderLayer(nn.Module):

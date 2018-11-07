@@ -4,8 +4,8 @@
 from __future__ import division, unicode_literals
 import argparse
 
-from onmt.utils.logging import init_logger
-from onmt.translate.translator import build_translator
+from open_nmt.onmt.utils.logging import init_logger
+from open_nmt.onmt.translate.translator import build_translator
 
 import onmt.inputters
 import onmt.translate

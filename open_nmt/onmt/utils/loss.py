@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 import onmt
 import onmt.inputters as inputters
-from onmt.modules.sparse_losses import SparsemaxLoss
+from open_nmt.onmt.modules.sparse_losses import SparsemaxLoss
 
 
 def build_loss_compute(model, tgt_vocab, opt, train=True):
