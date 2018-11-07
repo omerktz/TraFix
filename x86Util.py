@@ -173,7 +173,7 @@ class Instruction:
 			parts = map(lambda x: x.strip(), code.split(','))
 			parts = map(lambda n: n[1:] if re.match('^\$\-?[0-9]+$', n) else n, parts)
 			if len(parts) == 1:
-				parts = ['2'] + parts
+				parts = ['1'] + parts
 			self.uses = parts[:] + ['FLAGS']
 			self.defines = [parts[1]]
 		elif self.op == 'leal':
