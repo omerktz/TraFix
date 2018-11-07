@@ -5,7 +5,7 @@
 from itertools import chain
 import torchtext
 
-import onmt
+import open_nmt.onmt
 
 PAD_WORD = '<blank>'
 UNK_WORD = '<unk>'
@@ -44,7 +44,7 @@ class DatasetBase(torchtext.data.Dataset):
         Args:
             vocab_dict (dict): a dict of loaded vocab from vocab.pt file.
         """
-        fields = onmt.inputters.inputter.load_fields_from_vocab(
+        fields = open_nmt.onmt.inputters.inputter.load_fields_from_vocab(
             vocab_dict.items(), self.data_type)
         self.fields = dict([(k, f) for (k, f) in fields.items()
                             if k in self.examples[0].__dict__])

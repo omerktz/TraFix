@@ -1,10 +1,10 @@
 from __future__ import division
 import torch
 import argparse
-import onmt
-import onmt.model_builder
-import onmt.inputters
-import onmt.opts
+import open_nmt.onmt
+import open_nmt.onmt.model_builder
+import open_nmt.onmt.inputters
+import open_nmt.onmt.opts
 
 from open_nmt.onmt.utils.misc import use_gpu
 from open_nmt.onmt.utils.logging import init_logger, logger
@@ -30,7 +30,7 @@ def write_embeddings(filename, dict, embeddings):
 
 def main():
     dummy_parser = argparse.ArgumentParser(description='train.py')
-    onmt.opts.model_opts(dummy_parser)
+    open_nmt.onmt.opts.model_opts(dummy_parser)
     dummy_opt = dummy_parser.parse_known_args([])[0]
     opt = parser.parse_args()
     opt.cuda = opt.gpu > -1
@@ -53,14 +53,14 @@ def main():
             tgt_dict = vocab[1]
     assert src_dict is not None and tgt_dict is not None
 
-    fields = onmt.inputters.load_fields_from_vocab(checkpoint['vocab'])
+    fields = open_nmt.onmt.inputters.load_fields_from_vocab(checkpoint['vocab'])
 
     model_opt = checkpoint['opt']
     for arg in dummy_opt.__dict__:
         if arg not in model_opt:
             model_opt.__dict__[arg] = dummy_opt.__dict__[arg]
 
-    model = onmt.model_builder.build_base_model(
+    model = open_nmt.onmt.model_builder.build_base_model(
         model_opt, fields, use_gpu(opt), checkpoint)
     encoder = model.encoder
     decoder = model.decoder

@@ -3,7 +3,7 @@ from __future__ import division, unicode_literals
 from __future__ import print_function
 
 import torch
-import onmt.inputters as inputters
+import open_nmt.onmt.inputters as inputters
 
 
 class TranslationBuilder(object):

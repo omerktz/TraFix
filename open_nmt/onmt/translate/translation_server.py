@@ -10,7 +10,7 @@ import threading
 import re
 
 import torch
-import onmt.opts
+import open_nmt.onmt.opts
 
 from open_nmt.onmt.utils.logging import init_logger
 from open_nmt.onmt.translate.translator import build_translator
@@ -198,7 +198,7 @@ class ServerModel:
         prec_argv = sys.argv
         sys.argv = sys.argv[:1]
         parser = argparse.ArgumentParser()
-        onmt.opts.translate_opts(parser)
+        open_nmt.onmt.opts.translate_opts(parser)
 
         models = opt['models']
         if not isinstance(models, (list, tuple)):

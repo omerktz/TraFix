@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-import onmt
+import open_nmt.onmt
 from open_nmt.onmt.modules.position_ffn import PositionwiseFeedForward
 
 MAX_SIZE = 5000
@@ -31,17 +31,17 @@ class TransformerDecoderLayer(nn.Module):
         self.self_attn_type = self_attn_type
 
         if self_attn_type == "scaled-dot":
-            self.self_attn = onmt.modules.MultiHeadedAttention(
+            self.self_attn = open_nmt.onmt.modules.MultiHeadedAttention(
                 heads, d_model, dropout=dropout)
         elif self_attn_type == "average":
-            self.self_attn = onmt.modules.AverageAttention(
+            self.self_attn = open_nmt.onmt.modules.AverageAttention(
                 d_model, dropout=dropout)
 
-        self.context_attn = onmt.modules.MultiHeadedAttention(
+        self.context_attn = open_nmt.onmt.modules.MultiHeadedAttention(
             heads, d_model, dropout=dropout)
         self.feed_forward = PositionwiseFeedForward(d_model, d_ff, dropout)
-        self.layer_norm_1 = onmt.modules.LayerNorm(d_model)
-        self.layer_norm_2 = onmt.modules.LayerNorm(d_model)
+        self.layer_norm_1 = open_nmt.onmt.modules.LayerNorm(d_model)
+        self.layer_norm_2 = open_nmt.onmt.modules.LayerNorm(d_model)
         self.dropout = dropout
         self.drop = nn.Dropout(dropout)
         mask = self._get_attn_subsequent_mask(MAX_SIZE)
@@ -167,10 +167,10 @@ class TransformerDecoder(nn.Module):
         # Set up a separated copy attention layer, if needed.
         self._copy = False
         if copy_attn:
-            self.copy_attn = onmt.modules.GlobalAttention(
+            self.copy_attn = open_nmt.onmt.modules.GlobalAttention(
                 d_model, attn_type=attn_type)
             self._copy = True
-        self.layer_norm = onmt.modules.LayerNorm(d_model)
+        self.layer_norm = open_nmt.onmt.modules.LayerNorm(d_model)
 
     def init_state(self, src, memory_bank, enc_hidden, with_cache=False):
         """ Init decoder state """

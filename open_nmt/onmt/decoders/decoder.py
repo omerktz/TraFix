@@ -4,7 +4,7 @@ from __future__ import division
 import torch
 import torch.nn as nn
 
-import onmt.models.stacked_rnn
+import open_nmt.onmt.models.stacked_rnn
 from open_nmt.onmt.utils.misc import aeq
 from open_nmt.onmt.utils.rnn_factory import rnn_factory
 
