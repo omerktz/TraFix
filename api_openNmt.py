@@ -2,7 +2,7 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
-	dynmt = os.path.abspath('dynmt/src/dynmt.py')
+	openNmt = os.path.abspath('openNmt/strain.py')
 	config.read(args['config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
@@ -10,7 +10,7 @@ def main(args):
 	vocabs = os.path.abspath(args['vocabs'])
 	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
-	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
+	command = 'python ' + openNmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-patience={8} --beam-size={9} --max-pred={10} --max-len={11} --min-epochs={12} ' \
 								  '--lstm-layers={13} --models-to-save={14}{15}{16}{17}{18}{19}' \

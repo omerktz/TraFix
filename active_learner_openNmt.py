@@ -102,18 +102,6 @@ class ActiveLearner:
 															0 if self.initial_model else self.train_size_initial,
 															os.path.join(self.datasets_path, 'test0'),
 																   self.compiler))
-
-
-		# python2
-		# .7
-		# preprocess.py - train_src
-		# ~ / OpenNMT - py / outputCp / output.corpus.ll - train_tgt
-		# ~ / OpenNMT - py / outputCp / output.corpus.hl - valid_src
-		# ~ / OpenNMT - py / outputCp / validate.corpus.ll - valid_tgt
-		# ~ / OpenNMT - py / outputCp / validate.corpus.hl - save_data
-		# ~ / OpenNMT - py / outputCp / afterPreprocess
-
-
 		os.system(
 			'python {0} {5} -o {1} -c {2} -n {3} -e {4} -v'.format(self.codenator,
 															   os.path.join(self.datasets_path, 'validate0'),
@@ -129,7 +117,9 @@ class ActiveLearner:
                                                                    os.path.join(self.datasets_path, 'train0','.corpos.ll'),
                                                                    os.path.join(self.datasets_path, 'train0','.corpos.hl'),
                                                                    os.path.join(self.datasets_path, 'validate0','.corpos.ll'),
-                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.hl')))
+                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.hl'),
+                                                                   os.path.join(self.datasets_path,'preProcessed0')))
+
 		# vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 		# 							  os.path.join(self.datasets_path, 'train0'),
 		# 							  os.path.join(self.datasets_path, 'validate0')],

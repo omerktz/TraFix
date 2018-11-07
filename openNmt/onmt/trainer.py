@@ -86,8 +86,10 @@ class Trainer(object):
     def __init__(self, model, train_loss, valid_loss, optim,
                  trunc_size=0, shard_size=32, data_type='text',
                  norm_method="sents", grad_accum_count=1, n_gpu=1, gpu_rank=1,
-                 gpu_verbose_level=0, report_manager=None, model_saver=None):
+                 gpu_verbose_level=0, report_manager=None, model_saver=None, patience=10):
         # Basic attributes.
+        self.best_validation_stats = None
+        self.num_of_validation_since_best = 0
         self.model = model
         self.train_loss = train_loss
         self.valid_loss = valid_loss
@@ -102,6 +104,7 @@ class Trainer(object):
         self.gpu_verbose_level = gpu_verbose_level
         self.report_manager = report_manager
         self.model_saver = model_saver
+        self.patience = patience
 
         assert grad_accum_count > 0
         if grad_accum_count > 1:
@@ -142,7 +145,7 @@ class Trainer(object):
         report_stats = onmt.utils.Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
 
-        while step <= train_steps:
+        while step <= train_steps and self.num_of_validation_since_best < self.patience:
 
             reduce_counter = 0
             for i, batch in enumerate(train_iter):
@@ -194,6 +197,7 @@ class Trainer(object):
                                 logger.info('GpuRank %d: gather valid stat \
                                             step %d' % (self.gpu_rank, step))
                             valid_stats = self._maybe_gather_stats(valid_stats)
+                            self.update_valid_stop_cond_stats(valid_stats)
                             if self.gpu_verbose_level > 0:
                                 logger.info('GpuRank %d: report stat step %d'
                                             % (self.gpu_rank, step))
@@ -203,7 +207,7 @@ class Trainer(object):
                         if self.gpu_rank == 0:
                             self._maybe_save(step)
                         step += 1
-                        if step > train_steps:
+                        if step > train_steps or self.num_of_validation_since_best >= self.patience:
                             break
             if self.gpu_verbose_level > 0:
                 logger.info('GpuRank %d: we completed an epoch \
@@ -373,3 +377,11 @@ class Trainer(object):
         """
         if self.model_saver is not None:
             self.model_saver.maybe_save(step)
+
+    def update_valid_stop_cond_stats(self, valid_stats):
+        if (valid_stats.ppl() > self.best_validation_stats.ppl() and
+                valid_stats.accuracy() < self.best_validation_stats.accuracy()):
+            self.num_of_validation_since_best = 0
+            self.best_validation_stats = valid_stats
+        else :
+            self.num_of_validation_since_best += 1
