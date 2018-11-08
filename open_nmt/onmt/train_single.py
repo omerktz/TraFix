@@ -127,14 +127,14 @@ def main(opt, device_id):
     # Build model saver
     model_saver = build_model_saver(model_opt, opt, model, fields, optim)
 
-    trainer = build_trainer(opt, device_id, model, fields,
-                            optim, data_type, model_saver=model_saver)
-
     def train_iter_fct(): return build_dataset_iter(
         lazily_load_dataset("train", opt), fields, opt)
 
     def valid_iter_fct(): return build_dataset_iter(
         lazily_load_dataset("valid", opt), fields, opt, is_train=False)
+
+    trainer = build_trainer(opt, device_id, model, fields,
+                            optim, data_type, model_saver=model_saver, data_set_size=train_iter_fct().__len__())
 
     # Do training.
     if len(opt.gpu_ranks):
