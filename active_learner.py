@@ -297,7 +297,7 @@ if __name__ == "__main__":
 						help="Dynmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
-	parser.add_argument('-p', '--percentage', type=float, default=0.98,
+	parser.add_argument('-p', '--percentage', type=float, default=0.99,
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
