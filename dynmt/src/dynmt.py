@@ -766,7 +766,10 @@ def predict_multiple_sequences(params, encoder, decoder, y2int, int2y, inputs):
 			for k, seq in enumerate(nbest):
 				print '{}-best: {}'.format(k, ' '.join(seq[0]).encode('utf8') + '\n')
 		else:
-			predicted_seq, alphas_mtx = decoder.predict_greedy(encoder, input_seq)
+			if len(input_seq) == 0:
+				predicted_seq = ''
+			else:
+				predicted_seq, alphas_mtx = decoder.predict_greedy(encoder, input_seq)
 		if i % 100 == 0 and i > 0:
 			print 'predicted {} examples out of {}'.format(i, data_len)
 

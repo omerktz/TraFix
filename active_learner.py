@@ -179,12 +179,12 @@ class ActiveLearner:
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
-			'python {0} {6} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
+			'python {0} {7} -o {1} -c {2} -n {3} -e {4} -a {5} -t {6} -v'.format(self.codenator,
 															os.path.join(self.datasets_path, 'validate%d' % i),
 															self.codenator_config, self.validation_size,
 															os.path.join(self.datasets_path, 'test0'),
 															os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
-															self.compiler))
+															self.validation_size, self.compiler))
 		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 									  os.path.join(self.datasets_path, 'train%d' % i),
 									  os.path.join(self.datasets_path, 'validate%d' % i)],

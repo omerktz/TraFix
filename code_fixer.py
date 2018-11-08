@@ -94,12 +94,14 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 		last_changed = 0
 		for i in numbers:
 			original_value = hl_parts[i]
-			hl_parts[i] = str(int(hl_parts[i]) * 2)
+			if not re.match('^\-?[0-9]+$', original_value):
+				continue
+			hl_parts[i] = str(int(original_value) * 2)
 			new_compiled = compiler.compiler(hl_wrapper(' '.join(hl_parts)), True)
 			new_compiled_parts = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), new_compiled.split(';')))
 			changed_instructions = filter(lambda j: new_compiled_parts[j] != original_compiled_parts[j], range(len(new_compiled_parts)))
 			if len(changed_instructions) != 1:
-				print "Unexpected changed instructions"
+				# print "Unexpected changed instructions"
 				hl_parts[i] = original_value
 				continue
 			changed = changed_instructions[0]
@@ -120,12 +122,14 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 					new_values.add(original_int * (constant0 + (2 ** 32))/float(constant1 + (2 ** 32)))
 			elif len(replacements) == 2:
 				power_replacement = replacements[relevant_replacements[1]][0]
-				if int(round(original_int * constant0 / float(2**(32 + int(power_replacement[0]))))) == 1:
+				if int(round(original_int * constant0 / float(2**int(power_replacement[0])) / float(2**32))) == 1:
 					new_values.add(2**(32 + int(power_replacement[1]))/float(constant1))
-				elif int(round(original_int * (constant0 + 2**32) / float(2**(32 + int(power_replacement[0]))))) == 1:
+				elif int(round(original_int * (constant0 + 2**32) / float(2**int(power_replacement[0])) / float(2**32))) == 1:
 					new_values.add(2**(32 + int(power_replacement[1]))/float(constant1 + 2**32))
 				else:
-					print "Unknown div to mul pattern"
+					# print "Unknown div to mul pattern"
+					# print map(lambda x: (x, replacements[x]), relevant_replacements)
+					pass
 			for new_value in new_values:
 				new_value_str = str(int(round(new_value)))
 				new_remaining_replacements = try_new_value(str(new_value_str), hl_parts, i, ll, compiler, comparison)

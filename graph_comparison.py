@@ -9,6 +9,7 @@ def set_instruction_class(instruction_class):
 
 class VarInstruction:
 	def __init__(self, var):
+		self.op = ''
 		self.defines = [var]
 		self.code = 'Var '+var
 		self.is_jump = False
@@ -110,6 +111,8 @@ class Graph:
 				self.cdg[r].add(b)
 				self.rcdg[b].add(r)
 
+	def get_all_ops(self):
+		return set(filter(lambda x: len(x) > 0, map(lambda s: s.op, self.instructions.values())))
 
 	def get_fixed_point(self, init, gen, kill, merge, predecessors, successors):
 		in_states = init
@@ -136,6 +139,8 @@ class Graph:
 
 def compare_graphs(graph1, graph2):
 	if len(graph1.instructions) != len(graph2.instructions):
+		return (False, [])
+	if graph1.get_all_ops() != graph2.get_all_ops():
 		return (False, [])
 	def is_matching_instructions(index1, index2):
 		def is_number(x):
@@ -219,6 +224,14 @@ def compare_graphs(graph1, graph2):
 	all_pairs = list(itertools.product(graph1.instructions.keys(), graph2.instructions.keys()))
 	pairs_with_replacements = dict(map(lambda (x, y): ((x, y), is_matching_instructions(x, y)), all_pairs))
 	initial_pairs = filter(lambda (x, y): pairs_with_replacements[(x, y)][0], all_pairs)
+	perfect_matches = filter(lambda x: len(pairs_with_replacements[x][1]) == 0, initial_pairs)
+	non_perfect_matches = filter(lambda x: x not in perfect_matches, initial_pairs)
+	redundant_pairs = filter(lambda x: x[0] in map(lambda y: y[0], perfect_matches), non_perfect_matches)
+	initial_pairs = filter(lambda x: x not in redundant_pairs, initial_pairs)
+	if set(map(lambda x: x[0], initial_pairs)) != set(graph1.instructions.keys()):
+		return (False, [])
+	if set(map(lambda x: x[1], initial_pairs)) != set(graph2.instructions.keys()):
+		return (False, [])
 	pairs_dependencies = dict(map(lambda p: (p, generate_all_dependency_pairs(*p)), initial_pairs))
 	changed = True
 	while changed:

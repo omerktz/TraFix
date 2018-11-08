@@ -34,8 +34,11 @@ def compiler(s, check_success=False):
 			line = line[1:].strip()
 		if len(line) > 0:
 			lllines += [line.strip()]
-	os.remove(src_file)
-	os.remove(tgt_file)
+	try:
+		os.remove(src_file)
+		os.remove(tgt_file)
+	except OSError:
+		pass
 	return process(lllines)
 
 def process(lines):
@@ -82,6 +85,7 @@ def get_number(n):
 class Instruction:
 	def __init__(self, code, i):
 		self.code = code
+		self.op = ''
 		self.is_jump = False
 		self.is_label = False
 		self.targets = []
