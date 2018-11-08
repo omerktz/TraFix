@@ -99,7 +99,6 @@ class AWShandler:
 		self.log_info('Updating configurations')
 		sftp = self._client.open_sftp()
 		sftp.chdir(os.path.join(self._main_dir, 'configs'))
-		print sftp.listdir('.')
 		for f in os.listdir(self._config_dir):
 			if f.endswith('.config'):
 				sftp.put(os.path.join(self._config_dir, f), f)
