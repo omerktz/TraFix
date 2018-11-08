@@ -99,7 +99,10 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 			hl_parts[i] = str(int(original_value) * 2)
 			new_compiled = compiler.compiler(hl_wrapper(' '.join(hl_parts)), True)
 			new_compiled_parts = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), new_compiled.split(';')))
-			changed_instructions = filter(lambda j: new_compiled_parts[j] != original_compiled_parts[j], range(len(new_compiled_parts)))
+			if len(new_compiled_parts) != len(original_compiled_parts):
+				hl_parts[i] = original_value
+				continue
+			changed_instructions = filter(lambda j: new_compiled_parts[j] != original_compiled_parts[j], range(len(original_compiled_parts)))
 			if len(changed_instructions) != 1:
 				# print "Unexpected changed instructions"
 				hl_parts[i] = original_value
@@ -122,13 +125,16 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 					new_values.add(original_int * (constant0 + (2 ** 32))/float(constant1 + (2 ** 32)))
 			elif len(replacements) == 2:
 				power_replacement = replacements[relevant_replacements[1]][0]
-				if int(round(original_int * constant0 / float(2**int(power_replacement[0])) / float(2**32))) == 1:
-					new_values.add(2**(32 + int(power_replacement[1]))/float(constant1))
-				elif int(round(original_int * (constant0 + 2**32) / float(2**int(power_replacement[0])) / float(2**32))) == 1:
-					new_values.add(2**(32 + int(power_replacement[1]))/float(constant1 + 2**32))
-				else:
-					# print "Unknown div to mul pattern"
-					# print map(lambda x: (x, replacements[x]), relevant_replacements)
+				try:
+					if int(round(original_int * constant0 / float(2**int(power_replacement[0])) / float(2**32))) == 1:
+						new_values.add(2**(32 + int(power_replacement[1]))/float(constant1))
+					elif int(round(original_int * (constant0 + 2**32) / float(2**int(power_replacement[0])) / float(2**32))) == 1:
+						new_values.add(2**(32 + int(power_replacement[1]))/float(constant1 + 2**32))
+					else:
+						# print "Unknown div to mul pattern"
+						# print map(lambda x: (x, replacements[x]), relevant_replacements)
+						pass
+				except ZeroDivisionError:
 					pass
 			for new_value in new_values:
 				new_value_str = str(int(round(new_value)))
