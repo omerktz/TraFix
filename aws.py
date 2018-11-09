@@ -171,10 +171,11 @@ if __name__ == "__main__":
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
 
-	if not os.path.exists(args.configs):
-		print 'Configs folder does not exist'
-		import sys
-		sys.exit(1)
+	if args.configs:
+		if not os.path.exists(args.configs):
+			print 'Configs folder does not exist'
+			import sys
+			sys.exit(1)
 
 	pool = multiprocessing.Pool(processes=args.count)
 	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
