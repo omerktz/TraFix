@@ -121,7 +121,7 @@ class Trainer(object):
         self.model.train()
 
     def keep_for_more_steps(self,step,train_steps,epochs_finished):
-        epochs_finished <= self.min_epochs or (step <= train_steps and self.num_of_validation_since_best < self.patience)
+        epochs_finished < self.min_epochs or (step <= train_steps and self.num_of_validation_since_best < self.patience)
 
     def finish_the_train(self,step,train_steps,epochs_finished):
         not self.keep_for_more_steps(step,train_steps,epochs_finished)
