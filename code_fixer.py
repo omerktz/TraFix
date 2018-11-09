@@ -136,6 +136,8 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 						pass
 				except ZeroDivisionError:
 					pass
+				except OverflowError:
+					pass
 			for new_value in new_values:
 				new_value_str = str(int(round(new_value)))
 				new_remaining_replacements = try_new_value(str(new_value_str), hl_parts, i, ll, compiler, comparison)
