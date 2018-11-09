@@ -393,9 +393,11 @@ class Trainer(object):
             self.model_saver.maybe_save(step)
 
     def update_valid_stop_cond_stats(self, valid_stats):
+        # if this validation is better than the best one - it replaces it.
+        # better means better ppl (lower) and better acc (higher)
         if (valid_stats.ppl() > self.best_validation_stats.ppl() and
                 valid_stats.accuracy() < self.best_validation_stats.accuracy()):
+            self.num_of_validation_since_best += 1
+        else:
             self.num_of_validation_since_best = 0
             self.best_validation_stats = valid_stats
-        else :
-            self.num_of_validation_since_best += 1
