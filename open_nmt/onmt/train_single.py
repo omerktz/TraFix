@@ -134,7 +134,7 @@ def main(opt, device_id):
         lazily_load_dataset("valid", opt), fields, opt, is_train=False)
 
     trainer = build_trainer(opt, device_id, model, fields,
-                            optim, data_type, model_saver=model_saver, data_set_size=train_iter_fct().__len__())
+                            optim, data_type, model_saver=model_saver)
 
     # Do training.
     if len(opt.gpu_ranks):

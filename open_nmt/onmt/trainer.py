@@ -20,7 +20,7 @@ from open_nmt.onmt.utils.logging import logger
 
 
 def build_trainer(opt, device_id, model, fields,
-                  optim, data_type, model_saver=None, data_set_size=0):
+                  optim, data_type, model_saver=None):
     """
     Simplify `Trainer` creation based on user `opt`s*
 
@@ -41,7 +41,7 @@ def build_trainer(opt, device_id, model, fields,
 
     trunc_size = opt.truncated_decoder  # Badly named...
     shard_size = opt.max_generator_batches
-    batch_size = opt.batch_size
+
     norm_method = opt.normalization
     grad_accum_count = opt.accum_count
     n_gpu = opt.world_size
@@ -58,7 +58,7 @@ def build_trainer(opt, device_id, model, fields,
                            shard_size, data_type, norm_method,
                            grad_accum_count, n_gpu, gpu_rank,
                            gpu_verbose_level, report_manager,
-                           model_saver=model_saver,batch_size=batch_size,data_set_size=data_set_size)
+                           model_saver=model_saver)
     return trainer
 
 
@@ -90,7 +90,7 @@ class Trainer(object):
     def __init__(self, model, train_loss, valid_loss, optim,
                  trunc_size=0, shard_size=32, data_type='text',
                  norm_method="sents", grad_accum_count=1, n_gpu=1, gpu_rank=1,
-                 gpu_verbose_level=0, report_manager=None, model_saver=None, patience=10, min_epochs=1, batch_size=64, data_set_size=0):
+                 gpu_verbose_level=0, report_manager=None, model_saver=None, patience=10, min_epochs=1):
         # Basic attributes.
         self.best_validation_stats = None
         self.num_of_validation_since_best = 0
@@ -109,7 +109,7 @@ class Trainer(object):
         self.report_manager = report_manager
         self.model_saver = model_saver
         self.patience = patience
-        self.min_steps = min_epochs * math.ceil(data_set_size / batch_size)
+        self.min_epochs = min_epochs
 
         assert grad_accum_count > 0
         if grad_accum_count > 1:
@@ -120,11 +120,11 @@ class Trainer(object):
         # Set model in training mode.
         self.model.train()
 
-    def keep_for_more_steps(self,step,train_steps):
-        step <= self.min_steps or (step <= train_steps and self.num_of_validation_since_best < self.patience)
+    def keep_for_more_steps(self,step,train_steps,epochs_finished):
+        epochs_finished <= self.min_epochs or (step <= train_steps and self.num_of_validation_since_best < self.patience)
 
-    def finish_the_train(self,step,train_steps):
-        not self.keep_for_more_steps(step,train_steps)
+    def finish_the_train(self,step,train_steps,epochs_finished):
+        not self.keep_for_more_steps(step,train_steps,epochs_finished)
 
     def train(self, train_iter_fct, valid_iter_fct, train_steps, valid_steps):
         """
@@ -151,12 +151,13 @@ class Trainer(object):
         accum = 0
         normalization = 0
         train_iter = train_iter_fct()
+        epochs_finished = 0
 
         total_stats = open_nmt.onmt.utils.Statistics()
         report_stats = open_nmt.onmt.utils.Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
 
-        while self.keep_for_more_steps(step,train_steps):
+        while self.keep_for_more_steps(step,train_steps,epochs_finished):
 
             reduce_counter = 0
             for i, batch in enumerate(train_iter):
@@ -218,13 +219,15 @@ class Trainer(object):
                         if self.gpu_rank == 0:
                             self._maybe_save(step)
                         step += 1
-                        if self.finish_the_train(step,train_steps):
+                        if self.finish_the_train(step,train_steps,epochs_finished):
                             break
             if self.gpu_verbose_level > 0:
                 logger.info('GpuRank %d: we completed an epoch \
                             at step %d' % (self.gpu_rank, step))
+            epochs_finished += 1
             train_iter = train_iter_fct()
 
+        self.model_saver._save(step)
         return total_stats
 
     def validate(self, valid_iter):
