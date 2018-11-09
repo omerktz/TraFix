@@ -12,7 +12,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 class AWShandler:
 	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
 				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=False,
-				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5):
+				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5, branch='master', config_dir=None):
 		self._index = index
 		self._ami_id = image
 		self._instance_username = username
@@ -25,6 +25,8 @@ class AWShandler:
 		self._instance_name = instance_name
 		self._main_dir = main_dir
 		self._retries = retries
+		self._branch = branch
+		self._config_dir = config_dir
 
 		self._ec2 = boto3.resource('ec2')
 		self._ec2client = boto3.client('ec2')
@@ -79,7 +81,7 @@ class AWShandler:
 			sin, sout, serr = self._client.exec_command(command)
 			sout.channel.recv_exit_status()
 		self.log_info('Updating code')
-		exec_command('cd {0}; git pull; chmod +x *.sh'.format(self._main_dir))
+		exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
 		self.log_info('Executing experiment')
 		exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
@@ -93,6 +95,15 @@ class AWShandler:
 		os.system('cd {0}; tar -xzf output{1}.tar.gz --warning=no-timestamp ; cd ..'.format(self._output, self._index))
 
 
+	def update_configurations(self):
+		self.log_info('Updating configurations')
+		sftp = self._client.open_sftp()
+		sftp.chdir(os.path.join(self._main_dir, 'configs'))
+		for f in os.listdir(self._config_dir):
+			if f.endswith('.config'):
+				sftp.put(os.path.join(self._config_dir, f), f)
+
+
 	def kill_instance(self):
 		self.log_info('Killing instance')
 		self._instance.modify_attribute(DisableApiTermination={'Value': False})
@@ -103,6 +114,8 @@ class AWShandler:
 	def launch_instance(self):
 		self._instance = self.create_instance()
 		self._client = self.get_client()
+		if self._config_dir is not None:
+			self.update_configurations()
 		self.exec_instance()
 		self.download_from_instance()
 		self._client.close()
@@ -119,7 +132,7 @@ def instance_wrapper((args, i)):
 	hide_logs()
 	AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key,
 			   instance_type=args.type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.naming, main_dir=args.main).launch_instance()
+			   instance_name=args.naming, main_dir=args.main, branch=args.branch, config_dir=args.configs).launch_instance()
 
 if __name__ == "__main__":
 	import argparse
@@ -128,7 +141,7 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
-	parser.add_argument('-i', '--image', type=str, default='ami-d13bbcae',
+	parser.add_argument('-i', '--image', type=str, default='ami-08016dab96d85a8d1',
 						help="AWS image id (default: \'%(default)s\')")
 	parser.add_argument('-u', '--username', type=str, default='ubuntu',
 						help="instance user name (default: \'%(default)s\')")
@@ -141,11 +154,15 @@ if __name__ == "__main__":
 	parser.add_argument('-n', '--naming', type=str, default='omer-{0}-{1}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-m', '--main', type=str, default='Codenator',
-						help="name of main directory on instace (default: \'%(default)s)\'")
+						help="name of main directory on instance (default: \'%(default)s)\'")
 	parser.add_argument('-p', '--protection', type=bool, default=False,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
+	parser.add_argument('-b', '--branch', type=str, default='master',
+						help="repository branch to use (default: \'%(default)s\')")
+	parser.add_argument('-c', '--configs', type=str,
+						help="folder containing configurations to push to instance")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
@@ -153,6 +170,11 @@ if __name__ == "__main__":
 	if os.path.exists(args.output):
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
+
+	if not os.path.exists(args.configs):
+		print 'Configs folder does not exist'
+		import sys
+		sys.exit(1)
 
 	pool = multiprocessing.Pool(processes=args.count)
 	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))

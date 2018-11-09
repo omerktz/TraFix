@@ -9,6 +9,7 @@ def set_instruction_class(instruction_class):
 
 class VarInstruction:
 	def __init__(self, var):
+		self.op = ''
 		self.defines = [var]
 		self.code = 'Var '+var
 		self.is_jump = False
@@ -32,7 +33,12 @@ class Graph:
 		for i in self.instructions:
 			if self.instructions[i].is_jump:
 				for label in self.instructions[i].targets:
-					index = filter(lambda j: label in self.instructions[j].labels, self.instructions)[0]
+					indexes = filter(lambda j: label in self.instructions[j].labels, self.instructions.keys())
+					if len(indexes) == 0:
+						print "Missing label"
+						import sys
+						sys.exit(1)
+					index = indexes[0]
 					self.childs[i].append(index)
 					self.parents[index].append(i)
 			else:
@@ -105,6 +111,8 @@ class Graph:
 				self.cdg[r].add(b)
 				self.rcdg[b].add(r)
 
+	def get_all_ops(self):
+		return set(filter(lambda x: len(x) > 0, map(lambda s: s.op, self.instructions.values())))
 
 	def get_fixed_point(self, init, gen, kill, merge, predecessors, successors):
 		in_states = init
@@ -131,59 +139,68 @@ class Graph:
 
 def compare_graphs(graph1, graph2):
 	if len(graph1.instructions) != len(graph2.instructions):
-		return False
+		return (False, [])
+	if graph1.get_all_ops() != graph2.get_all_ops():
+		return (False, [])
 	def is_matching_instructions(index1, index2):
 		def is_number(x):
-			return re.match('^\-?[0-9]+$', x) or re.match('^N[0-9]+$', x)
+			return bool(re.match('^\-?[0-9]+$', x)) or bool(re.match('^N[0-9]+$', x))
 		inst1 = graph1.instructions[index1]
 		inst2 = graph2.instructions[index2]
 		# handle VarInsturctions
 		if isinstance(inst1, VarInstruction):
-			return isinstance(inst2, VarInstruction)
+			return (isinstance(inst2, VarInstruction), [])
 		if isinstance(inst2, VarInstruction):
-			return False
+			return (False, [])
 		if inst1.op != inst2.op:
-			return False
+			return (False, [])
 		if inst1.is_condition:
 			if inst1.relation != inst2.relation:
-				return False
+				return (False, [])
 		if len(inst1.uses) != len(inst2.uses):
-			return False
-		numeric_args1 = len(filter(is_number, inst1.uses))
-		numeric_args2 = len(filter(is_number, inst2.uses))
-		if numeric_args1 != numeric_args2:
-			return False
-		# # Following lines verify that all numeric values match.
-		# # These lines are commented out to allow for "close" matches, where the only error is a numeric value.
-		# # This relies on the assumption that substituting numbers to "fix" the code is relatively easy
-		# if inst1.is_symmetric:
-		# 	func = itertools.product
-		# else:
-		# 	func = zip
-		# args = func(inst1.uses, inst2.uses)
-		# matching_numeric_args = len(filter(lambda (x, y): is_number(x) and (x == y), args))
-		# expected_numeric_args_pairs = 4 if ((numeric_args1 == 2) and (inst1.uses[0] == inst1.uses[1])) else numeric_args1
-		# if expected_numeric_args_pairs != matching_numeric_args:
-		# 	return False
+			return (False, [])
+		numeric_args1 = map(lambda i: (i, is_number(i)), inst1.uses)
+		numeric_args2 = map(lambda i: (i, is_number(i)), inst2.uses)
+		numeric_count1 = len(filter(lambda x: x[1], numeric_args1))
+		numeric_count2 = len(filter(lambda x: x[1], numeric_args2))
+		if numeric_count1 != numeric_count2:
+			return (False, [])
+		if numeric_count1 > 0:
+			numeric_values1 = map(lambda x: int(x[0]), filter(lambda x: x[1], numeric_args1))
+			numeric_values2 = map(lambda x: int(x[0]), filter(lambda x: x[1], numeric_args2))
+			if inst1.is_symmetric:
+				numeric_replacements = map(lambda x: filter(lambda (i, j): i != j, zip(numeric_values1, x)), list(itertools.permutations(numeric_values2)))
+				if any(map(lambda l: len(l) == 0, numeric_replacements)):
+					numeric_replacements = []
+				else:
+					if len(numeric_replacements) > 1:
+						print 'multiple possible replacements'
+					numeric_replacements = sorted(numeric_replacements, key=lambda l: len(l))[0]
+			else:
+				if map(lambda x: x[1], numeric_args1) != map(lambda x: x[1], numeric_args2):
+					return (False, [])
+				numeric_replacements = filter(lambda (i, j): i != j, zip(numeric_values1, numeric_values2))
+		else:
+			numeric_replacements = []
 		cdg1 = graph1.cdg[index1]
 		cdg2 = graph2.cdg[index2]
 		if len(cdg1) != len(cdg2):
-			return False
+			return (False, [])
 		rcdg1 = graph1.rcdg[index1]
 		rcdg2 = graph2.rcdg[index2]
 		if len(rcdg1) != len(rcdg2):
-			return False
+			return (False, [])
 		ddg1 = graph1.ddg[index1]
 		ddg2 = graph2.ddg[index2]
 		if len(ddg1) != len(ddg2):
-			return False
+			return (False, [])
 		if sorted(map(len,ddg1)) != sorted(map(len,ddg2)):
-			return False
+			return (False, [])
 		rddg1 = graph1.rddg[index1]
 		rddg2 = graph2.rddg[index2]
 		if len(rddg1) != len(rddg2):
-			return False
-		return True
+			return (False, [])
+		return (True, numeric_replacements)
 	def generate_all_dependency_pairs(index1, index2):
 		cdg1 = graph1.cdg[index1]
 		cdg2 = graph2.cdg[index2]
@@ -204,8 +221,17 @@ def compare_graphs(graph1, graph2):
 			if len(x) == len(y):
 				dependency_pairs.update(list(itertools.product(x, y)))
 		return len(set(map(lambda x: x[0], dependency_pairs))), dependency_pairs
-	all_pairs = itertools.product(graph1.instructions.keys(), graph2.instructions.keys())
-	initial_pairs = filter(lambda (x, y): is_matching_instructions(x, y), all_pairs)
+	all_pairs = list(itertools.product(graph1.instructions.keys(), graph2.instructions.keys()))
+	pairs_with_replacements = dict(map(lambda (x, y): ((x, y), is_matching_instructions(x, y)), all_pairs))
+	initial_pairs = filter(lambda (x, y): pairs_with_replacements[(x, y)][0], all_pairs)
+	perfect_matches = filter(lambda x: len(pairs_with_replacements[x][1]) == 0, initial_pairs)
+	non_perfect_matches = filter(lambda x: x not in perfect_matches, initial_pairs)
+	redundant_pairs = filter(lambda x: x[0] in map(lambda y: y[0], perfect_matches), non_perfect_matches)
+	initial_pairs = filter(lambda x: x not in redundant_pairs, initial_pairs)
+	if set(map(lambda x: x[0], initial_pairs)) != set(graph1.instructions.keys()):
+		return (False, [])
+	if set(map(lambda x: x[1], initial_pairs)) != set(graph2.instructions.keys()):
+		return (False, [])
 	pairs_dependencies = dict(map(lambda p: (p, generate_all_dependency_pairs(*p)), initial_pairs))
 	changed = True
 	while changed:
@@ -222,10 +248,11 @@ def compare_graphs(graph1, graph2):
 				changed = True
 				del pairs_dependencies[pair]
 	if set(map(lambda x: x[0], pairs_dependencies.keys())) != set(graph1.instructions.keys()):
-		return False
+		return (False, [])
 	if set(map(lambda x: x[1], pairs_dependencies.keys())) != set(graph2.instructions.keys()):
-		return False
-	return True
+		return (False, [])
+	required_replacements = dict(map(lambda (i, j): ((i - 1, j - 1), pairs_with_replacements[(i, j)][1]), sorted(filter(lambda (x, y): isinstance(x, int), pairs_dependencies.keys()))[1:-1]))
+	return (True, required_replacements)
 
 
 def compare_codes(code1, code2):

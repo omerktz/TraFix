@@ -36,8 +36,11 @@ def compiler(s, check_success=False):
 			line = line[1:].strip()
 		if len(line) > 0:
 			x86lines += [line.strip()]
-	os.remove(src_file)
-	os.remove(tgt_file)
+	try:
+		os.remove(src_file)
+		os.remove(tgt_file)
+	except OSError:
+		pass
 	return process(x86lines)
 
 def process(lines):
@@ -89,6 +92,7 @@ def get_number(n):
 class Instruction:
 	def __init__(self, code, i):
 		self.code = code
+		self.op = ''
 		self.is_jump = False
 		self.is_label = False
 		self.targets = []
@@ -110,7 +114,7 @@ class Instruction:
 			return
 		self.op = code[:code.index(' ')].strip()
 		code = code[len(self.op):].strip()
-		if self.op in ['jmp', 'je', 'jne', 'jg', 'jl', 'jle', 'jge']:
+		if self.op in ['jmp', 'je', 'jz', 'jne', 'jnz', 'jg', 'jnle', 'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng', 'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna', 'jcxz', 'jc', 'jnc', 'jo', 'jno', 'jp', 'jpe', 'jnp', 'jpo', 'js', 'jns']:
 			self.is_jump = True
 			self.targets = [code + ' :']
 			if self.op != 'jmp':
@@ -126,16 +130,25 @@ class Instruction:
 			parts = map(lambda x: x.strip(), code.split(','))
 			self.uses = [parts[0]]
 			self.defines = [parts[1]]
-		elif self.op in ['addl', 'subl']:
+		elif self.op in ['cmova', 'cmovae', 'cmovb', 'cmovbe', 'cmovc', 'cmove', 'cmovg', 'cmovge', 'cmovl', 'cmovle', 'cmovna', 'cmovnae', 'cmovnb', 'cmovnbe', 'cmovnc', 'cmovne', 'cmovng', 'cmovnge', 'cmovnl', 'cmovnle', 'cmovno', 'cmovnp', 'cmovns', 'cmovnz', 'cmovo', 'cmovp', 'cmovpe', 'cmovpo', 'cmovs', 'cmovz']:
+			parts = map(lambda x: x.strip(), code.split(','))
+			self.uses = [parts[0]] + ['FLAGS']
+			self.defines = [parts[1]]
+		elif self.op in ['addl', 'subl', 'adcl', 'sbbl']:
 			self.uses = map(lambda x: x.strip(), code.split(','))
-			self.defines = [self.uses[1]]
+			if self.op in ['adcl', 'sbbl']:
+				self.uses += ['FLAGS']
+			self.defines = [self.uses[1]] + ['FLAGS']
 			if re.match('^\-[0-9]+$', self.uses[0]):
 				self.uses = [self.uses[1], self.uses[0][1:]]
 				self.op = 'addl' if self.op == 'subl' else 'subl'
-			self.is_symmetric = self.op == 'addl'
+			self.is_symmetric = self.op in ['addl', 'adcl']
+		elif self.op in ['andl', 'orl', 'xorl']:
+			self.uses = map(lambda x: x.strip(), code.split(','))
+			self.defines = [self.uses[1]] + ['FLAGS']
 		elif self.op in ['inc', 'dec']:
 			self.uses = [code, '1']
-			self.defines = [code]
+			self.defines = [code] + ['FLAGS']
 			self.op = 'addl' if self.op == 'inc' else 'subl'
 			self.is_symmetric = self.op == 'addl'
 		elif self.op == 'imull':
@@ -154,28 +167,27 @@ class Instruction:
 				import sys
 				print 'Invalid asm instruction: '+self.op+' '+code
 				sys.exit(1)
+			self.defines += ['FLAGS']
 			self.is_symmetric = True
 		elif self.op == 'idivl':
-			self.uses = [code, '%eax', '%edx']
+			self.uses = [code, '%eax', '%edx', 'FLAGS']
 			self.defines = ['%eax', '%edx']
 		elif self.op in ['negl', 'notl']:
 			self.uses = [code]
-			self.defines = [code]
+			self.defines = [code, 'FLAGS']
 		elif self.op in ['sall', 'sarl', 'shll', 'shrl']:
 			parts = map(lambda x: x.strip(), code.split(','))
 			parts = map(lambda n: n[1:] if re.match('^\$\-?[0-9]+$', n) else n, parts)
+			if len(parts) == 1:
+				parts = ['1'] + parts
 			self.uses = parts[:]
-			self.defines = [parts[1]]
+			self.defines = [parts[1]] + ['FLAGS']
 		elif self.op == 'leal':
 			parts = map(lambda x: x.strip(), code.split(' , '))
 			self.defines = [parts[1]]
 			self.uses = re.sub('  ', ' ', re.sub('[\(\)\,]', '', parts[0])).strip().split(' ')
 			self.uses.reverse()
-			self.op = 'addl'
-			if re.match('^\-[0-9]+$', self.uses[1]):
-				self.uses = [self.uses[0], self.uses[1][1:]]
-				self.op = 'subl'
 		else:
-			import sys
-			print 'Unknown op: ' + self.op + ' ' + code
-			sys.exit(2)
+			print 'Unknown op: ' + self.code
+			# import sys
+			# sys.exit(2)

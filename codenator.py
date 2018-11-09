@@ -425,10 +425,13 @@ def generate_statements():
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
-		corpus_ll.append(ll_line.strip())
-		corpus_hl.append(hl_line.strip())
-		corpus_replacements.append(json.dumps(reverse_mapping(replacements)))
-		j += 1
+		hl_line = hl_line.strip()
+		ll_line = ll_line.strip()
+		if (len(hl_line) > 0) and (len(ll_line) > 0):
+			corpus_ll.append(ll_line)
+			corpus_hl.append(hl_line)
+			corpus_replacements.append(json.dumps(reverse_mapping(replacements)))
+			j += 1
 	logging.info('Shuffling and writing dataset')
 	if args.t:
 		logging.info('Truncating to '+str(args.t)+' entries')

@@ -9,6 +9,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 import ConfigParser
 import graph_comparison as gc
 from abstract_numerals import *
+import code_fixer as cf
 
 
 def parsePostOrder(po):
@@ -67,9 +68,19 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	ll = apply_number_replacements(ll, replacements)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
-	graph_comparisons = map(lambda l: gc.compare_codes(ll, l), lls)
-	if any(graph_comparisons):
-		return (i, hl, ll, replacements, cs[graph_comparisons.index(True)], 0)  # success
+	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
+	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
+	if len(successful_comparisons) > 0:
+		for j in successful_comparisons:
+			needed_replacements = graph_comparisons[j][1]
+			if all(map(lambda l: len(l) == 0, needed_replacements.values())):
+				return (i, hl, ll, replacements, cs[j], 0)  # success
+			else:
+				logging.debug('Attempting to fix code for input '+str(i))
+				fixed_code = cf.fix_code(cs[j], ll, hl2ll, gc, lls[j], needed_replacements)
+				if fixed_code is not None:
+					logging.debug('Fix successful!')
+					return (i, hl, ll, replacements, fixed_code, 0)  # success
 	if failed_dataset:
 		with open(failed_dataset + '.corpus.hl', 'a') as fhl:
 			with open(failed_dataset + '.corpus.ll', 'a') as fll:
@@ -81,7 +92,6 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 							fhl.write(h + '\n')
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
-	print i, cs, ll, lls
 	return (i, hl, ll, replacements, None, 4)  # fail
 
 
