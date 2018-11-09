@@ -191,12 +191,13 @@ class ActiveLearner:
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
-			'python {0} {6} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
-															os.path.join(self.datasets_path, 'validate%d' % i),
-															self.codenator_config, self.validation_size,
-															os.path.join(self.datasets_path, 'test0'),
-															os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
-															self.compiler))
+            'python {0} {7} -o {1} -c {2} -n {3} -e {4} -a {5} -t {6} -v'.format(self.codenator,
+                                                            os.path.join(self.datasets_path, 'validate%d' % i),
+                                                            self.codenator_config, self.validation_size,
+                                                            os.path.join(self.datasets_path, 'test0'),
+                                                            os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
+                                                            self.validation_size, self.compiler))
+
 		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 									  os.path.join(self.datasets_path, 'train%d' % i),
 									  os.path.join(self.datasets_path, 'validate%d' % i)],
@@ -309,7 +310,7 @@ if __name__ == "__main__":
 						help="openNmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
-	parser.add_argument('-p', '--percentage', type=float, default=0.98,
+	parser.add_argument('-p', '--percentage', type=float, default=0.99,
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")

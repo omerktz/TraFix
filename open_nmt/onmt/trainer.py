@@ -11,8 +11,6 @@
 
 from __future__ import division
 
-import math
-
 import open_nmt.onmt.inputters as inputters
 import open_nmt.onmt.utils
 
