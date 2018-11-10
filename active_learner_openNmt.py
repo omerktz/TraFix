@@ -114,11 +114,11 @@ class ActiveLearner:
 		os.system(
 			'python {0} -train_src {1} -train_tgt {2}'
 			' -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
-                                                                   os.path.join(self.datasets_path, 'train0','.corpos.ll'),
-                                                                   os.path.join(self.datasets_path, 'train0','.corpos.hl'),
-                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.ll'),
-                                                                   os.path.join(self.datasets_path, 'validate0','.corpos.hl'),
-                                                                   os.path.join(self.datasets_path,'preProcessed0')))
+																   os.path.join(self.datasets_path, 'train0','.corpos.ll'),
+																   os.path.join(self.datasets_path, 'train0','.corpos.hl'),
+																   os.path.join(self.datasets_path, 'validate0','.corpos.ll'),
+																   os.path.join(self.datasets_path, 'validate0','.corpos.hl'),
+																   os.path.join(self.datasets_path,'preProcessed0')))
 
 		# vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 		# 							  os.path.join(self.datasets_path, 'train0'),
@@ -191,17 +191,25 @@ class ActiveLearner:
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
-            'python {0} {7} -o {1} -c {2} -n {3} -e {4} -a {5} -t {6} -v'.format(self.codenator,
-                                                            os.path.join(self.datasets_path, 'validate%d' % i),
-                                                            self.codenator_config, self.validation_size,
-                                                            os.path.join(self.datasets_path, 'test0'),
-                                                            os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
-                                                            self.validation_size, self.compiler))
+			'python {0} {7} -o {1} -c {2} -n {3} -e {4} -a {5} -t {6} -v'.format(self.codenator,
+															os.path.join(self.datasets_path, 'validate%d' % i),
+															self.codenator_config, self.validation_size,
+															os.path.join(self.datasets_path, 'test0'),
+															os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
+															self.validation_size, self.compiler))
 
-		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-									  os.path.join(self.datasets_path, 'train%d' % i),
-									  os.path.join(self.datasets_path, 'validate%d' % i)],
-									 os.path.join(self.datasets_path, 'vocabs%d' % i))
+		os.system(
+			'python {0} -train_src {1} -train_tgt {2} -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
+																   os.path.join(self.datasets_path, 'train%d' % i, '.corpos.ll'),
+																   os.path.join(self.datasets_path, 'train%d' % i, '.corpos.hl'),
+																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.ll'),
+																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.hl'),
+																   os.path.join(self.datasets_path, 'preProcessed%d' % i)))
+        
+#		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
+#									  os.path.join(self.datasets_path, 'train%d' % i),
+#									  os.path.join(self.datasets_path, 'validate%d' % i)],
+#									 os.path.join(self.datasets_path, 'vocabs%d' % i))
 
 
 	# return True if successfully translated *enough* entries
