@@ -139,16 +139,17 @@ class ActiveLearner:
 										  os.path.join(self.models_path, 'model0.ll-po.openNmt.vocabs.out')))
 		else:
 			logging.info('Training model (iteration {0})'.format(i))
+			data_set_size = self.train_size_initial + i * self.train_size_increment
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} -m {3} -c {4} --train {5}'.format(self.api_openNmt,
+				Popen('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
 																				   os.path.join(self.datasets_path,
 																								'preProcessed%d' % i),
 																				   os.path.join(self.datasets_path,
 																								'test%d' % i),
 																				   os.path.join(self.models_path,
 																								'model%d' % i),
-																				   self.openNmt_config, (
-																						   ' -p %s' % os.path.join(
+																				   self.openNmt_config, data_set_size,
+                                                                                   (' -p %s' % os.path.join(
 																					   self.models_path,
 																					   'model%d' % previous)) if (
 							previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
@@ -197,7 +198,7 @@ class ActiveLearner:
 																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.ll'),
 																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.hl'),
 																   os.path.join(self.datasets_path, 'preProcessed%d' % i)))
-        
+
 #		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 #									  os.path.join(self.datasets_path, 'train%d' % i),
 #									  os.path.join(self.datasets_path, 'validate%d' % i)],
