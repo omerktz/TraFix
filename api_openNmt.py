@@ -1,3 +1,4 @@
+import math
 def main(args):
 	import os
 	import ConfigParser
@@ -22,30 +23,24 @@ def main(args):
 	train_command = train_command.strip()
 
 	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3}' \
-        .format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
+		.format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
 
 	translate_command = translate_command.strip()
 
 	if args['train']:
 		os.system(train_command)
-    #TODO: understand this part. where do we save the translations and how.
+
 	if args['translate']:
-		import subprocess
-		import re
-		with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out', 'w') as f:
-			translations = False
-			current = None
-			for line in subprocess.Popen(translate_command.split(' '), stdout=subprocess.PIPE).stdout:
-				print line,
-				line = line.strip()
-				if not translations:
-					if line == 'predicting...':
-						translations = True
-				else:
-					if re.match('^[0-9]+/[0-9]+$', line):
-						current = line[:line.find('/')]
-					if re.match('^[0-9]+\-best\: ', line):
-						f.write(current + ' ||| ' + line[line.find(':') + 1:].strip() + ' ||| \n')
+		os.system(translate_command)
+        with open(test_dataset + 'translated') as fp:
+            with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out') as w:
+                lines = fp.readlines()
+                i = 0
+                for line in lines:
+                    lineToWrite = (math.floor(i / args['num_translations'])) + '|||' + line
+                    w.write(lineToWrite)
+                    i += 1
+
 	if args['cleanup']:
 		import glob
 		files = filter(os.path.isfile, glob.glob(model + '*[0-9].*txt'))
