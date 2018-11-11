@@ -56,7 +56,7 @@ def build_trainer(opt, device_id, model, fields,
                            shard_size, data_type, norm_method,
                            grad_accum_count, n_gpu, gpu_rank,
                            gpu_verbose_level, report_manager,
-                           model_saver=model_saver)
+                           model_saver=model_saver, patience=opt.max_patience, min_epochs=opt.min_epochs)
     return trainer
 
 
