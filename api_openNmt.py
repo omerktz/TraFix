@@ -21,7 +21,7 @@ def main(args):
 
 	train_command = train_command.strip()
 
-	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2} -beam_size {3}' \
+	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3}' \
         .format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
 
 	translate_command = translate_command.strip()
