@@ -2,7 +2,7 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
-	openNmt = os.path.abspath('openNmt/strain.py')
+	openNmt = os.path.abspath('open_nmt/train.py')
 	config.read(args['config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
@@ -14,11 +14,11 @@ def main(args):
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-patience={8} --beam-size={9} --max-pred={10} --max-len={11} --min-epochs={12} ' \
 								  '--lstm-layers={13} --models-to-save={14}{15}{16}{17}{18}{19}' \
-		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
-				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
-				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
-				config.getint('DyNmt', 'max_pred'), config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'min_epochs'),
-				config.getint('DyNmt', 'lstm_layers'), config.getint('DyNmt', 'models_to_save'),
+		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('OpenNmt', 'epochs'),
+				config.getint('OpenNmt', 'batch_size'), config.getint('OpenNmt', 'eval_after'),
+				config.getint('OpenNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
+				config.getint('OpenNmt', 'max_pred'), config.getint('OpenNmt', 'max_len'), config.getint('OpenNmt', 'min_epochs'),
+				config.getint('OpenNmt', 'lstm_layers'), config.getint('OpenNmt', 'models_to_save'),
 				' --eval' if args['translate'] else '', ' --override' if args['override'] else '',
 				(' --seed=%d' % args['seed']) if args['seed'] else '', previous, ' &> /dev/null' if args['silent'] else '')
 	command = command.strip()
@@ -55,16 +55,14 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description="Train and test translation model")
 	parser.add_argument('training_dataset', type=str, help="dataset for training")
-	parser.add_argument('validation_dataset', type=str, help="dataset for validation")
 	parser.add_argument('test_dataset', type=str, help="dataset for evaluation")
-	parser.add_argument('vocabs', type=str, help="vocabularies for datasets")
 	parser.add_argument('-m', '--model_path', type=str, default='model',
 						help="name of trained model (default: \'%(default)s\')")
 	parser.add_argument('--train', help="train a new model", action='count')
 	parser.add_argument('--translate', help="translate using an existing model", action='count')
 	parser.add_argument('-n', '--num_translations', type=int, default=5,
 						help="number of translations for each input (default: %(default)s)")
-	parser.add_argument('-c', '--config', type=str, default='configs/dynmt.config',
+	parser.add_argument('-c', '--config', type=str, default='configs/openNmt.config',
 						help="configuration file (default: \'%(default)s\')")
 	parser.add_argument('--cleanup', help="remove all intermediate files after training", action='count')
 	parser.add_argument('--silent', help="hide all output", action='count')
