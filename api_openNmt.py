@@ -2,35 +2,39 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
-	openNmt = os.path.abspath('open_nmt/train.py')
+	train_py = os.path.abspath('open_nmt/train.py')
+	translate_py = os.path.abspath('open_nmt/translate.py')
 	config.read(args['config'])
-	train = os.path.abspath(args['training_dataset'])
-	validation = os.path.abspath(args['validation_dataset'])
-	test = os.path.abspath(args['test_dataset'])
-	vocabs = os.path.abspath(args['vocabs'])
-	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
-	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
-	command = 'python ' + openNmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
-								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
-								  '--max-patience={8} --beam-size={9} --max-pred={10} --max-len={11} --min-epochs={12} ' \
-								  '--lstm-layers={13} --models-to-save={14}{15}{16}{17}{18}{19}' \
-		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('OpenNmt', 'epochs'),
-				config.getint('OpenNmt', 'batch_size'), config.getint('OpenNmt', 'eval_after'),
-				config.getint('OpenNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
-				config.getint('OpenNmt', 'max_pred'), config.getint('OpenNmt', 'max_len'), config.getint('OpenNmt', 'min_epochs'),
-				config.getint('OpenNmt', 'lstm_layers'), config.getint('OpenNmt', 'models_to_save'),
-				' --eval' if args['translate'] else '', ' --override' if args['override'] else '',
-				(' --seed=%d' % args['seed']) if args['seed'] else '', previous, ' &> /dev/null' if args['silent'] else '')
-	command = command.strip()
+	train_dataset = os.path.abspath(args['training_dataset'])
+	test_dataset = os.path.abspath(args['test_dataset'])
+	model = os.path.abspath(args['model_path'] + '.ll_hl_openNmt')
+	previous = (' -train_from %s' % os.path.abspath(args['previous'] + '.ll_hl_openNmt')) if args['previous'] is not None else ''
+	# default value 300. mostly for times that we use translate
+	valid_steps = (args['data_set_size'] / config.getint('OpenNmt', 'batch_size')) if args['data_set_size'] is not None else 300
+
+	train_command = 'python ' + train_py + ' -data {0} -save_model {1} -encoder_type brnn -word_vec_size {2} -rnn_size {3} -layers {4} ' \
+		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} ' + previous\
+		.format(train_dataset, model, config.getint('OpenNmt', 'word_vec_size') , config.getint('OpenNmt', 'rnn_size'),
+				config.getint('OpenNmt', 'lstm_layers'), valid_steps, config.getint('OpenNmt', 'batch_size'), config.getint('OpenNmt', 'min_epochs'),
+				config.getint('OpenNmt', 'max_patience'))
+
+
+	train_command = train_command.strip()
+
+	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2}' \
+        .format(model, test_dataset, test_dataset + 'translated')
+
+	translate_command = translate_command.strip()
+
 	if args['train']:
-		os.system(command)
+		os.system(train_command)
 	if args['translate']:
 		import subprocess
 		import re
-		with open(test + '.corpus.' + str(args['num_translations']) + '.out', 'w') as f:
+		with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out', 'w') as f:
 			translations = False
 			current = None
-			for line in subprocess.Popen(command.split(' '), stdout=subprocess.PIPE).stdout:
+			for line in subprocess.Popen(translate_command.split(' '), stdout=subprocess.PIPE).stdout:
 				print line,
 				line = line.strip()
 				if not translations:
@@ -70,6 +74,7 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--seed', type=int, help="random seed")
 	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
 	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
+	parser.add_argument('-d', '--data_set_size', type=int, help="number of sentences in the data_set")
 	args = parser.parse_args()
 
 	if (args.train and args.translate) or not (args.train or args.translate):
