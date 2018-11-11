@@ -36,7 +36,7 @@ class ActiveLearner:
 		self.codenator = 'codenator.py'
 		self.api_openNmt = 'api_openNmt.py'
 		self.evaluate = 'evaluate.py'
-		self.preProcessor = 'openNmt/preprocess.py'
+		self.preProcessor = 'open_nmt/preprocess.py'
 		# set work paths
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
 		self.models_path = os.path.join(self.output_dir, 'models')
