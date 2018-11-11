@@ -20,7 +20,7 @@ def main(args):
 
 
 	train_command = train_command.strip()
-
+    # TODO: add the beam search (get n results for each sentence)
 	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2}' \
         .format(model, test_dataset, test_dataset + 'translated')
 
@@ -28,6 +28,7 @@ def main(args):
 
 	if args['train']:
 		os.system(train_command)
+    #TODO: understand this part. where do we save the translations and how.
 	if args['translate']:
 		import subprocess
 		import re
