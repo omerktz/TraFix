@@ -263,10 +263,13 @@ def train_opts(parser):
                        <save_model>_N.pt where N is the number
                        of steps""")
 
-    group.add_argument('-save_checkpoint_steps', type=int, default=5000,
+    group.add_argument('-save_checkpoint_steps', type=int, default=5000000,
                        help="""Save a checkpoint every X steps""")
     group.add_argument('-keep_checkpoint', type=int, default=-1,
                        help="""Keep X checkpoints (negative: keep all)""")
+
+    group.add_argument('-max_patience', type=int, default=10, help="""stop after x validations from the best one""")
+    group.add_argument('-min_epochs', type=int, default=1, help="""will not stop due to patience if the model did not train this amount of epochs""")
 
     # GPU
     group.add_argument('-gpuid', default=[], nargs='+', type=int,
