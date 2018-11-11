@@ -20,9 +20,9 @@ def main(args):
 
 
 	train_command = train_command.strip()
-    # TODO: add the beam search (get n results for each sentence)
-	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2}' \
-        .format(model, test_dataset, test_dataset + 'translated')
+
+	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2} -beam_size {3}' \
+        .format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
 
 	translate_command = translate_command.strip()
 
