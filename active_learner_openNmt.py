@@ -140,15 +140,11 @@ class ActiveLearner:
 		else:
 			logging.info('Training model (iteration {0})'.format(i))
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_openNmt,
+				Popen('python {0} {1} {2} -m {3} -c {4} --train {5}'.format(self.api_openNmt,
 																				   os.path.join(self.datasets_path,
-																								'train%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'validate%d' % i),
+																								'preProcessed%d' % i),
 																				   os.path.join(self.datasets_path,
 																								'test%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'vocabs%d' % i),
 																				   os.path.join(self.models_path,
 																								'model%d' % i),
 																				   self.openNmt_config, (
@@ -159,15 +155,11 @@ class ActiveLearner:
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_openNmt,
+			Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
 																					   os.path.join(self.datasets_path,
-																									'train%d' % i),
-																					   os.path.join(self.datasets_path,
-																									'validate%d' % i),
+																									'preProcessed%d' % i),
 																					   os.path.join(self.datasets_path,
 																									'test%d' % i),
-																					   os.path.join(self.datasets_path,
-																									'vocabs%d' % i),
 																					   os.path.join(self.models_path,
 																									'model%d' % i),
 																					   self.openNmt_config,
