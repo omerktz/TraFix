@@ -114,10 +114,10 @@ class ActiveLearner:
 		os.system(
 			'python {0} -train_src {1} -train_tgt {2}'
 			' -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
-																   os.path.join(self.datasets_path, 'train0','.corpos.ll'),
-																   os.path.join(self.datasets_path, 'train0','.corpos.hl'),
-																   os.path.join(self.datasets_path, 'validate0','.corpos.ll'),
-																   os.path.join(self.datasets_path, 'validate0','.corpos.hl'),
+																   os.path.join(self.datasets_path, 'train0.corpus.ll'),
+																   os.path.join(self.datasets_path, 'train0.corpus.hl'),
+																   os.path.join(self.datasets_path, 'validate0.corpus.ll'),
+																   os.path.join(self.datasets_path, 'validate0.corpus.hl'),
 																   os.path.join(self.datasets_path,'preProcessed0')))
 
 		# vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
@@ -139,24 +139,37 @@ class ActiveLearner:
 										  os.path.join(self.models_path, 'model0.ll-po.openNmt.vocabs.out')))
 		else:
 			logging.info('Training model (iteration {0})'.format(i))
+
 			data_set_size = self.train_size_initial + i * self.train_size_increment
-			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
-																				   os.path.join(self.datasets_path,
-																								'preProcessed%d' % i),
-																				   os.path.join(self.datasets_path,
-																								'test%d' % i),
-																				   os.path.join(self.models_path,
-																								'model%d' % i),
-																				   self.openNmt_config, data_set_size,
-                                                                                   (' -p %s' % os.path.join(
-																					   self.models_path,
-																					   'model%d' % previous)) if (
-							previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
+			os.system('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
+																					  os.path.join(self.datasets_path,
+																								   'preProcessed%d' % i),
+																					  os.path.join(self.datasets_path,
+																								   'test%d' % i),
+																					  os.path.join(self.models_path,
+																								   'model%d' % i),
+																					  self.openNmt_config, data_set_size,
+																					  (' -p %s' % os.path.join(
+																						  self.models_path,
+																						  'model%d' % previous)) if (
+																							  previous is not None) else ''))
+
+			# with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
+			# 	Popen('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
+			# 																	   os.path.join(self.datasets_path,
+			# 																					'preProcessed%d' % i),
+			# 																	   os.path.join(self.datasets_path,
+			# 																					'test%d' % i),
+			# 																	   os.path.join(self.models_path,
+			# 																					'model%d' % i),
+			# 																	   self.openNmt_config, data_set_size,
+			# 																	   (' -p %s' % os.path.join(
+			# 																		   self.models_path,
+			# 																		   'model%d' % previous)) if (
+			# 				previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
-		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-			Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
+		os.system('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
 																					   os.path.join(self.datasets_path,
 																									'preProcessed%d' % i),
 																					   os.path.join(self.datasets_path,
@@ -164,8 +177,18 @@ class ActiveLearner:
 																					   os.path.join(self.models_path,
 																									'model%d' % i),
 																					   self.openNmt_config,
-																					   self.num_translations).split(
-				' '), stdout=f, stderr=f, bufsize=0).wait()
+																					   self.num_translations))
+		# with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
+		# 	Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
+		# 																			   os.path.join(self.datasets_path,
+		# 																							'preProcessed%d' % i),
+		# 																			   os.path.join(self.datasets_path,
+		# 																							'test%d' % i),
+		# 																			   os.path.join(self.models_path,
+		# 																							'model%d' % i),
+		# 																			   self.openNmt_config,
+		# 																			   self.num_translations).split(
+		# 		' '), stdout=f, stderr=f, bufsize=0).wait()
 
 	# generate new datasets and combine with previous set of datasets
 	def update_datasets(self, i):
@@ -193,10 +216,10 @@ class ActiveLearner:
 
 		os.system(
 			'python {0} -train_src {1} -train_tgt {2} -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
-																   os.path.join(self.datasets_path, 'train%d' % i, '.corpos.ll'),
-																   os.path.join(self.datasets_path, 'train%d' % i, '.corpos.hl'),
-																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.ll'),
-																   os.path.join(self.datasets_path, 'validate%d' % i, '.corpos.hl'),
+																   os.path.join(self.datasets_path, 'train%d' % i + '.corpus.ll'),
+																   os.path.join(self.datasets_path, 'train%d' % i + '.corpus.hl'),
+																   os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.ll'),
+																   os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.hl'),
 																   os.path.join(self.datasets_path, 'preProcessed%d' % i)))
 
 #		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
