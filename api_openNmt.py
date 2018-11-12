@@ -13,16 +13,15 @@ def main(args):
 	# default value 300. mostly for times that we use translate
 	valid_steps = (args['data_set_size'] / config.getint('OpenNmt', 'batch_size')) if args['data_set_size'] is not None else 300
 
-	train_command = 'python ' + train_py + ' -data {0} -save_model {1} -encoder_type brnn -word_vec_size {2} -rnn_size {3} -layers {4} ' \
-		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} ' + previous\
+	train_command = ('python ' + train_py + ' -data {0} -save_model {1} -encoder_type brnn -word_vec_size {2} -rnn_size {3} -layers {4} ' \
+		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} ' + previous) \
 		.format(train_dataset, model, config.getint('OpenNmt', 'word_vec_size') , config.getint('OpenNmt', 'rnn_size'),
 				config.getint('OpenNmt', 'lstm_layers'), valid_steps, config.getint('OpenNmt', 'batch_size'), config.getint('OpenNmt', 'min_epochs'),
 				config.getint('OpenNmt', 'max_patience'))
 
-
 	train_command = train_command.strip()
 
-	translate_command = 'python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3}' \
+	translate_command = ('python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3}') \
 		.format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
 
 	translate_command = translate_command.strip()
@@ -32,14 +31,14 @@ def main(args):
 
 	if args['translate']:
 		os.system(translate_command)
-        with open(test_dataset + 'translated') as fp:
-            with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out') as w:
-                lines = fp.readlines()
-                i = 0
-                for line in lines:
-                    lineToWrite = (math.floor(i / args['num_translations'])) + '|||' + line
-                    w.write(lineToWrite)
-                    i += 1
+		with open(test_dataset + 'translated') as fp:
+			with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out') as w:
+				lines = fp.readlines()
+				i = 0
+				for line in lines:
+					lineToWrite = (math.floor(i / args['num_translations'])) + '|||' + line
+					w.write(lineToWrite)
+					i += 1
 
 	if args['cleanup']:
 		import glob
