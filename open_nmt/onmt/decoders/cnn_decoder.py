@@ -5,8 +5,8 @@ Implementation of the CNN Decoder part of
 import torch
 import torch.nn as nn
 
-import open_nmt.onmt.modules
-from open_nmt.onmt.utils.cnn_factory import shape_transform, GatedConv
+import onmt.modules
+from onmt.utils.cnn_factory import shape_transform, GatedConv
 
 SCALE_WEIGHT = 0.5 ** 0.5
 
@@ -46,13 +46,13 @@ class CNNDecoder(nn.Module):
         self.attn_layers = nn.ModuleList()
         for _ in range(self.num_layers):
             self.attn_layers.append(
-                open_nmt.onmt.modules.ConvMultiStepAttention(self.hidden_size))
+                onmt.modules.ConvMultiStepAttention(self.hidden_size))
 
         # CNNDecoder has its own attention mechanism.
         # Set up a separated copy attention layer, if needed.
         self._copy = False
         if copy_attn:
-            self.copy_attn = open_nmt.onmt.modules.GlobalAttention(
+            self.copy_attn = onmt.modules.GlobalAttention(
                 hidden_size, attn_type=attn_type)
             self._copy = True
 

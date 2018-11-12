@@ -11,10 +11,10 @@
 
 from __future__ import division
 
-import open_nmt.onmt.inputters as inputters
-import open_nmt.onmt.utils
+import onmt.inputters as inputters
+import onmt.utils
 
-from open_nmt.onmt.utils.logging import logger
+from onmt.utils.logging import logger
 
 
 def build_trainer(opt, device_id, model, fields,
@@ -32,9 +32,9 @@ def build_trainer(opt, device_id, model, fields,
         model_saver(:obj:`onmt.models.ModelSaverBase`): the utility object
             used to save the model
     """
-    train_loss = open_nmt.onmt.utils.loss.build_loss_compute(
+    train_loss = onmt.utils.loss.build_loss_compute(
         model, fields["tgt"].vocab, opt)
-    valid_loss = open_nmt.onmt.utils.loss.build_loss_compute(
+    valid_loss = onmt.utils.loss.build_loss_compute(
         model, fields["tgt"].vocab, opt, train=False)
 
     trunc_size = opt.truncated_decoder  # Badly named...
@@ -50,9 +50,9 @@ def build_trainer(opt, device_id, model, fields,
         n_gpu = 0
     gpu_verbose_level = opt.gpu_verbose_level
 
-    report_manager = open_nmt.onmt.utils.build_report_manager(opt)
+    report_manager = onmt.utils.build_report_manager(opt)
 
-    trainer = open_nmt.onmt.Trainer(model, train_loss, valid_loss, optim, trunc_size,
+    trainer = onmt.Trainer(model, train_loss, valid_loss, optim, trunc_size,
                            shard_size, data_type, norm_method,
                            grad_accum_count, n_gpu, gpu_rank,
                            gpu_verbose_level, report_manager,
@@ -151,8 +151,8 @@ class Trainer(object):
         train_iter = train_iter_fct()
         epochs_finished = 0
 
-        total_stats = open_nmt.onmt.utils.Statistics()
-        report_stats = open_nmt.onmt.utils.Statistics()
+        total_stats = onmt.utils.Statistics()
+        report_stats = onmt.utils.Statistics()
         self._start_report_manager(start_time=total_stats.start_time)
 
         while self.keep_for_more_steps(step,train_steps,epochs_finished):
@@ -181,7 +181,7 @@ class Trainer(object):
                                         % (self.gpu_rank, reduce_counter,
                                            len(true_batchs)))
                         if self.n_gpu > 1:
-                            normalization = sum(open_nmt.onmt.utils.distributed
+                            normalization = sum(onmt.utils.distributed
                                                 .all_gather_list
                                                 (normalization))
 
@@ -237,7 +237,7 @@ class Trainer(object):
         # Set model in validating mode.
         self.model.eval()
 
-        stats = open_nmt.onmt.utils.Statistics()
+        stats = onmt.utils.Statistics()
 
         for batch in valid_iter:
             src = inputters.make_features(batch, 'src', self.data_type)
@@ -314,7 +314,7 @@ class Trainer(object):
                         grads = [p.grad.data for p in self.model.parameters()
                                  if p.requires_grad
                                  and p.grad is not None]
-                        open_nmt.onmt.utils.distributed.all_reduce_and_rescale_tensors(
+                        onmt.utils.distributed.all_reduce_and_rescale_tensors(
                             grads, float(1))
                     self.optim.step()
 
@@ -332,7 +332,7 @@ class Trainer(object):
                 grads = [p.grad.data for p in self.model.parameters()
                          if p.requires_grad
                          and p.grad is not None]
-                open_nmt.onmt.utils.distributed.all_reduce_and_rescale_tensors(
+                onmt.utils.distributed.all_reduce_and_rescale_tensors(
                     grads, float(1))
             self.optim.step()
 
@@ -358,7 +358,7 @@ class Trainer(object):
             stat: the updated (or unchanged) stat object
         """
         if stat is not None and self.n_gpu > 1:
-            return open_nmt.onmt.utils.Statistics.all_gather_stats(stat)
+            return onmt.utils.Statistics.all_gather_stats(stat)
         return stat
 
     def _maybe_report_training(self, step, num_steps, learning_rate,

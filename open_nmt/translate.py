@@ -4,15 +4,15 @@
 from __future__ import division, unicode_literals
 import argparse
 
-from open_nmt.onmt.utils.logging import init_logger
-from open_nmt.onmt.translate.translator import build_translator
+from onmt.utils.logging import init_logger
+from onmt.translate.translator import build_translator
 
-import open_nmt.onmt.inputters
-import open_nmt.onmt.translate
-import open_nmt.onmt
-import open_nmt.onmt.model_builder
-import open_nmt.onmt.modules
-import open_nmt.onmt.opts
+import onmt.inputters
+import onmt.translate
+import onmt
+import onmt.model_builder
+import onmt.modules
+import onmt.opts
 
 
 def main(opt):
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='translate.py',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    open_nmt.onmt.opts.add_md_help_argument(parser)
-    open_nmt.onmt.opts.translate_opts(parser)
+    onmt.opts.add_md_help_argument(parser)
+    onmt.opts.translate_opts(parser)
 
     opt = parser.parse_args()
     logger = init_logger(opt.log_file)

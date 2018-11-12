@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 
-# from open_nmt.onmt.utils.misc import aeq
+# from onmt.utils.misc import aeq
 
 
 class MultiHeadedAttention(nn.Module):

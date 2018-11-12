@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import argparse
 import torch
-from open_nmt.onmt.utils.logging import init_logger, logger
+from onmt.utils.logging import init_logger, logger
 
 
 def get_vocabs(dict_file):

@@ -9,13 +9,13 @@ import math
 import torch
 
 from itertools import count
-from open_nmt.onmt.utils.misc import tile
+from onmt.utils.misc import tile
 
-import open_nmt.onmt.model_builder
-import open_nmt.onmt.translate.beam
-import open_nmt.onmt.inputters as inputters
-import open_nmt.onmt.opts as opts
-import open_nmt.onmt.decoders.ensemble
+import onmt.model_builder
+import onmt.translate.beam
+import onmt.inputters as inputters
+import onmt.opts as opts
+import onmt.decoders.ensemble
 
 
 def build_translator(opt, report_score=True, logger=None, out_file=None):
@@ -29,12 +29,12 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     if len(opt.models) > 1:
         # use ensemble decoding if more than one model is specified
         fields, model, model_opt = \
-            open_nmt.onmt.decoders.ensemble.load_test_model(opt, dummy_opt.__dict__)
+            onmt.decoders.ensemble.load_test_model(opt, dummy_opt.__dict__)
     else:
         fields, model, model_opt = \
-            open_nmt.onmt.model_builder.load_test_model(opt, dummy_opt.__dict__)
+            onmt.model_builder.load_test_model(opt, dummy_opt.__dict__)
 
-    scorer = open_nmt.onmt.translate.GNMTGlobalScorer(opt.alpha,
+    scorer = onmt.translate.GNMTGlobalScorer(opt.alpha,
                                              opt.beta,
                                              opt.coverage_penalty,
                                              opt.length_penalty)
@@ -206,7 +206,7 @@ class Translator(object):
             batch_size=batch_size, train=False, sort=False,
             sort_within_batch=True, shuffle=False)
 
-        builder = open_nmt.onmt.translate.TranslationBuilder(
+        builder = onmt.translate.TranslationBuilder(
             data, self.fields,
             self.n_best, self.replace_unk, tgt_path)
 
@@ -580,7 +580,7 @@ class Translator(object):
         exclusion_tokens = set([vocab.stoi[t]
                                 for t in self.ignore_when_blocking])
 
-        beam = [open_nmt.onmt.translate.Beam(beam_size, n_best=self.n_best,
+        beam = [onmt.translate.Beam(beam_size, n_best=self.n_best,
                                     cuda=self.cuda,
                                     global_scorer=self.global_scorer,
                                     pad=vocab.stoi[inputters.PAD_WORD],

@@ -9,15 +9,15 @@ import os
 import random
 import torch
 
-import open_nmt.onmt.opts as opts
+import onmt.opts as opts
 
-from open_nmt.onmt.inputters.inputter import build_dataset_iter, lazily_load_dataset, \
+from onmt.inputters.inputter import build_dataset_iter, lazily_load_dataset, \
     _load_fields, _collect_report_features
-from open_nmt.onmt.model_builder import build_model
-from open_nmt.onmt.utils.optimizers import build_optim
-from open_nmt.onmt.trainer import build_trainer
-from open_nmt.onmt.models import build_model_saver
-from open_nmt.onmt.utils.logging import init_logger, logger
+from onmt.model_builder import build_model
+from onmt.utils.optimizers import build_optim
+from onmt.trainer import build_trainer
+from onmt.models import build_model_saver
+from onmt.utils.logging import init_logger, logger
 
 
 def _check_save_model_path(opt):

@@ -11,10 +11,11 @@ import gc
 import os
 import codecs
 import torch
-from open_nmt.onmt.utils.logging import init_logger, logger
+# from onmt.utils.logging import init_logger, logger
+from onmt.utils.logging import init_logger, logger
 
-import open_nmt.onmt.inputters as inputters
-import open_nmt.onmt.opts as opts
+import onmt.inputters as inputters
+import onmt.opts as opts
 
 
 def check_existing_pt_files(opt):

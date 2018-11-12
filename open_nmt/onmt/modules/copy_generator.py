@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch
 import torch.cuda
 
-import open_nmt.onmt.inputters as inputters
-from open_nmt.onmt.utils.misc import aeq
-from open_nmt.onmt.utils import loss
+import onmt.inputters as inputters
+from onmt.utils.misc import aeq
+from onmt.utils import loss
 
 
 class CopyGenerator(nn.Module):

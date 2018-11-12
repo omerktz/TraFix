@@ -10,9 +10,9 @@ import sys
 import torch
 import torchtext
 
-from open_nmt.onmt.inputters.dataset_base import (DatasetBase, UNK_WORD,
+from onmt.inputters.dataset_base import (DatasetBase, UNK_WORD,
                                          PAD_WORD, BOS_WORD, EOS_WORD)
-from open_nmt.onmt.utils.misc import aeq
+from onmt.utils.misc import aeq
 
 
 class TextDataset(DatasetBase):

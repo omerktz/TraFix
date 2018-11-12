@@ -8,11 +8,11 @@ import os
 import signal
 import torch
 
-import open_nmt.onmt.opts as opts
-import open_nmt.onmt.utils.distributed
+import onmt.opts as opts
+import onmt.utils.distributed
 
-from open_nmt.onmt.utils.logging import logger
-from open_nmt.onmt.train_single import main as single_main
+from onmt.utils.logging import logger
+from onmt.train_single import main as single_main
 
 
 def main(opt):
@@ -56,7 +56,7 @@ def main(opt):
 def run(opt, device_id, error_queue):
     """ run process """
     try:
-        gpu_rank = open_nmt.onmt.utils.distributed.multi_init(opt, device_id)
+        gpu_rank = onmt.utils.distributed.multi_init(opt, device_id)
         if gpu_rank != opt.gpu_ranks[device_id]:
             raise AssertionError("An error occurred in \
                   Distributed initialization")

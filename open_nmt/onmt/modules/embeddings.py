@@ -4,7 +4,7 @@ import math
 import torch
 import torch.nn as nn
 
-from open_nmt.onmt.modules.util_class import Elementwise
+from onmt.modules.util_class import Elementwise
 
 
 class PositionalEncoding(nn.Module):

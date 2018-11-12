@@ -4,7 +4,7 @@ Position feed-forward network from "Attention is All You Need"
 
 import torch.nn as nn
 
-import open_nmt.onmt
+import onmt
 
 
 class PositionwiseFeedForward(nn.Module):
@@ -21,7 +21,7 @@ class PositionwiseFeedForward(nn.Module):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
-        self.layer_norm = open_nmt.onmt.modules.LayerNorm(d_model)
+        self.layer_norm = onmt.modules.LayerNorm(d_model)
         self.dropout_1 = nn.Dropout(dropout)
         self.relu = nn.ReLU()
         self.dropout_2 = nn.Dropout(dropout)

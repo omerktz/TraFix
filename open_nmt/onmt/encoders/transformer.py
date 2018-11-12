@@ -4,10 +4,10 @@ Implementation of "Attention is All You Need"
 
 import torch.nn as nn
 
-import open_nmt.onmt
-from open_nmt.onmt.encoders.encoder import EncoderBase
-# from open_nmt.onmt.utils.misc import aeq
-from open_nmt.onmt.modules.position_ffn import PositionwiseFeedForward
+import onmt
+from onmt.encoders.encoder import EncoderBase
+# from onmt.utils.misc import aeq
+from onmt.modules.position_ffn import PositionwiseFeedForward
 
 
 class TransformerEncoderLayer(nn.Module):
@@ -26,10 +26,10 @@ class TransformerEncoderLayer(nn.Module):
     def __init__(self, d_model, heads, d_ff, dropout):
         super(TransformerEncoderLayer, self).__init__()
 
-        self.self_attn = open_nmt.onmt.modules.MultiHeadedAttention(
+        self.self_attn = onmt.modules.MultiHeadedAttention(
             heads, d_model, dropout=dropout)
         self.feed_forward = PositionwiseFeedForward(d_model, d_ff, dropout)
-        self.layer_norm = open_nmt.onmt.modules.LayerNorm(d_model)
+        self.layer_norm = onmt.modules.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, inputs, mask):
@@ -93,7 +93,7 @@ class TransformerEncoder(EncoderBase):
         self.transformer = nn.ModuleList(
             [TransformerEncoderLayer(d_model, heads, d_ff, dropout)
              for _ in range(num_layers)])
-        self.layer_norm = open_nmt.onmt.modules.LayerNorm(d_model)
+        self.layer_norm = onmt.modules.LayerNorm(d_model)
 
     def forward(self, src, lengths=None):
         """ See :obj:`EncoderBase.forward()`"""

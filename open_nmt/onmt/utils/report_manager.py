@@ -65,7 +65,7 @@ class ReportMgrBase(object):
                                 (set 'start_time' or use 'start()'""")
 
         if multigpu:
-            report_stats = open_nmt.onmt.utils.Statistics.all_gather_stats(report_stats)
+            report_stats = onmt.utils.Statistics.all_gather_stats(report_stats)
 
         if step % self.report_every == 0:
             self._report_training(

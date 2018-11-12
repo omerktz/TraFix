@@ -9,9 +9,9 @@ All models in the ensemble must share a target vocabulary.
 import torch
 import torch.nn as nn
 
-from open_nmt.onmt.encoders.encoder import EncoderBase
-from open_nmt.onmt.models import NMTModel
-import open_nmt.onmt.model_builder
+from onmt.encoders.encoder import EncoderBase
+from onmt.models import NMTModel
+import onmt.model_builder
 
 
 class EnsembleDecoderOutput(object):
@@ -124,7 +124,7 @@ def load_test_model(opt, dummy_opt):
     models = []
     for model_path in opt.models:
         fields, model, model_opt = \
-            open_nmt.onmt.model_builder.load_test_model(opt,
+            onmt.model_builder.load_test_model(opt,
                                                dummy_opt,
                                                model_path=model_path)
         if shared_fields is None:

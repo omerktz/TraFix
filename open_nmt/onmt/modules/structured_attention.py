@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.cuda
-from open_nmt.onmt.utils.logging import init_logger
+from onmt.utils.logging import init_logger
 
 
 class MatrixTree(nn.Module):

@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 
-from open_nmt.onmt.modules.position_ffn import PositionwiseFeedForward
+from onmt.modules.position_ffn import PositionwiseFeedForward
 
 
 class AverageAttention(nn.Module):
