@@ -1,4 +1,7 @@
 import math
+import re
+
+
 def main(args):
 	import os
 	import ConfigParser
@@ -7,11 +10,14 @@ def main(args):
 	translate_py = os.path.abspath('open_nmt/translate.py')
 	config.read(args['config'])
 	train_dataset = os.path.abspath(args['training_dataset'])
-	test_dataset = os.path.abspath(args['test_dataset'])
+	test_dataset = os.path.abspath(args['test_dataset']) + '.corpus.ll'
+	first_translation_output = os.path.abspath(args['test_dataset']) + '.translated'
 	model = os.path.abspath(args['model_path'] + '.ll_hl_openNmt')
 	previous = (' -train_from %s' % os.path.abspath(args['previous'] + '.ll_hl_openNmt')) if args['previous'] is not None else ''
 	# default value 300. mostly for times that we use translate
-	valid_steps = (args['data_set_size'] / config.getint('OpenNmt', 'batch_size')) if args['data_set_size'] is not None else 300
+	valid_steps = math.floor(args['data_set_size'] / config.getint('OpenNmt', 'batch_size')) if args['data_set_size'] is not None else 300
+	if valid_steps == 0:
+		valid_steps = 10
 
 	train_command = ('python ' + train_py + ' -data {0} -save_model {1} -encoder_type brnn -word_vec_size {2} -rnn_size {3} -layers {4} ' \
 		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} ' + previous) \
@@ -22,7 +28,7 @@ def main(args):
 	train_command = train_command.strip()
 
 	translate_command = ('python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3}') \
-		.format(model, test_dataset, test_dataset + 'translated', args['num_translations'])
+		.format(model, test_dataset, first_translation_output, args['num_translations'])
 
 	translate_command = translate_command.strip()
 
@@ -31,14 +37,16 @@ def main(args):
 
 	if args['translate']:
 		os.system(translate_command)
-		with open(test_dataset + 'translated') as fp:
-			with open(test_dataset + '.corpus.' + str(args['num_translations']) + '.out') as w:
-				lines = fp.readlines()
-				i = 0
-				for line in lines:
-					lineToWrite = (math.floor(i / args['num_translations'])) + '|||' + line
-					w.write(lineToWrite)
-					i += 1
+		with open(first_translation_output) as fp:
+			w = open(os.path.abspath(args['test_dataset']) + '.corpus.' + str(args['num_translations']) + '.out', "w+")
+			lines = fp.readlines()
+			lines = filter(lambda x: not re.match('\n',x), lines)
+			i = 0
+			for line in lines:
+				lineToWrite = str((math.floor(i / args['num_translations']))) + '|||' + line
+				w.write(lineToWrite)
+				i += 1
+			w.close()
 
 	if args['cleanup']:
 		import glob
