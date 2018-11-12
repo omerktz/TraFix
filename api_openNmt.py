@@ -43,7 +43,7 @@ def main(args):
 			lines = filter(lambda x: not re.match('\n',x), lines)
 			i = 0
 			for line in lines:
-				lineToWrite = str((math.floor(i / args['num_translations']))) + '|||' + line
+				lineToWrite = str(int(math.floor(i / args['num_translations']))) + ' ||| ' + line.replace('\n',' ||| \n')
 				w.write(lineToWrite)
 				i += 1
 			w.close()
