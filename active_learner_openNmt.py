@@ -254,12 +254,16 @@ class ActiveLearner:
 			return num_remaining
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
-		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
-			Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
+		os.system('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
 													 os.path.join(self.datasets_path, 'test%d' % i),
 													 self.num_translations, self.compiler,
-													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
-				  stdout=f, stderr=f, bufsize=0).wait()
+													 os.path.join(self.datasets_path, 'failed%d' % i)))
+		# with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
+		# 	Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
+		# 											 os.path.join(self.datasets_path, 'test%d' % i),
+		# 											 self.num_translations, self.compiler,
+		# 											 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
+		# 		  stdout=f, stderr=f, bufsize=0).wait()
 		self.remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(self.remaining))
 		return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
