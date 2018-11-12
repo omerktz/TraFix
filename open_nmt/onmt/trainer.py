@@ -119,10 +119,10 @@ class Trainer(object):
         self.model.train()
 
     def keep_for_more_steps(self,step,train_steps,epochs_finished):
-        epochs_finished < self.min_epochs or (step <= train_steps and self.num_of_validation_since_best < self.patience)
+        return epochs_finished < self.min_epochs or (step <= train_steps and self.num_of_validation_since_best < self.patience)
 
     def finish_the_train(self,step,train_steps,epochs_finished):
-        not self.keep_for_more_steps(step,train_steps,epochs_finished)
+        return not self.keep_for_more_steps(step, train_steps, epochs_finished)
 
     def train(self, train_iter_fct, valid_iter_fct, train_steps, valid_steps):
         """
@@ -393,9 +393,13 @@ class Trainer(object):
     def update_valid_stop_cond_stats(self, valid_stats):
         # if this validation is better than the best one - it replaces it.
         # better means better ppl (lower) and better acc (higher)
-        if (valid_stats.ppl() > self.best_validation_stats.ppl() and
-                valid_stats.accuracy() < self.best_validation_stats.accuracy()):
-            self.num_of_validation_since_best += 1
-        else:
+        if (self.best_validation_stats == None):
             self.num_of_validation_since_best = 0
             self.best_validation_stats = valid_stats
+        else:
+            if (valid_stats.ppl() > self.best_validation_stats.ppl() and
+                    valid_stats.accuracy() < self.best_validation_stats.accuracy()):
+                self.num_of_validation_since_best += 1
+            else:
+                self.num_of_validation_since_best = 0
+                self.best_validation_stats = valid_stats
