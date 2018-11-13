@@ -32,7 +32,7 @@ class ActiveLearner:
 		self.train_size_initial = train_size_initial
 		self.train_size_increment = train_size_increment
 		self.initial_model = initial_model
-		self.max_iterations = max_itertaions
+		self.max_iterations = max_iterations
 		# set external scripts paths
 		self.codenator = 'codenator.py'
 		self.api_dynmt = 'api_dynmt.py'
