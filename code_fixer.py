@@ -119,7 +119,10 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 			constant1 = int(replacement[1])
 			if len(relevant_replacements) == 1:
 				if (constant0 > 0) and (constant0 <= 32):
-					new_values.add(original_int / float(2 ** (constant0 - constant1)))
+					try:
+						new_values.add(original_int / float(2 ** (constant0 - constant1)))
+					except ZeroDivisionError:
+						pass
 				else:
 					new_values.add(original_int * constant0 / float(constant1))
 					new_values.add(original_int * (constant0 + (2 ** 32))/float(constant1 + (2 ** 32)))
