@@ -226,8 +226,9 @@ class ActiveLearner:
 				  stdout=f, stderr=f, bufsize=0).wait()
 		self.remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(self.remaining))
-		if i >= self.max_iterations:
-			return True
+		if self.max_iterations is not None:
+			if i >= self.max_iterations:
+				return True
 		return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
 
 	def run(self, cleanup=False):
