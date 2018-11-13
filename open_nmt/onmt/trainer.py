@@ -207,7 +207,7 @@ class Trainer(object):
                                 logger.info('GpuRank %d: gather valid stat \
                                             step %d' % (self.gpu_rank, step))
                             valid_stats = self._maybe_gather_stats(valid_stats)
-                            self.update_valid_stop_cond_stats(valid_stats)
+                            self.update_valid_stop_cond_stats(valid_stats, step)
                             if self.gpu_verbose_level > 0:
                                 logger.info('GpuRank %d: report stat step %d'
                                             % (self.gpu_rank, step))
@@ -225,7 +225,7 @@ class Trainer(object):
             epochs_finished += 1
             train_iter = train_iter_fct()
 
-        self.model_saver._save(step)
+
         return total_stats
 
     def validate(self, valid_iter):
@@ -390,12 +390,13 @@ class Trainer(object):
         if self.model_saver is not None:
             self.model_saver.maybe_save(step)
 
-    def update_valid_stop_cond_stats(self, valid_stats):
+    def update_valid_stop_cond_stats(self, valid_stats,step):
         # if this validation is better than the best one - it replaces it.
         # better means better ppl (lower) and better acc (higher)
         if (self.best_validation_stats == None):
             self.num_of_validation_since_best = 0
             self.best_validation_stats = valid_stats
+            self.model_saver._save(step)
         else:
             if (valid_stats.ppl() > self.best_validation_stats.ppl() and
                     valid_stats.accuracy() < self.best_validation_stats.accuracy()):
@@ -403,3 +404,4 @@ class Trainer(object):
             else:
                 self.num_of_validation_since_best = 0
                 self.best_validation_stats = valid_stats
+                self.model_saver._save(step)
