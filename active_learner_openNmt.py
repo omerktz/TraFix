@@ -69,10 +69,6 @@ class ActiveLearner:
 		if self.initial_model:
 			if os.path.exists(self.initial_model):
 				os.system('cp {0} {1}'.format(self.initial_model, os.path.join(self.output_dir, 'initial_model')))
-				# os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.in',
-				# 							  os.path.join(self.output_dir, 'initial_model.vocabs.in')))
-				# os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.out',
-				# 							  os.path.join(self.output_dir, 'initial_model.vocabs.out')))
 				self.initial_model = os.path.join(self.output_dir, 'initial_model')
 			else:
 				logging.info('Initial model does not exist, starting from empty model')
@@ -120,12 +116,6 @@ class ActiveLearner:
 																   os.path.join(self.datasets_path, 'validate0.corpus.hl'),
 																   os.path.join(self.datasets_path,'preProcessed0')))
 
-		# vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-		# 							  os.path.join(self.datasets_path, 'train0'),
-		# 							  os.path.join(self.datasets_path, 'validate0')],
-		# 							 os.path.join(self.datasets_path, 'vocabs0'))
-
-
 	# train model until no more progress is made on validation set and translate test set
 	def train_and_translate(self, i, previous=None):
 		# train
@@ -141,35 +131,25 @@ class ActiveLearner:
 			logging.info('Training model (iteration {0})'.format(i))
 
 			data_set_size = self.train_size_initial + i * self.train_size_increment
-			os.system('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
-																					  os.path.join(self.datasets_path,
-																								   'preProcessed%d' % i),
-																					  os.path.join(self.datasets_path,
-																								   'test%d' % i),
-																					  os.path.join(self.models_path,
-																								   'model%d' % i),
-																					  self.openNmt_config, data_set_size,
-																					  (' -p %s' % os.path.join(
-																						  self.models_path,
-																						  'model%d' % previous)) if (
-																							  previous is not None) else ''))
 
-			# with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-			# 	Popen('python {0} {1} {2} -m {3} -c {4} -d {5} --train {6}'.format(self.api_openNmt,
-			# 																	   os.path.join(self.datasets_path,
-			# 																					'preProcessed%d' % i),
-			# 																	   os.path.join(self.datasets_path,
-			# 																					'test%d' % i),
-			# 																	   os.path.join(self.models_path,
-			# 																					'model%d' % i),
-			# 																	   self.openNmt_config, data_set_size,
-			# 																	   (' -p %s' % os.path.join(
-			# 																		   self.models_path,
-			# 																		   'model%d' % previous)) if (
-			# 				previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
+			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
+				Popen('python {0} {1} {2} -m {3} -c {4} -d {5} --train{6}'.format(self.api_openNmt,
+																				   os.path.join(self.datasets_path,
+																								'preProcessed%d' % i),
+																				   os.path.join(self.datasets_path,
+																								'test%d' % i),
+																				   os.path.join(self.models_path,
+																								'model%d' % i),
+																				   self.openNmt_config, data_set_size,
+																				   (' -p %s' % os.path.join(
+																					   self.models_path,
+																					   'model%d' % previous)) if (
+							previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
-		os.system('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
+
+		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
+			Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
 																					   os.path.join(self.datasets_path,
 																									'preProcessed%d' % i),
 																					   os.path.join(self.datasets_path,
@@ -177,18 +157,8 @@ class ActiveLearner:
 																					   os.path.join(self.models_path,
 																									'model%d' % i),
 																					   self.openNmt_config,
-																					   self.num_translations))
-		# with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-		# 	Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5}'.format(self.api_openNmt,
-		# 																			   os.path.join(self.datasets_path,
-		# 																							'preProcessed%d' % i),
-		# 																			   os.path.join(self.datasets_path,
-		# 																							'test%d' % i),
-		# 																			   os.path.join(self.models_path,
-		# 																							'model%d' % i),
-		# 																			   self.openNmt_config,
-		# 																			   self.num_translations).split(
-		# 		' '), stdout=f, stderr=f, bufsize=0).wait()
+																					   self.num_translations).split(
+				' '), stdout=f, stderr=f, bufsize=0).wait()
 
 	# generate new datasets and combine with previous set of datasets
 	def update_datasets(self, i):
@@ -222,11 +192,6 @@ class ActiveLearner:
 																   os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.hl'),
 																   os.path.join(self.datasets_path, 'preProcessed%d' % i)))
 
-#		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-#									  os.path.join(self.datasets_path, 'train%d' % i),
-#									  os.path.join(self.datasets_path, 'validate%d' % i)],
-#									 os.path.join(self.datasets_path, 'vocabs%d' % i))
-
 
 	# return True if successfully translated *enough* entries
 	def results_sufficient(self, i):
@@ -254,16 +219,13 @@ class ActiveLearner:
 			return num_remaining
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
-		os.system('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
+
+		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
+			Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
 													 os.path.join(self.datasets_path, 'test%d' % i),
 													 self.num_translations, self.compiler,
-													 os.path.join(self.datasets_path, 'failed%d' % i)))
-		# with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
-		# 	Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
-		# 											 os.path.join(self.datasets_path, 'test%d' % i),
-		# 											 self.num_translations, self.compiler,
-		# 											 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
-		# 		  stdout=f, stderr=f, bufsize=0).wait()
+													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
+				  stdout=f, stderr=f, bufsize=0).wait()
 		self.remaining = update_testset(i)
 		logging.info('{0} entries left to translate'.format(self.remaining))
 		return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
