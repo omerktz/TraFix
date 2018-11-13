@@ -15,7 +15,7 @@ def main(args):
 	model = os.path.abspath(args['model_path'] + '.ll_hl_openNmt')
 	previous = (' -train_from %s' % os.path.abspath(args['previous'] + '.ll_hl_openNmt')) if args['previous'] is not None else ''
 	# default value 300. mostly for times that we use translate
-	valid_steps = math.floor(args['data_set_size'] / config.getint('OpenNmt', 'batch_size')) if args['data_set_size'] is not None else 300
+	valid_steps = int(math.floor(args['data_set_size'] / config.getint('OpenNmt', 'batch_size'))) if args['data_set_size'] is not None else 300
 	if valid_steps == 0:
 		valid_steps = 10
 
