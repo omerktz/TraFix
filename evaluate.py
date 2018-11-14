@@ -106,8 +106,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
 	results = map(
-		lambda i: evaluateProg(i, hls[i], lls[i], groups[i], replacements[i], config, failed_dataset),
-		range(len(lls)))
+		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)))
 	for x in results:
 		if x[5] == 0:
 			if fs:
