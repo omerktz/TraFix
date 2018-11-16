@@ -38,6 +38,7 @@ class Graph:
 					if len(indexes) == 0:
 						print "Missing label"
 						self.bad_graph = True
+						return
 					index = indexes[0]
 					self.childs[i].append(index)
 					self.parents[index].append(i)
