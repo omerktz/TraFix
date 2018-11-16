@@ -82,7 +82,7 @@ class AWShandler:
 
 	def exec_instance(self):
 		self.log_info('Executing experiment')
-		self.exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		self.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
