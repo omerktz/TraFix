@@ -19,7 +19,7 @@ def handle_instance((dir, dns, i)):
 	client.close()
 
 def extract_instance((dir, dns, i)):
-	os.system('cd {0}; tar -xzf tmp{1}.tar.gz; rm tmp{1}.tar.gz; cd - >& /dev/null'.format(dir, i))
+	os.system('cd {0}; tar -xzf tmp{1}.tar.gz; rm tmp{1}.tar.gz; cd - > /dev/null'.format(dir, i))
 
 def handle_batch(batch, instances):
 	print 'Downloading batch '+batch+'... ',
