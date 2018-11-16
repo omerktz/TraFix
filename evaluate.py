@@ -87,8 +87,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 				with open(failed_dataset + '.corpus.replacements', 'a') as freplacements:
 					for j in range(len(out)):
 						if len(out[j]) > 0 and len(lls[j]) > 0:
-							(h, replaces) = generate_number_replacements(out[j], config, hl2ll)
-							l = apply_number_replacements(lls[j], replaces)
+							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
+							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
