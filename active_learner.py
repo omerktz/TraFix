@@ -17,8 +17,8 @@ import generate_vocabularies as vocabs_utils
 ###
 class ActiveLearner:
 	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
-				 dynmt_config='configs/dynmt.config', patience=10, num_translations=5, success_percentage=0.99,
-				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
+				 dynmt_config='configs/dynmt.config', patience=5, num_translations=5, success_percentage=0.95,
+				 validation_size=1000, train_size_initial=5000, train_size_increment=5000, initial_model=None, max_iterations=None):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
