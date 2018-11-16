@@ -76,15 +76,18 @@ class AWShandler:
 		self.log_info('Connection successful')
 		return client
 
+	def exec_command(self, command):
+		sin, sout, serr = self._client.exec_command(command)
+		sout.channel.recv_exit_status()
+
 	def exec_instance(self):
-		def exec_command(command):
-			sin, sout, serr = self._client.exec_command(command)
-			sout.channel.recv_exit_status()
-		self.log_info('Updating code')
-		exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
 		self.log_info('Executing experiment')
-		exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		self.exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
+
+	def update_code(self):
+		self.log_info('Updating code')
+		self.exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
 
 
 	def download_from_instance(self):
@@ -114,6 +117,7 @@ class AWShandler:
 	def launch_instance(self):
 		self._instance = self.create_instance()
 		self._client = self.get_client()
+		self.update_code()
 		if self._config_dir is not None:
 			if not os.path.exists(self._config_dir):
 				print 'Configs folder does not exist'
