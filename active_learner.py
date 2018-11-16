@@ -227,7 +227,7 @@ class ActiveLearner:
 		self.remaining = update_testset(i)
 		logging.info('{0} entries left to translate ({1} iterations since last progress)'.format(self.remaining, p))
 		if self.max_iterations is not None:
-			if i >= self.max_iterations:
+			if (i+1) >= self.max_iterations:
 				return True
 		return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
 
