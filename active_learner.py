@@ -83,7 +83,7 @@ class ActiveLearner:
 		if not experiment:
 			os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
 		else:
-			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
+			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 1000, self.codenator_config,
 																	  os.path.join(self.output_dir, basename),
 																	  self.compiler))
 		for ext in ['ll', 'hl', 'replacements']:
@@ -301,17 +301,17 @@ if __name__ == "__main__":
 						help="Dynmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
-	parser.add_argument('-p', '--percentage', type=float, default=0.99,
+	parser.add_argument('-p', '--percentage', type=float, default=0.95,
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=5000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
-	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
+	parser.add_argument('-n', '--train-size-increment', type=int, default=5000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
 	parser.add_argument('-m', '--initial-model', type=str,
 						help="trained model to to use as basis for current active learner")
-	parser.add_argument('-w', '--patience', type=int, default=10,
+	parser.add_argument('-w', '--patience', type=int, default=5,
 						help="Number of iterations without progress before early-stop (default: %(default)s)")
 	parser.add_argument('-s', '--max-iterations', type=int,
 						help="Maximum number of iterations before stopping")
