@@ -50,11 +50,18 @@ def compiler(hl):
 	return hl2ll.compiler(MockHL(s), check_success=True)
 
 
+def remove_end_character(self,line):
+	logging.info('line before: ' + line)
+	logging.info('line after: ' + line.replace(' |', ''))
+	return line.replace(' |', '')
+
+
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
+	out = map(lambda x: remove_end_character(x), out)
 	out = map(lambda x: apply_number_replacements(x, replacements), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
@@ -65,6 +72,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	if not any(lls):
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
+	ll == remove_end_character(ll)
 	ll = apply_number_replacements(ll, replacements)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
