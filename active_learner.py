@@ -193,7 +193,7 @@ class ActiveLearner:
 
 
 	# return True if successfully translated *enough* entries
-	def results_sufficient(self, i):
+	def results_sufficient(self, i, p):
 
 		# update test dataset keeping only unsolved entries
 		def update_testset(i):
@@ -225,7 +225,7 @@ class ActiveLearner:
 													 os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
 				  stdout=f, stderr=f, bufsize=0).wait()
 		self.remaining = update_testset(i)
-		logging.info('{0} entries left to translate'.format(self.remaining))
+		logging.info('{0} entries left to translate ({1} iterations since last progress)'.format(self.remaining, p))
 		if self.max_iterations is not None:
 			if i >= self.max_iterations:
 				return True
@@ -241,7 +241,7 @@ class ActiveLearner:
 		self.train_and_translate(i)
 		remaining_update_counter = 0
 		remaining_last = self.remaining
-		while not self.results_sufficient(i):
+		while not self.results_sufficient(i, remaining_update_counter):
 			if self.remaining != remaining_last:
 				remaining_last = self.remaining
 				remaining_update_counter = 0
