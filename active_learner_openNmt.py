@@ -98,7 +98,6 @@ class ActiveLearner:
         self.update_file_with_EOS(os.path.join(self.output_dir, basename + '.corpus.ll'))
         self.update_file_with_EOS(os.path.join(self.output_dir, basename + '.corpus.hl'))
 
-        self.update_file_with_EOS(os.path.join(self.output_dir, basename))
         for ext in ['ll', 'hl', 'replacements']:
             os.system('cp {0} {1}'.format(os.path.join(self.output_dir, basename + '.corpus.' + ext),
                                           os.path.join(self.datasets_path, 'test0.corpus.' + ext)))
