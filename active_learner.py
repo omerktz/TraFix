@@ -17,8 +17,8 @@ import generate_vocabularies as vocabs_utils
 ###
 class ActiveLearner:
 	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
-				 dynmt_config='configs/dynmt.config', patience=5, num_translations=5, success_percentage=0.95,
-				 validation_size=1000, train_size_initial=5000, train_size_increment=5000, initial_model=None, max_iterations=None):
+				 dynmt_config='configs/dynmt.config', patience=10, num_translations=5, success_percentage=0.95,
+				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
@@ -305,13 +305,13 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=5000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
-	parser.add_argument('-n', '--train-size-increment', type=int, default=5000,
+	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
 	parser.add_argument('-m', '--initial-model', type=str,
 						help="trained model to to use as basis for current active learner")
-	parser.add_argument('-w', '--patience', type=int, default=5,
+	parser.add_argument('-w', '--patience', type=int, default=10,
 						help="Number of iterations without progress before early-stop (default: %(default)s)")
 	parser.add_argument('-s', '--max-iterations', type=int,
 						help="Maximum number of iterations before stopping")
