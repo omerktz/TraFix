@@ -23,6 +23,7 @@ def get_new_values(hl_value, ll_replacements, is_div_or_mul, is_if):
 		if is_if:
 			values.add(hl_num - ll_num + target_num)
 		if is_div_or_mul:
+			values.add(hl_num / float(ll_num) * target_num)
 			if hl_num == 2**ll_num:
 				values.add(2**target_num)
 	return map(str, values)
