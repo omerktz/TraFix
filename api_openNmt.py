@@ -20,7 +20,7 @@ def main(args):
 		valid_steps = 10
 
 	train_command = ('python ' + train_py + ' -data {0} -save_model {1} -encoder_type brnn -word_vec_size {2} -rnn_size {3} -layers {4} ' \
-		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} ' + previous) \
+		'-global_attention general -valid_steps {5} -batch_size {6} -min_epochs {7} -max_patience {8} -max_grad_norm 1' + previous) \
 		.format(train_dataset, model, config.getint('OpenNmt', 'word_vec_size') , config.getint('OpenNmt', 'rnn_size'),
 				config.getint('OpenNmt', 'lstm_layers'), valid_steps, config.getint('OpenNmt', 'batch_size'), config.getint('OpenNmt', 'min_epochs'),
 				config.getint('OpenNmt', 'max_patience'))
