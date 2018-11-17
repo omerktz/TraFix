@@ -35,6 +35,7 @@ class ActiveLearner:
         # set external scripts paths
         self.codenator = 'codenator.py'
         self.api_openNmt = 'api_openNmt.py'
+        self.show_attention_nicely = 'open_nmt/show_attentions_nicely.py'
         self.evaluate = 'evaluate.py'
         self.preProcessor = 'open_nmt/preprocess.py'
         # set work paths
@@ -181,7 +182,7 @@ class ActiveLearner:
                                                                                        self.num_translations,
                                                                                         attn_path).split(
                 ' '), stdout=f, stderr=f, bufsize=0).wait()
-
+        os.system('python {0} {1} {2}'.format(self.show_attention_nicely, attn_path, self.datasets_path))
     # generate new datasets and combine with previous set of datasets
     def update_datasets(self, i):
 
