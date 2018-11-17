@@ -50,9 +50,7 @@ def compiler(hl):
 	return hl2ll.compiler(MockHL(s), check_success=True)
 
 
-def remove_end_character(self,line):
-	logging.info('line before: ' + line)
-	logging.info('line after: ' + line.replace(' |', ''))
+def remove_end_character(line):
 	return line.replace(' |', '')
 
 
@@ -72,7 +70,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	if not any(lls):
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
-	ll == remove_end_character(ll)
+	ll = remove_end_character(ll)
 	ll = apply_number_replacements(ll, replacements)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
