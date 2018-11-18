@@ -10,9 +10,9 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class AWShandler:
-	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
-				 instance_type='p2.xlarge', security_group='omer-sg', termination_protection=False,
-				 instance_name='omer-{0}-{1}', main_dir='Codenator', retries=5, branch='master', config_dir=None):
+	def __init__(self, compiler, output, index,image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
+				 security_group='omer-sg', termination_protection=False, instance_name='omer-{0}-{1}',
+				 main_dir='Codenator', retries=5, branch='master', config_dir=None, instance_type='r5.large'): #r5.xlarge
 		self._index = index
 		self._ami_id = image
 		self._instance_username = username
@@ -139,8 +139,8 @@ def instance_wrapper((args, i)):
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	hide_logs()
 	AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key,
-			   instance_type=args.type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.naming, main_dir=args.main, branch=args.branch, config_dir=args.configs).launch_instance()
+			   security_group=args.security, termination_protection=args.protection, instance_name=args.naming,
+			   main_dir=args.main, branch=args.branch, config_dir=args.configs, instance_type=args.type).launch_instance()
 
 if __name__ == "__main__":
 	import argparse
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
 						help="key filename (default: \'%(default)s)\'")
-	parser.add_argument('-t', '--type', type=str, default='p2.xlarge',
+	parser.add_argument('-t', '--type', type=str, default='r5.large',#r5.xlarge
 						help="AWS instance type (default: \'%(default)s)\'")
 	parser.add_argument('-s', '--security', type=str, default='omer-sg',
 						help="AWS security group for instances (default: \'%(default)s)\'")
