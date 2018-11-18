@@ -27,8 +27,8 @@ def main(args):
 
 	train_command = train_command.strip()
 
-	translate_command = ('python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3} -attn_debug ') \
-		.format(model, test_dataset, first_translation_output, args['num_translations'])
+	translate_command = ('python ' + translate_py + ' -model {0} -src {1} -output {2} -n_best {3} -attn_debug > {4}') \
+		.format(model, test_dataset, first_translation_output, args['num_translations'], args['attn_output_path'])
 
 	translate_command = translate_command.strip()
 
@@ -78,6 +78,7 @@ if __name__ == "__main__":
 	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
 	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
 	parser.add_argument('-d', '--data_set_size', type=int, help="number of sentences in the data_set")
+	parser.add_argument('-attn_output_path', type=str, help="previous model to use as baseline" , default='')
 	args = parser.parse_args()
 
 	if (args.train and args.translate) or not (args.train or args.translate):
