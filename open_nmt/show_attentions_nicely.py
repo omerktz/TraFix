@@ -62,12 +62,24 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     os.system('rm ' + word_file_path)
     return True
 
-def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print):
-    i=0
-    finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
-    while (finished == True and (num_of_words_to_print == 0 or i <= num_of_words_to_print)):
-        i += 1
-        finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
+def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path):
+
+    words_to_attend = None
+    if(only_failed_words):
+        df = pd.read_csv(failed_path)
+        words_to_attend = df.index
+
+    if(words_to_attend == None):
+        i = 0
+        finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
+        while (finished == True and (num_of_words_to_print == 0 or i <= num_of_words_to_print)):
+            i += 1
+            finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
+    else:
+        i = words_to_attend[0]
+        make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
+        for i in words_to_attend[1:]:
+            make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
     df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
     df.to_csv(output_path + 'attn_only_ordered_nicely.csv')
 
@@ -110,7 +122,9 @@ if __name__ == "__main__":
     parser.add_argument('-enlarge_pixels', type=int, help="if we want to make the pixels larger", default=1)
     parser.add_argument('-num_highest_attentions', type=int, help="how many attentions would we like to see for each word", default=10)
     parser.add_argument('-num_of_words_to_print', type=int, help="number of words to print", default=0)
+    parser.add_argument('-only_failed_words', type=bool, help='will we order attn of only failed results', default=False)
+    parser.add_argument('-failed_path', type=bool, help='path of failed results', default='')
 
     args = parser.parse_args()
-    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_words_to_print)
+    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_words_to_print, args.only_failed_words, args.failed_path)
     # print_image_of_one_word(args.attn_file, args.word, args.word_num, args.output_path, args.enlarge_pixels)
