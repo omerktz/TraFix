@@ -55,7 +55,7 @@ class ActiveLearner:
                     line = line[:-1] + ' @\n'
                 w.write(line)
             w.close()
-        # os.system('rm ' + path_of_file + '.tmp')
+        os.system('rm ' + path_of_file + '.tmp')
 
     def initialize_datasets(self, experiment):
         logging.info('Initializing ActiveLearner')
@@ -169,9 +169,9 @@ class ActiveLearner:
                             previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
         # translate
         logging.info('Translating dataset (iteration {0})'.format(i))
-        attn_path = os.path.join(self.datasets_path, 'attentions%d.txt' % i)
+
         with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-            Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5} {6}'.format(self.api_openNmt,
+            Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5} '.format(self.api_openNmt,
                                                                                        os.path.join(self.datasets_path,
                                                                                                     'preProcessed%d' % i),
                                                                                        os.path.join(self.datasets_path,
@@ -179,9 +179,10 @@ class ActiveLearner:
                                                                                        os.path.join(self.models_path,
                                                                                                     'model%d' % i),
                                                                                        self.openNmt_config,
-                                                                                       self.num_translations,
-                                                                                        attn_path).split(
+                                                                                       self.num_translations).split(
                 ' '), stdout=f, stderr=f, bufsize=0).wait()
+        attn_path = os.path.join(self.datasets_path, 'attentions%d' % i, '.txt')
+        os.system('mv ' + os.path.join(self.outputs_path,'attention.txt') + ' ' + attn_path)
         os.system('python {0} {1} {2}'.format(self.show_attention_nicely, attn_path, self.datasets_path))
     # generate new datasets and combine with previous set of datasets
     def update_datasets(self, i):
