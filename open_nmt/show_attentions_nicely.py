@@ -54,18 +54,20 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
         # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
         value_of_attns = attns[top_attentions_indexes]
         highest_impact_on_word = columns[top_attentions_indexes]
-
-        w.write(str(c_character) + ' ' + ' '.join(re.sub(r"\.\d+","", str(e)) for e in highest_impact_on_word) + '\n')
-        w.write(str(c_character) + ' ' + ' '.join(str(e) for e in value_of_attns) + '\n')
-        w.write(str(c_character) + ' ' + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
+        line_start = str(word_num) + ' ' + str(c_character) + ' '
+        w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
+        w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
+        w.write(line_start + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
     w.close()
     os.system('rm ' + word_file_path)
     return True
 
-def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path):
+def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path, iter_num):
     if(only_failed_words == 1):
         df = pd.read_csv(failed_path)
         words_to_attend = df.index
+        if words_to_attend.size == 0:
+            return
         i = words_to_attend[0]
         make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
         for i in words_to_attend[1:]:
@@ -78,7 +80,7 @@ def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions
             finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
 
     df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
-    df.to_csv(output_path + 'attn_only_ordered_nicely.csv')
+    df.to_csv(output_path + 'attn_only_ordered_nicely_%d.csv' %iter_num ,index=False)
 
 def print_image_of_one_word(attn_file, word, word_num, output_path, enlarge_pixels):
     with open(attn_file) as all_attn:
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument('-num_of_words_to_print', type=int, help="number of words to print", default=0)
     parser.add_argument('-only_failed_words', type=int, help='will we order attn of only failed results', default=0)
     parser.add_argument('-failed_path', type=str, help='path of failed results', default='')
-
+    parser.add_argument('-iter_num', type=int, help='the number of the itteration', default=0)
     args = parser.parse_args()
-    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_words_to_print, args.only_failed_words, args.failed_path)
+    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_words_to_print, args.only_failed_words, args.failed_path, args.iter_num)
     # print_image_of_one_word(args.attn_file, args.word, args.word_num, args.output_path, args.enlarge_pixels)

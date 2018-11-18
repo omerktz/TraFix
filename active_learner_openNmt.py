@@ -169,9 +169,9 @@ class ActiveLearner:
                             previous is not None) else '').split(' '), stdout=f, stderr=f, bufsize=0).wait()
         # translate
         logging.info('Translating dataset (iteration {0})'.format(i))
-
+        self.attn_path = os.path.join(self.datasets_path, 'attentions%d' % i + '.txt')
         with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-            Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5} '.format(self.api_openNmt,
+            Popen('python {0} {1} {2} -m {3} -c {4} --translate -n {5} -attn_output_path {6}'.format(self.api_openNmt,
                                                                                        os.path.join(self.datasets_path,
                                                                                                     'preProcessed%d' % i),
                                                                                        os.path.join(self.datasets_path,
@@ -179,11 +179,10 @@ class ActiveLearner:
                                                                                        os.path.join(self.models_path,
                                                                                                     'model%d' % i),
                                                                                        self.openNmt_config,
-                                                                                       self.num_translations).split(
+                                                                                       self.num_translations,
+                                                                                        self.attn_path).split(
                 ' '), stdout=f, stderr=f, bufsize=0).wait()
-        attn_path = os.path.join(self.datasets_path, 'attentions%d' % i, '.txt')
-        os.system('mv ' + os.path.join(self.outputs_path,'attention.txt') + ' ' + attn_path)
-        os.system('python {0} {1} {2}'.format(self.show_attention_nicely, attn_path, self.datasets_path))
+
     # generate new datasets and combine with previous set of datasets
     def update_datasets(self, i):
 
@@ -208,10 +207,10 @@ class ActiveLearner:
                                                             os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
                                                             self.validation_size, self.compiler))
 
-        self.update_file_with_EOS(self, os.path.join(self.datasets_path, 'train%d' % i + '.corpus.ll'))
-        self.update_file_with_EOS(self, os.path.join(self.datasets_path, 'train%d' % i + '.corpus.hl'))
-        self.update_file_with_EOS(self, os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.ll'))
-        self.update_file_with_EOS(self, os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.hl'))
+        self.update_file_with_EOS(os.path.join(self.datasets_path, 'train%d' % i + '.corpus.ll'))
+        self.update_file_with_EOS(os.path.join(self.datasets_path, 'train%d' % i + '.corpus.hl'))
+        self.update_file_with_EOS(os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.ll'))
+        self.update_file_with_EOS(os.path.join(self.datasets_path, 'validate%d' % i + '.corpus.hl'))
 
         os.system(
             'python {0} -train_src {1} -train_tgt {2} -valid_src {3} -valid_tgt {4} -save_data {5}'.format(self.preProcessor,
@@ -257,6 +256,8 @@ class ActiveLearner:
                   stdout=f, stderr=f, bufsize=0).wait()
         self.remaining = update_testset(i)
         logging.info('{0} entries left to translate'.format(self.remaining))
+        os.system('python {0} {1} {2} -only_failed_words 1 -failed_path {3} -iter_num {4}'.format(self.show_attention_nicely, self.attn_path, os.path.join(self.datasets_path, ''),
+                                                                            os.path.join(self.datasets_path, 'test%d' % i + '.fail.' + str(self.num_translations) + '.csv'), str(i)))
         return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
 
     def run(self, cleanup=False):
@@ -331,7 +332,7 @@ if __name__ == "__main__":
                         help="Number of translations per entry (default: %(default)s)")
     parser.add_argument('-p', '--percentage', type=float, default=0.99,
                         help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
-    parser.add_argument('-t', '--validation-size', type=int, default=1000,
+    parser.add_argument('-t', '--validation-size', type=int, default=2000,
                         help="Number of samples in validation dataset (default: %(default)s)")
     parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
                         help="Initial number of samples in training dataset (default: %(default)s)")
