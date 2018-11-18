@@ -65,7 +65,7 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
 def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print):
     i=0
     finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
-    while (finished == True and (num_highest_attentions == 0 or i <= num_of_words_to_print)):
+    while (finished == True and (num_of_words_to_print == 0 or i <= num_of_words_to_print)):
         i += 1
         finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
     df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
