@@ -127,12 +127,17 @@ class BinaryOp(Op):
 	_Ops = ['+', '-', '*', '/', '%']
 
 	def __init__(self, nesting_level=0):
-		self._op1 = get_expr(nesting_level+1)
 		self._act = npr.choice(BinaryOp._Ops)
+		self._op1 = get_expr(nesting_level+1)
+		while isinstance(self._op1, Number) and \
+				(((self._op1._num == 0) and (self._act != '-')) or \
+				 ((self._op1._num == 1) and (self._act == '*'))):
+			self._op1 = get_expr(nesting_level + 1)
 		self._op2 = get_expr(nesting_level+1)
 		while (self._op2 == self._op1) or \
-				((self._act == '/') and isinstance(self._op2, Number) and (self._op2._num == 0)) or \
-				(isinstance(self._op1, Number) and isinstance(self._op2, Number)):
+				(isinstance(self._op1, Number) and isinstance(self._op2, Number)) or \
+				(isinstance(self._op2, Number) and ((self._op2._num == 0) or \
+													((self._op2._num == 1) and (self._act in ['*', '/'])))):
 			self._op2 = get_expr(nesting_level+1)
 
 	def __str__(self):
