@@ -51,7 +51,7 @@ def compiler(hl):
 
 
 def remove_end_character(line):
-	return line.replace(' @', '')
+	return line.replace(' @@@', '')
 
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):

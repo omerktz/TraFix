@@ -51,8 +51,8 @@ class ActiveLearner:
             lines = file_to_change.readlines()
             w = open(path_of_file, 'w+')
             for line in lines:
-                if(not  line.__contains__('@')):
-                    line = line[:-1] + ' @\n'
+                if(not  line.__contains__('@@@')):
+                    line = line[:-1] + ' @@@\n'
                 w.write(line)
             w.close()
         os.system('rm ' + path_of_file + '.tmp')
