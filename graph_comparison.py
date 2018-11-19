@@ -22,6 +22,7 @@ class VarInstruction:
 
 class Graph:
 	def __init__(self, code):
+		self.bad_graph = False
 		# remove garbage
 		cleaned_code = ' __entry__ ; ' + re.sub('i32\*?', '', re.sub('i1', '', code)).replace('  ', ' ') + ' __exit__ ; '
 		# parse code
@@ -36,8 +37,8 @@ class Graph:
 					indexes = filter(lambda j: label in self.instructions[j].labels, self.instructions.keys())
 					if len(indexes) == 0:
 						print "Missing label"
-						import sys
-						sys.exit(1)
+						self.bad_graph = True
+						return
 					index = indexes[0]
 					self.childs[i].append(index)
 					self.parents[index].append(i)
@@ -138,6 +139,8 @@ class Graph:
 
 
 def compare_graphs(graph1, graph2):
+	if graph1.bad_graph or graph2.bad_graph:
+		return (False, [])
 	if len(graph1.instructions) != len(graph2.instructions):
 		return (False, [])
 	if graph1.get_all_ops() != graph2.get_all_ops():

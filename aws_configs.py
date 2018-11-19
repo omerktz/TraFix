@@ -10,7 +10,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class AWShandler:
-	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
+	def __init__(self, compiler, output, index,image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
 				 security_group='omer-sg', termination_protection=False, instance_name='omer-{0}-{1}',
 				 main_dir='Codenator', retries=5, branch='master', config_dir=None, instance_type='r5.large'): #r5.xlarge
 		self._index = index
@@ -26,7 +26,10 @@ class AWShandler:
 		self._main_dir = main_dir
 		self._retries = retries
 		self._branch = branch
-		self._config_dir = config_dir
+		if config_dir is not None:
+			self._config_dir = config_dir+str(index)
+		else:
+			self._config_dir = None
 
 		self._ec2 = boto3.resource('ec2')
 		self._ec2client = boto3.client('ec2')
@@ -82,7 +85,7 @@ class AWShandler:
 
 	def exec_instance(self):
 		self.log_info('Executing experiment')
-		self.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		self.exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
@@ -119,6 +122,10 @@ class AWShandler:
 		self._client = self.get_client()
 		self.update_code()
 		if self._config_dir is not None:
+			if not os.path.exists(self._config_dir):
+				print 'Configs folder does not exist'
+				import sys
+				sys.exit(1)
 			self.update_configurations()
 		self.exec_instance()
 		self.download_from_instance()
@@ -135,8 +142,8 @@ def instance_wrapper((args, i)):
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	hide_logs()
 	AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key,
-			   instance_type=args.type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.naming, main_dir=args.main, branch=args.branch, config_dir=args.configs).launch_instance()
+			   security_group=args.security, termination_protection=args.protection, instance_name=args.naming,
+			   main_dir=args.main, branch=args.branch, config_dir=args.configs, instance_type=args.type).launch_instance()
 
 if __name__ == "__main__":
 	import argparse
@@ -174,12 +181,6 @@ if __name__ == "__main__":
 	if os.path.exists(args.output):
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
-
-	if args.configs:
-		if not os.path.exists(args.configs):
-			print 'Configs folder does not exist'
-			import sys
-			sys.exit(1)
 
 	pool = multiprocessing.Pool(processes=args.count)
 	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))

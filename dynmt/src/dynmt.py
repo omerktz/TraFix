@@ -575,7 +575,7 @@ loss per example: {}'.format(e,
 
 				log_to_file(log_path, e, total_batches, avg_train_loss, dev_loss, dev_bleu)
 				save_model(model, results_file_path, total_batches, models_to_save=int(arguments['--models-to-save']))
-				if dev_bleu >= best_dev_accuracy:
+				if dev_bleu > best_dev_accuracy:
 					best_dev_accuracy = dev_bleu
 					best_dev_epoch = e
 
