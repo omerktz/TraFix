@@ -23,7 +23,7 @@ def get_new_values(hl_value, ll_replacements, is_div_or_mul, is_if):
 		if is_if:
 			values.add(hl_num - ll_num + target_num)
 		if is_div_or_mul:
-			values.add(hl_num / float(ll_num) * target_num)
+			values.add(int(round(hl_num / float(ll_num) * target_num)))
 			if hl_num == 2**ll_num:
 				values.add(2**target_num)
 	return map(str, values)
@@ -38,6 +38,8 @@ def found_right_replacement(remaining_replacements, replacements, relevant_repla
 def try_new_value(new_value, hl_parts, i, ll, compiler, comparison):
 	hl_parts[i] = new_value
 	fixed_compiled = compiler.compiler(hl_wrapper(' '.join(hl_parts)), True)
+	if fixed_compiled is None:
+		return None
 	comparison_result = comparison.compare_codes(fixed_compiled, ll)
 	if not comparison_result[0]:
 		return None
@@ -120,28 +122,28 @@ def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
 			constant1 = int(replacement[1])
 			if len(relevant_replacements) == 1:
 				if (constant0 > 0) and (constant0 <= 32):
-					try:
-						new_values.add(original_int / float(2 ** (constant0 - constant1)))
-					except ZeroDivisionError:
-						pass
+					if (constant1 > 0) and (constant1 <= 32):
+						if constant0 - constant1 > 0:
+							new_values.add(original_int >> (constant0 - constant1))
+						else:
+							new_values.add(original_int << (constant1 - constant0))
 				else:
 					new_values.add(original_int * constant0 / float(constant1))
-					new_values.add(original_int * (constant0 + (2 ** 32))/float(constant1 + (2 ** 32)))
+					new_values.add(original_int * (constant0 + (1 << 32)) / float(constant1 + (1 << 32)))
 			elif len(replacements) == 2:
-				power_replacement = replacements[relevant_replacements[1]][0]
-				try:
-					if int(round(original_int * constant0 / float(2**int(power_replacement[0])) / float(2**32))) == 1:
-						new_values.add(2**(32 + int(power_replacement[1]))/float(constant1))
-					elif int(round(original_int * (constant0 + 2**32) / float(2**int(power_replacement[0])) / float(2**32))) == 1:
-						new_values.add(2**(32 + int(power_replacement[1]))/float(constant1 + 2**32))
-					else:
-						# print "Unknown div to mul pattern"
-						# print map(lambda x: (x, replacements[x]), relevant_replacements)
+				power_replacement = map(lambda x: int(x), replacements[relevant_replacements[1]][0])
+				if (power_replacement[0] > 0) and (power_replacement[0] <= 32) and (power_replacement[1] > 0) and (power_replacement[1] <= 32):
+					try:
+						if original_int * constant0 >> (power_replacement[0] + 32) == 1:
+							new_values.add((1 << (32 + power_replacement[1])) / float(constant1))
+						elif original_int * (constant0 + (1 << 32)) >> (power_replacement[0] + 32) == 1:
+							new_values.add((1 << (32 + power_replacement[1])) / float(constant1 + (1 << 32)))
+						else:
+							# print "Unknown div to mul pattern"
+							# print map(lambda x: (x, replacements[x]), relevant_replacements)
+							pass
+					except OverflowError:
 						pass
-				except ZeroDivisionError:
-					pass
-				except OverflowError:
-					pass
 			for new_value in new_values:
 				new_value_str = str(int(round(new_value)))
 				new_remaining_replacements = try_new_value(str(new_value_str), hl_parts, i, ll, compiler, comparison)

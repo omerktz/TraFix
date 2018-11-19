@@ -26,7 +26,10 @@ class AWShandler:
 		self._main_dir = main_dir
 		self._retries = retries
 		self._branch = branch
-		self._config_dir = config_dir+str(index)
+		if config_dir is not None:
+			self._config_dir = config_dir+str(index)
+		else:
+			self._config_dir = None
 
 		self._ec2 = boto3.resource('ec2')
 		self._ec2client = boto3.client('ec2')
