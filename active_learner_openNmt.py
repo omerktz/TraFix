@@ -18,7 +18,7 @@ import generate_vocabularies as vocabs_utils
 class ActiveLearner:
     def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
                  openNmt_config='configs/openNmt.config', patience=10, num_translations=5, success_percentage=0.99,
-                 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None):
+                 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
         # store parameters
         self.input = input
         self.output_dir = output_dir
@@ -32,6 +32,7 @@ class ActiveLearner:
         self.train_size_initial = train_size_initial
         self.train_size_increment = train_size_increment
         self.initial_model = initial_model
+        self.max_iterations = max_iterations
         # set external scripts paths
         self.codenator = 'codenator.py'
         self.api_openNmt = 'api_openNmt.py'
@@ -222,7 +223,7 @@ class ActiveLearner:
 
 
     # return True if successfully translated *enough* entries
-    def results_sufficient(self, i):
+    def results_sufficient(self, i, p):
 
         # update test dataset keeping only unsolved entries
         def update_testset(i):
@@ -255,7 +256,10 @@ class ActiveLearner:
                                                      os.path.join(self.datasets_path, 'failed%d' % i)).split(' '),
                   stdout=f, stderr=f, bufsize=0).wait()
         self.remaining = update_testset(i)
-        logging.info('{0} entries left to translate'.format(self.remaining))
+        logging.info('{0} entries left to translate ({1} iterations since last progress)'.format(self.remaining, p))
+        if self.max_iterations is not None:
+            if (i + 1) >= self.max_iterations:
+                return True
         os.system('python {0} {1} {2} -only_failed_words 1 -failed_path {3} -iter_num {4}'.format(self.show_attention_nicely, self.attn_path, os.path.join(self.datasets_path, ''),
                                                                             os.path.join(self.datasets_path, 'test%d' % i + '.fail.' + str(self.num_translations) + '.csv'), str(i)))
         return (self.remaining <= (self.initial_test_size * (1 - self.success_percentage)))
@@ -270,7 +274,7 @@ class ActiveLearner:
         self.train_and_translate(i)
         remaining_update_counter = 0
         remaining_last = self.remaining
-        while not self.results_sufficient(i):
+        while not self.results_sufficient(i, remaining_update_counter):
             if self.remaining != remaining_last:
                 remaining_last = self.remaining
                 remaining_update_counter = 0
@@ -342,6 +346,8 @@ if __name__ == "__main__":
                         help="trained model to to use as basis for current active learner")
     parser.add_argument('-w', '--patience', type=int, default=10,
                         help="Number of iterations without progress before early-stop (default: %(default)s)")
+    parser.add_argument('-s', '--max-iterations', type=int,
+                        help="Maximum number of iterations before stopping")
     parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
     parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
     parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
@@ -352,5 +358,5 @@ if __name__ == "__main__":
                   codenator_config=args.codenator_config, openNmt_config=args.openNmt_config, patience=args.patience,
                   num_translations=args.num_translations, success_percentage=args.percentage,
                   validation_size=args.validation_size, train_size_initial=args.train_size_initial,
-                  train_size_increment=args.train_size_increment, initial_model=args.initial_model).\
+                  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations).\
         run(cleanup=args.cleanup)
