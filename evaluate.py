@@ -66,7 +66,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
-	out = map(lambda x: apply_number_replacements(x, replacements), out)
+	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
 		return (i, hl, ll, replacements, None, 2)  # unparsable
