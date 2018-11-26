@@ -1,10 +1,10 @@
-import os
 import re
 import pandas as pd
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import heapq
+from visualize_attn import showAttention
 
 def prepare_and_write_line(w,line):
     line = line.replace('*0.', '0.')
@@ -33,7 +33,6 @@ def create_file_of_one_word_by_num(lines, word_num, output_path):
     return word_file_path
 
 def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, word_num, write_option):
-    easy_to_use_path = output_path + 'easy_to_use.txt'
     with open(attn_file) as all_attn:
         lines = all_attn.readlines()
         word_file_path = create_file_of_one_word_by_num(lines,word_num,output_path)
@@ -44,22 +43,31 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     if(word_file_path == None):
         return False
     df = pd.read_csv(word_file_path, sep='&')
+
     columns = df.columns[1:]
+    attns = np.asarray(map(lambda x: x[1:], df.values))
+    attns = np.multiply(attns,256)
+    attns = attns.astype(int)
+    output_sentence = df.ix[:,0]
+    input_sentence = ' '.join(re.sub(r"\.\d+", "", str(e)) for e in columns)
+    image_output_path = word_file_path.replace('.txt', '.png')
+    print image_output_path
+    showAttention(input_sentence, output_sentence, attns, image_output_path)
 
     w = open(output_path + 'attn_only_ordered_nicely.txt', write_option)
-    for line in df.as_matrix():
+    for line in df.values:
         c_character = line[0]
-        attns = line[1:]
-        top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attns)), attns.__getitem__)
+        attn_line = line[1:]
+        top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attn_line)), attn_line.__getitem__)
         # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
-        value_of_attns = attns[top_attentions_indexes]
+        value_of_attns = attn_line[top_attentions_indexes]
         highest_impact_on_word = columns[top_attentions_indexes]
         line_start = str(word_num) + ' ' + str(c_character) + ' '
         w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
         w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
         w.write(line_start + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
     w.close()
-    os.system('rm ' + word_file_path)
+    # os.system('rm ' + word_file_path)
     return True
 
 def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path, iter_num):

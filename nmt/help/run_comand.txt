@@ -1,0 +1,13 @@
+
+# creqte the vocab
+python -m nmt.scripts.build_vocab --size 50000 --save_vocab tf_first/datasets/vocab.ll tf_first/datasets/train0.corpus.ll
+python -m nmt.scripts.build_vocab --size 50000 --save_vocab tf_first/datasets/vocab.hl tf_first/datasets/train0.corpus.hl
+
+
+# run the train
+python -m nmt.nmt --vocab_prefix=tf_first/datasets/vocab  --train_prefix=tf_first/datasets/train0.corpus --dev_prefix=tf_first/datasets/validate0.corpus --out_dir=tf_first/mod --num_train_steps=1200000 --steps_per_stats=100 --num_layers=2 --num_units=100 --metrics=bleu --src=ll --tgt=hl --attention=bahdanau --batch_size=64 --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm=1 --learning_rate=0.001 --optimizer=adam --encoder_type=bi --best_bleu_dir=tf_first/mod/best_bleu --num_keep_ckpts=1
+
+python -m nmt.nmt --vocab_prefix=tf_first/mod/vocab1  --train_prefix=tf_first/datasets/train1.corpus --dev_prefix=tf_first/datasets/validate0.corpus --out_dir=tf_first/mod --num_train_steps=1200000 --steps_per_stats=150 --num_layers=2 --num_units=100 --metrics=bleu --src=ll --tgt=hl --attention=bahdanau --batch_size=64 --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm=1 --learning_rate=0.001 --optimizer=adam --encoder_type=bi --best_bleu_dir=tf_first/mod/best_bleu
+
+# update vocab
+ python -m nmt.scripts.update_vocab --model_dir tf_first/tf_models2/ --output_dir tf_first/tf_models2/bla --src_vocab tf_first/datasets/vocab.ll --tgt_vocab tf_first/datasets/vocab.hl --new_src_vocab tf_first/datasets/vocab1.ll --new_tgt_vocab tf_first/datasets/vocab1.hl --mode replace

@@ -1,0 +1,26 @@
+ eval dev: perplexity 119.44, time 5s, Fri Nov 23 10:49:57 2018.
+  eval test: perplexity 130.31, time 6s, Fri Nov 23 10:50:03 2018.
+
+Finished an epoch, step 1043. Perform external evaluation
+2018-11-23 10:52:05.115357: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.hl is already initialized.
+2018-11-23 10:52:05.115361: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.ll is already initialized.
+2018-11-23 10:52:05.115557: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.hl is already initialized.
+  loaded infer model parameters from /tmp/nmt_model/translate.ckpt-1000, time 0.05s
+  # 1525
+    src: Now we all , or a big part of us , use Gmail or one of their competitors , but these services are especially popular in totalitarian states like Iran , where dissidents use foreign services like Gmail because they know they are more trustworthy than the local services and they are encrypted over SSL connections , so the local government can &apos;t snoop on their discussions .
+    ref: T?t c? chúng ta , ho?c ít nh?t là ph?n l?n chúng ta dang s? d?ng Gmail ho?c m?t ?ng d?ng email tuong t? khác , và nh?ng d?ch v? này d?c bi?t ph? bi?n t?i các qu?c gia chuyên ch? nhu Iran , noi mà các nhà b?t d?ng chính ki?n s? s? d?ng các d?ch v? t? nu?c ngoài nhu Gmail b?i h? bi?t rõ Gmail dáng tin c?y hon các d?ch v? n?i d?a khác và nó còn du?c mã hoá b?i giao th?c SSL do dó chính ph? không th? nghe lén du?c các thông tin mà h? trao d?i .
+    nmt: V?y nên tôi nghi r?ng chúng ta có th? th?y du?c di?u dó là m?t trong nh?ng ngu?i khác nhau và tôi dã làm vi?c v?i nh?ng ngu?i khác nhau và tôi dã làm vi?c v?i nh?ng ngu?i khác nhau và tôi dã làm vi?c v?i nh?ng ngu?i khác nhau và tôi dã làm vi?c v?i nh?ng ngu?i khác nhau và tôi dã làm gì ?
+2018-11-23 10:52:05.281137: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.hl is already initialized.
+2018-11-23 10:52:05.281137: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.ll is already initialized.
+2018-11-23 10:52:05.281141: I tensorflow/core/kernels/lookup_util.cc:376] Table trying to initialize from file /tmp/alt_data/vocab.hl is already initialized.
+  loaded infer model parameters from /tmp/nmt_model/translate.ckpt-1000, time 0.05s
+# External evaluation, global step 1000
+  decoding to output /tmp/nmt_model/output_dev
+  done, num sentences 1553, num translations per input 1, time 7s, Fri Nov 23 10:52:12 2018.
+  bleu dev: 0.9
+  saving hparams to /tmp/nmt_model/hparams
+# External evaluation, global step 1000
+  decoding to output /tmp/nmt_model/output_test
+  done, num sentences 1268, num translations per input 1, time 7s, Fri Nov 23 10:52:20 2018.
+  bleu test: 0.9
+  saving hparams to /tmp/nmt_model/hparams

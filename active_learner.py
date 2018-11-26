@@ -109,10 +109,16 @@ class ActiveLearner:
 															   0 if self.initial_model else self.validation_size,
 															   os.path.join(self.datasets_path, 'test0'),
 																   self.compiler))
+
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
+			os.path.join(self.datasets_path, 'vocabs0.ll'), os.path.join(self.datasets_path, 'train0.corpus.ll')))
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
+			os.path.join(self.datasets_path, 'vocabs0.hl'), os.path.join(self.datasets_path, 'train0.corpus.hl')))
+
 		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-									  os.path.join(self.datasets_path, 'train0'),
-									  os.path.join(self.datasets_path, 'validate0')],
-									 os.path.join(self.datasets_path, 'vocabs0'))
+										  os.path.join(self.datasets_path, 'train0'),
+										  os.path.join(self.datasets_path, 'validate0')],
+										 os.path.join(self.datasets_path, 'vocabs0'))
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -186,10 +192,9 @@ class ActiveLearner:
 															os.path.join(self.datasets_path, 'test0'),
 															os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
 															self.validation_size, self.compiler))
-		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-									  os.path.join(self.datasets_path, 'train%d' % i),
-									  os.path.join(self.datasets_path, 'validate%d' % i)],
-									 os.path.join(self.datasets_path, 'vocabs%d' % i))
+
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(os.path.join(self.datasets_path, 'vocabs%d.ll' % i), os.path.join(self.datasets_path, 'train%d.corpus.ll' % i )))
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(os.path.join(self.datasets_path, 'vocabs%d.hl' % i), os.path.join(self.datasets_path, 'train%d.corpus.hl' % i)))
 
 
 	# return True if successfully translated *enough* entries
@@ -236,6 +241,9 @@ class ActiveLearner:
 		with open(os.path.join(self.output_dir, 'successes.csv'), 'w') as fout:
 			csv.writer(fout).writerow(['hl', 'll', 'out'])
 		i = 0
+		stop = 1
+		if stop == 1:
+			return
 		logging.info('Starting ActiveLearner')
 		start_time = time.time()
 		self.train_and_translate(i)
