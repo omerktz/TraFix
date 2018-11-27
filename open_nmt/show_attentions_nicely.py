@@ -43,25 +43,34 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     if(word_file_path == None):
         return False
     df = pd.read_csv(word_file_path, sep='&')
-
-    columns = df.columns[1:]
+    origin_values = df.values
+    origin_columns = df.columns[1:]
+    todrop = []
+    for column in origin_columns:
+        if(not any(i > 0.1 for i in df[column])):
+            todrop.append(column)
+    print str(df.size)
+    df = df.drop(columns=todrop)
+    print df.size
+    df.to_csv(word_file_path.replace('.txt', '.csv'),index=False)
     attns = np.asarray(map(lambda x: x[1:], df.values))
-    attns = np.multiply(attns,256)
+    attns = np.multiply(attns, 256)
     attns = attns.astype(int)
+
     output_sentence = df.ix[:,0]
-    input_sentence = ' '.join(re.sub(r"\.\d+", "", str(e)) for e in columns)
+    input_sentence = ' '.join(re.sub(r"\.\d+", "", str(e)) for e in df.columns[1:])
     image_output_path = word_file_path.replace('.txt', '.png')
-    print image_output_path
+    # print image_output_path
     showAttention(input_sentence, output_sentence, attns, image_output_path)
 
     w = open(output_path + 'attn_only_ordered_nicely.txt', write_option)
-    for line in df.values:
+    for line in origin_values:
         c_character = line[0]
         attn_line = line[1:]
         top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attn_line)), attn_line.__getitem__)
         # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
         value_of_attns = attn_line[top_attentions_indexes]
-        highest_impact_on_word = columns[top_attentions_indexes]
+        highest_impact_on_word = origin_columns[top_attentions_indexes]
         line_start = str(word_num) + ' ' + str(c_character) + ' '
         w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
         w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
