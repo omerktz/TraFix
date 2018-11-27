@@ -30,7 +30,7 @@ def _get_vocabulary_mapping(current_vocab_path, new_vocab_path, mode):
         mapping.append(idx)
       else:
         mapping.append(-1)
-  mapping.append(current_vocab.size)  # <unk> token is always the last entry.
+  # mapping.append(current_vocab.size)  # <unk> token is always the last entry.
   return mapping, final_vocab
 
 def _update_vocabulary_variable(variable, vocab_size, mapping):

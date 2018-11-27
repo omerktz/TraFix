@@ -11,3 +11,7 @@ python -m nmt.nmt --vocab_prefix=tf_first/mod/vocab1  --train_prefix=tf_first/da
 
 # update vocab
  python -m nmt.scripts.update_vocab --model_dir tf_first/tf_models2/ --output_dir tf_first/tf_models2/bla --src_vocab tf_first/datasets/vocab.ll --tgt_vocab tf_first/datasets/vocab.hl --new_src_vocab tf_first/datasets/vocab1.ll --new_tgt_vocab tf_first/datasets/vocab1.hl --mode replace
+
+
+translate
+python -m nmt.nmt --out_dir=tf_third/models/model0/ --inference_input_file=tf_third/datasets/test0.corpus.ll --inference_output_file=tf_third/datasets/test0.translated --num_translations_per_input=5 --infer_mode=beam_search --beam_width=5

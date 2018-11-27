@@ -1,10 +1,8 @@
 import os
 from subprocess import Popen, check_output
-import random
 import csv
 import logging
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
-import generate_vocabularies as vocabs_utils
 
 
 ###
@@ -17,14 +15,14 @@ import generate_vocabularies as vocabs_utils
 ###
 class ActiveLearner:
 	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
-				 dynmt_config='configs/dynmt.config', patience=10, num_translations=5, success_percentage=0.95,
+				 tf_nmt_config='configs/tf_nmt.config', patience=10, num_translations=5, success_percentage=0.95,
 				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
 		self.compiler = compiler
 		self.codenator_config = codenator_config
-		self.dynmt_config = dynmt_config
+		self.tf_nmt_config = tf_nmt_config
 		self.patience = patience
 		self.num_translations = num_translations
 		self.success_percentage = success_percentage
@@ -35,7 +33,7 @@ class ActiveLearner:
 		self.max_iterations = max_iterations
 		# set external scripts paths
 		self.codenator = 'codenator.py'
-		self.api_dynmt = 'api_dynmt.py'
+		self.api_tfNmt = 'api_tfNmt.py'
 		self.evaluate = 'evaluate.py'
 		# set work paths
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
@@ -57,10 +55,10 @@ class ActiveLearner:
 		os.system('cp {0} {1}'.format(self.codenator_config,
 									  os.path.join(self.output_dir, os.path.basename(self.codenator_config))))
 		os.system(
-			'cp {0} {1}'.format(self.dynmt_config, os.path.join(self.output_dir, os.path.basename(self.dynmt_config))))
+			'cp {0} {1}'.format(self.tf_nmt_config, os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))))
 		# update config paths
 		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
-		self.dynmt_config = os.path.join(self.output_dir, os.path.basename(self.dynmt_config))
+		self.tf_nmt_config = os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))
 		# create work directories
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
@@ -83,7 +81,7 @@ class ActiveLearner:
 		if not experiment:
 			os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
 		else:
-			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 1000, self.codenator_config,
+			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 10, self.codenator_config,
 																	  os.path.join(self.output_dir, basename),
 																	  self.compiler))
 		for ext in ['ll', 'hl', 'replacements']:
@@ -110,15 +108,11 @@ class ActiveLearner:
 															   os.path.join(self.datasets_path, 'test0'),
 																   self.compiler))
 
+		logging.info('saving vocab')
 		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
 			os.path.join(self.datasets_path, 'vocabs0.ll'), os.path.join(self.datasets_path, 'train0.corpus.ll')))
 		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
 			os.path.join(self.datasets_path, 'vocabs0.hl'), os.path.join(self.datasets_path, 'train0.corpus.hl')))
-
-		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-										  os.path.join(self.datasets_path, 'train0'),
-										  os.path.join(self.datasets_path, 'validate0')],
-										 os.path.join(self.datasets_path, 'vocabs0'))
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -133,20 +127,33 @@ class ActiveLearner:
 			os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.out',
 										  os.path.join(self.models_path, 'model0.ll-po.dynmt.vocabs.out')))
 		else:
+			model_path = os.path.join(self.models_path, 'model%d' %i, '')
+			os.system('mkdir ' + model_path)
+			if(i > 0):
+				# move the start model to the new dir and update vocabulary
+				old_model_path = os.path.join(self.models_path, 'model%d' %(i-1), '')
+				old_vocab_path = os.path.join(self.datasets_path, 'vocabs%d' % (i-1))
+				new_vocab_path = os.path.join(self.datasets_path, 'vocabs%d' % i)
+				logging.info('copying old model dir to new old and updating vocab: {0} new : {1}'.format(old_model_path, model_path))
+				# update the vocabulary of new model
+				os.system('python -m nmt.scripts.update_vocab --model_dir {0} --output_dir {1} --src_vocab {2} --tgt_vocab {3} --new_src_vocab {4} --new_tgt_vocab {5} --mode replace'.format(
+					old_model_path, model_path, old_vocab_path + '.ll', old_vocab_path + '.hl', new_vocab_path + '.ll', new_vocab_path + '.hl'))
+
 			logging.info('Training model (iteration {0})'.format(i))
+			data_set_size = self.train_size_initial + i * self.train_size_increment
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
+				Popen('python {0} {1} {2} {3} {4} -x {5} -m {6} -c {7} --train{8}'.format(self.api_tfNmt,
 																				   os.path.join(self.datasets_path,
-																								'train%d' % i),
+																								'train%d.corpus' % i),
 																				   os.path.join(self.datasets_path,
-																								'validate%d' % i),
+																								'validate%d.corpus' % i),
 																				   os.path.join(self.datasets_path,
 																								'test%d' % i),
 																				   os.path.join(self.datasets_path,
 																								'vocabs%d' % i),
-																				   os.path.join(self.models_path,
-																								'model%d' % i),
-																				   self.dynmt_config, (
+																				   data_set_size,
+																				   model_path,
+																				   self.tf_nmt_config, (
 																						   ' -p %s' % os.path.join(
 																					   self.models_path,
 																					   'model%d' % previous)) if (
@@ -154,7 +161,7 @@ class ActiveLearner:
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt,
+			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_tfNmt,
 																					   os.path.join(self.datasets_path,
 																									'train%d' % i),
 																					   os.path.join(self.datasets_path,
@@ -163,9 +170,8 @@ class ActiveLearner:
 																									'test%d' % i),
 																					   os.path.join(self.datasets_path,
 																									'vocabs%d' % i),
-																					   os.path.join(self.models_path,
-																									'model%d' % i),
-																					   self.dynmt_config,
+																					   model_path,
+																					   self.tf_nmt_config,
 																					   self.num_translations).split(
 				' '), stdout=f, stderr=f, bufsize=0).wait()
 
@@ -241,9 +247,6 @@ class ActiveLearner:
 		with open(os.path.join(self.output_dir, 'successes.csv'), 'w') as fout:
 			csv.writer(fout).writerow(['hl', 'll', 'out'])
 		i = 0
-		stop = 1
-		if stop == 1:
-			return
 		logging.info('Starting ActiveLearner')
 		start_time = time.time()
 		self.train_and_translate(i)
@@ -305,8 +308,8 @@ if __name__ == "__main__":
 						help='Generate own test input and run as experiment')
 	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator.config',
 						help="Codenator configuration file (default: \'%(default)s\')")
-	parser.add_argument('-d', '--dynmt-config', type=str, default='configs/dynmt.config',
-						help="Dynmt configuration file (default: \'%(default)s\')")
+	parser.add_argument('-d', '--tf_nmt-config', type=str, default='configs/tf_nmt.config',
+						help="tf_nmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
 	parser.add_argument('-p', '--percentage', type=float, default=0.95,

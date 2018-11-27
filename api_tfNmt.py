@@ -1,4 +1,5 @@
 import math
+import re
 
 
 def main(args):
@@ -17,33 +18,34 @@ def main(args):
 	num_train_steps = config.getint('TensorFlow', 'batch_size') * config.getint('TensorFlow', 'epochs')
 	valid_steps = int(math.floor(args['data_set_size'] / config.getint('TensorFlow', 'batch_size'))) if args[
 																									 'data_set_size'] is not None else 300
+	if valid_steps == 0:
+		valid_steps = 10
 	train_command = (
-				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=bahdanau --batch_size={9} --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12}'.format(
-				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, valid_steps, config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.getstr('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save')))
+				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=bahdanau --batch_size={9} --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12} --infer_mode={13} --beam_width={14} --learning_rate={15}'.format(
+				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, valid_steps, config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), 'beam_search', '5', config.getfloat('TensorFlow', 'learning_rate')))
 
 	train_command = train_command.strip()
 
-	trans_command = ''
+	trans_command = 'python -m ' + train_py + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} --num_translations_per_input={3} --infer_mode={4} --beam_width={5}'.format(
+					model_path, test + '.corpus.ll', test + '.translated', str(args['num_translations']), 'beam_search' , '5')
+
+	print trans_command
+	print test + '.corpus.ll' + '  ' + test + '.translated'
 
 	if args['train']:
 		os.system(train_command)
 	if args['translate']:
-		import subprocess
-		import re
-		with open(test + '.corpus.' + str(args['num_translations']) + '.out', 'w') as f:
-			translations = False
-			current = None
-			for line in subprocess.Popen(trans_command.split(' '), stdout=subprocess.PIPE).stdout:
-				print line,
-				line = line.strip()
-				if not translations:
-					if line == 'predicting...':
-						translations = True
-				else:
-					if re.match('^[0-9]+/[0-9]+$', line):
-						current = line[:line.find('/')]
-					if re.match('^[0-9]+\-best\: ', line):
-						f.write(current + ' ||| ' + line[line.find(':') + 1:].strip() + ' ||| \n')
+		os.system(trans_command)
+		with open(test + '.translated') as fp:
+			w = open(test + '.corpus.' + str(args['num_translations']) + '.out', "w+")
+			lines = fp.readlines()
+			lines = filter(lambda x: not re.match('\n', x), lines)
+			i = 0
+			for line in lines:
+				lineToWrite = str(int(math.floor(i / args['num_translations']))) + ' ||| ' + line.replace('\n', ' ||| \n')
+				w.write(lineToWrite)
+				i += 1
+			w.close()
 	# if args['cleanup']:
 	# 	import glob
 	# 	files = filter(os.path.isfile, glob.glob(model + '*[0-9].*txt'))
@@ -73,6 +75,7 @@ if __name__ == "__main__":
 	parser.add_argument('--cleanup', help="remove all intermediate files after training", action='count')
 	parser.add_argument('--silent', help="hide all output", action='count')
 	parser.add_argument('--override', help="override existing model", action='count')
+	parser.add_argument('-x', '--data_set_size', help="the size of the data_set", type=int ,default=10)
 	parser.add_argument('-s', '--seed', type=int, help="random seed")
 	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
 	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
