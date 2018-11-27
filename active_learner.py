@@ -308,7 +308,7 @@ if __name__ == "__main__":
 						help='Generate own test input and run as experiment')
 	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator.config',
 						help="Codenator configuration file (default: \'%(default)s\')")
-	parser.add_argument('-d', '--tf_nmt-config', type=str, default='configs/tf_nmt.config',
+	parser.add_argument('-d', '--tf_nmt_config', type=str, default='configs/tf_nmt.config',
 						help="tf_nmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
 	ActiveLearner(input=args.input, output_dir=args.output, compiler=args.compiler, experiment=args.experiment,
-				  codenator_config=args.codenator_config, dynmt_config=args.dynmt_config, patience=args.patience,
+				  codenator_config=args.codenator_config, tf_nmt_config=args.tf_nmt_config, patience=args.patience,
 				  num_translations=args.num_translations, success_percentage=args.percentage,
 				  validation_size=args.validation_size, train_size_initial=args.train_size_initial,
 				  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations).\
