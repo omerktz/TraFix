@@ -525,10 +525,9 @@ def train(hparams, scope=None, target_session=""):
       # Finished going through the training dataset.  Go to next epoch.
       hparams.epoch_step = 0
       utils.print_out(
-          "# Finished an epoch, step %d. Will not perform external evaluation" %
-          global_step)
-      # run_sample_decode(infer_model, infer_sess, model_dir, hparams,
-      #                   summary_writer, sample_src_data, sample_tgt_data)
+          "# Finished an epoch, step %d. Will not perform external evaluation time: " % global_step + str(time.ctime()))
+      run_sample_decode(infer_model, infer_sess, model_dir, hparams,
+                        summary_writer, sample_src_data, sample_tgt_data)
       # run_external_eval(infer_model, infer_sess, model_dir, hparams,
       #                   summary_writer)
 
@@ -561,7 +560,7 @@ def train(hparams, scope=None, target_session=""):
 
     if global_step - last_eval_step >= steps_per_valid:
       last_eval_step = global_step
-      utils.print_out("# Save eval, global step %d" % global_step)
+      utils.print_out("# start eval, global step %d time: " % global_step + str(time.ctime()))
       add_info_summaries(summary_writer, global_step, info)
 
       # Evaluate on dev/test
@@ -572,7 +571,7 @@ def train(hparams, scope=None, target_session=""):
           eval_model, eval_sess, model_dir, hparams, summary_writer)
 
       # update_best_valid
-      utils.print_out("updating best valid, current best_ppl: " + str(best_ppl) + " current patient: " + str(patient))
+      utils.print_out("updating best valid, current best_ppl: " + str(best_ppl) + " current patient: " + str(patient) + " current time: " + str(time.ctime()))
       if(best_ppl == 0 or dev_ppl < best_ppl):
           patient = 0
           best_ppl = dev_ppl
@@ -585,7 +584,7 @@ def train(hparams, scope=None, target_session=""):
           patient += 1
           if(patient > 10):
               break
-      utils.print_out("updated best valid, current best_ppl: " + str(best_ppl)+ " current patient: " + str(patient))
+      utils.print_out("updated best valid, current best_ppl: " + str(best_ppl)+ " current patient: " + str(patient) + " current time: " + str(time.ctime()))
     # if global_step - last_external_eval_step >= steps_per_external_eval:
     #   last_external_eval_step = global_step
     #
