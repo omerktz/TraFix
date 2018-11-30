@@ -12,35 +12,35 @@ def prepare_and_write_line(w,line):
     line = re.sub(r" +", "&", line)
     w.write(line[1:-2] + '\n')
 
-def create_file_of_one_word_by_num(lines, word_num, output_path):
-    word_passed = 0
+def create_file_of_one_word_by_num(lines, sentence_num, output_path):
+    sentence_passed = 0
     first_line_of_word = 0
-    word_file_path = output_path + 'word_num_' + str(word_num) + '_attention.txt'
+    word_file_path = output_path + 'sentence_num_' + str(sentence_num) + '_attention.txt'
     w = open(word_file_path, 'w+')
     for line in lines:
-        if word_num < word_passed:
+        if sentence_num < sentence_passed:
             break
-        if word_num == word_passed:
+        if sentence_num == sentence_passed:
             if(first_line_of_word == 0):
                 first_line_of_word = 1
                 line = '&' + line
             prepare_and_write_line(w,line)
 
         if(line.__contains__('</s>')):
-            word_passed +=1
+            sentence_passed +=1
     w.close()
-    if(word_num > word_passed):
+    if(sentence_num > sentence_passed):
         return None
     return word_file_path
 
-def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, word_num, write_option):
+def make_smaller_file_with_only_important_words(attn_file, output_path, sentence_num):
+    over_lap = 5
+    
+
     with open(attn_file) as all_attn:
         lines = all_attn.readlines()
-        word_file_path = create_file_of_one_word_by_num(lines,word_num,output_path)
-        # w = open(easy_to_use_path, 'w+')
-        # for line in lines:
-        #     prepare_and_write_line(w,line)
-        # w.close()
+        word_file_path = create_file_of_one_word_by_num(lines,sentence_num,output_path)
+
     if(word_file_path == None):
         return False
     df = pd.read_csv(word_file_path, sep='&')
@@ -50,9 +50,8 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     for column in origin_columns:
         if(not any(i > 0.1 for i in df[column])):
             todrop.append(column)
-    print str(df.size)
+
     df = df.drop(columns=todrop)
-    print df.size
     df.to_csv(word_file_path.replace('.txt', '.csv'),index=False)
     attns = np.asarray(map(lambda x: x[1:], df.values))
     attns = np.multiply(attns, 256)
@@ -65,50 +64,32 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     showAttention(input_sentence, output_sentence, attns, image_output_path)
     os.system('rm ' + word_file_path)
     return True
-    # w = open(output_path + 'attn_only_ordered_nicely.txt', write_option)
-    # for line in origin_values:
-    #     c_character = line[0]
-    #     attn_line = line[1:]
-    #     top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attn_line)), attn_line.__getitem__)
-    #     # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
-    #     value_of_attns = attn_line[top_attentions_indexes]
-    #     highest_impact_on_word = origin_columns[top_attentions_indexes]
-    #     line_start = str(word_num) + ' ' + str(c_character) + ' '
-    #     w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
-    #     w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
-    #     w.write(line_start + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
-    # w.close()
-    # # os.system('rm ' + word_file_path)
-    # return True
 
-def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path, iter_num):
+def make_smaller_file_with_only_important_data(attn_file, output_path, num_of_sentences_to_print, only_failed_words, failed_path):
     if(only_failed_words == 1):
         df = pd.read_csv(failed_path)
         words_to_attend = df.index
         if words_to_attend.size == 0:
             return
-        i = words_to_attend[0]
-        make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
-        for i in words_to_attend[1:]:
-            make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
+        for i in words_to_attend:
+            make_smaller_file_with_only_important_words(attn_file, output_path, i)
     else:
         i = 0
-        finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'w+')
-        while (finished == True and (num_of_words_to_print == 0 or i <= num_of_words_to_print)):
+        while (finished == True and (num_of_sentences_to_print == 0 or i <= num_of_sentences_to_print)):
+            finished = make_smaller_file_with_only_important_words(attn_file, output_path, i)
             i += 1
-            finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
 
     # df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
     # df.to_csv(output_path + 'attn_only_ordered_nicely_%d.csv' %iter_num ,index=False)
 
-def print_image_of_one_word(attn_file, word, word_num, output_path, enlarge_pixels):
+def print_image_of_one_sentence(attn_file, word, sentence_num, output_path, enlarge_pixels):
     with open(attn_file) as all_attn:
         lines = all_attn.readlines()
         if(word != None):
             a = 5
-        elif ( word_num != None ):
-            create_file_of_one_word_by_num(lines, word_num, output_path)
-            df = pd.read_csv(output_path + 'word_num_' + str(word_num) + '_attention.txt',sep='&')
+        elif ( sentence_num != None ):
+            create_file_of_one_word_by_num(lines, sentence_num, output_path)
+            df = pd.read_csv(output_path + 'sentence_num_' + str(sentence_num) + '_attention.txt',sep='&')
             columns = df.columns
             array = df.as_matrix()
             newArr = []
@@ -136,13 +117,13 @@ if __name__ == "__main__":
     parser.add_argument('attn_file', type=str, help="The attn file to read from")
     parser.add_argument('output_path', type=str, help="The place to create out new file")
     parser.add_argument('-word', type=str, help ="The word that we want to print", default=None)
-    parser.add_argument('-word_num', type=int, help="The number of word that we want to print", default=2)
+    parser.add_argument('-sentence_num', type=int, help="The number of word that we want to print", default=2)
     parser.add_argument('-enlarge_pixels', type=int, help="if we want to make the pixels larger", default=1)
     parser.add_argument('-num_highest_attentions', type=int, help="how many attentions would we like to see for each word", default=10)
-    parser.add_argument('-num_of_words_to_print', type=int, help="number of words to print", default=0)
+    parser.add_argument('-num_of_sentences_to_print', type=int, help="number of words to print", default=0)
     parser.add_argument('-only_failed_words', type=int, help='will we order attn of only failed results', default=0)
     parser.add_argument('-failed_path', type=str, help='path of failed results', default='')
     parser.add_argument('-iter_num', type=int, help='the number of the itteration', default=0)
     args = parser.parse_args()
-    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_words_to_print, args.only_failed_words, args.failed_path, args.iter_num)
-    # print_image_of_one_word(args.attn_file, args.word, args.word_num, args.output_path, args.enlarge_pixels)
+    make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_sentences_to_print, args.only_failed_words, args.failed_path, args.iter_num)
+    # print_image_of_one_word(args.attn_file, args.word, args.sentence_num, args.output_path, args.enlarge_pixels)
