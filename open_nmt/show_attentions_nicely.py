@@ -1,9 +1,6 @@
 import re
 import pandas as pd
 import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-import heapq
 from visualize_attn import showAttention
 import os
 
@@ -33,9 +30,34 @@ def create_file_of_one_word_by_num(lines, sentence_num, output_path):
         return None
     return word_file_path
 
+def drop_non_used_columns_from_df(df):
+    todrop = []
+    for column in df.columns[1:]:
+        if (not any(i > 0.1 for i in df[column])):
+            todrop.append(column)
+    return df.drop(columns=todrop)
+
+
+def from_df_to_image_and_csv(df, word_file_path, whole_df):
+    if not whole_df:
+        df = drop_non_used_columns_from_df(df)
+    df.to_csv(word_file_path.replace('.txt', '.csv'), index=False)
+    attns = np.asarray(map(lambda x: x[1:], df.values))
+    attns = np.multiply(attns, 256)
+    attns = attns.astype(int)
+
+    output_sentence = df.ix[:, 0]
+    input_sentence = ' '.join(re.sub(r"\.\d+", "", str(e)) for e in df.columns[1:])
+    image_output_path = word_file_path.replace('.txt', '.png')
+    # print image_output_path
+    showAttention(input_sentence, output_sentence, attns, image_output_path)
+    os.system('rm ' + word_file_path)
+
+
+
 def make_smaller_file_with_only_important_words(attn_file, output_path, sentence_num):
     over_lap = 5
-    
+    num_of_words_each_part = 20
 
     with open(attn_file) as all_attn:
         lines = all_attn.readlines()
@@ -43,26 +65,18 @@ def make_smaller_file_with_only_important_words(attn_file, output_path, sentence
 
     if(word_file_path == None):
         return False
+
     df = pd.read_csv(word_file_path, sep='&')
-    origin_values = df.values
-    origin_columns = df.columns[1:]
-    todrop = []
-    for column in origin_columns:
-        if(not any(i > 0.1 for i in df[column])):
-            todrop.append(column)
+    df = drop_non_used_columns_from_df(df)
+    from_df_to_image_and_csv(df, word_file_path, True)
+    if df.index.size > (num_of_words_each_part + over_lap):
+        i = 0
+        while (i < df.index.size):
+            indexes_to_print = range(i - over_lap, i + num_of_words_each_part)
+            temp_df = df.loc[df.index.isin(indexes_to_print)]
+            from_df_to_image_and_csv(df, word_file_path, False)
+            i += num_of_words_each_part
 
-    df = df.drop(columns=todrop)
-    df.to_csv(word_file_path.replace('.txt', '.csv'),index=False)
-    attns = np.asarray(map(lambda x: x[1:], df.values))
-    attns = np.multiply(attns, 256)
-    attns = attns.astype(int)
-
-    output_sentence = df.ix[:,0]
-    input_sentence = ' '.join(re.sub(r"\.\d+", "", str(e)) for e in df.columns[1:])
-    image_output_path = word_file_path.replace('.txt', '.png')
-    # print image_output_path
-    showAttention(input_sentence, output_sentence, attns, image_output_path)
-    os.system('rm ' + word_file_path)
     return True
 
 def make_smaller_file_with_only_important_data(attn_file, output_path, num_of_sentences_to_print, only_failed_words, failed_path):
@@ -82,35 +96,6 @@ def make_smaller_file_with_only_important_data(attn_file, output_path, num_of_se
     # df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
     # df.to_csv(output_path + 'attn_only_ordered_nicely_%d.csv' %iter_num ,index=False)
 
-def print_image_of_one_sentence(attn_file, word, sentence_num, output_path, enlarge_pixels):
-    with open(attn_file) as all_attn:
-        lines = all_attn.readlines()
-        if(word != None):
-            a = 5
-        elif ( sentence_num != None ):
-            create_file_of_one_word_by_num(lines, sentence_num, output_path)
-            df = pd.read_csv(output_path + 'sentence_num_' + str(sentence_num) + '_attention.txt',sep='&')
-            columns = df.columns
-            array = df.as_matrix()
-            newArr = []
-            lines_for_new_readable_file = []
-            for a in array:
-                a = [val for val in a[1:] for _ in range(enlarge_pixels)]
-                for x in range(enlarge_pixels):
-                    newArr.append(a)
-            newArr = np.asarray(newArr)
-            newArr = newArr.astype(float) * 256
-            newArr = newArr.astype(int)
-            im = Image.fromarray(newArr,'L')
-            im.save('b.jpg')
-            plt.imshow(newArr, cmap='gray')
-            plt.show()
-        else:
-            print 'wrong usage'
-            exit(1)
-
-
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Evaluate NMT as active learner")
@@ -126,4 +111,3 @@ if __name__ == "__main__":
     parser.add_argument('-iter_num', type=int, help='the number of the itteration', default=0)
     args = parser.parse_args()
     make_smaller_file_with_only_important_data(args.attn_file, args.num_highest_attentions, args.output_path, args.num_of_sentences_to_print, args.only_failed_words, args.failed_path, args.iter_num)
-    # print_image_of_one_word(args.attn_file, args.word, args.sentence_num, args.output_path, args.enlarge_pixels)
