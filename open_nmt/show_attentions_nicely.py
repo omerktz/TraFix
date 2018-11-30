@@ -5,6 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import heapq
 from visualize_attn import showAttention
+import os
 
 def prepare_and_write_line(w,line):
     line = line.replace('*0.', '0.')
@@ -62,22 +63,23 @@ def make_smaller_file_with_only_important_word(attn_file, num_highest_attentions
     image_output_path = word_file_path.replace('.txt', '.png')
     # print image_output_path
     showAttention(input_sentence, output_sentence, attns, image_output_path)
-
-    w = open(output_path + 'attn_only_ordered_nicely.txt', write_option)
-    for line in origin_values:
-        c_character = line[0]
-        attn_line = line[1:]
-        top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attn_line)), attn_line.__getitem__)
-        # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
-        value_of_attns = attn_line[top_attentions_indexes]
-        highest_impact_on_word = origin_columns[top_attentions_indexes]
-        line_start = str(word_num) + ' ' + str(c_character) + ' '
-        w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
-        w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
-        w.write(line_start + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
-    w.close()
-    # os.system('rm ' + word_file_path)
+    os.system('rm ' + word_file_path)
     return True
+    # w = open(output_path + 'attn_only_ordered_nicely.txt', write_option)
+    # for line in origin_values:
+    #     c_character = line[0]
+    #     attn_line = line[1:]
+    #     top_attentions_indexes = heapq.nlargest(num_highest_attentions, range(len(attn_line)), attn_line.__getitem__)
+    #     # top_attentions_indexes = [val - 1 for val in top_attentions_indexes]
+    #     value_of_attns = attn_line[top_attentions_indexes]
+    #     highest_impact_on_word = origin_columns[top_attentions_indexes]
+    #     line_start = str(word_num) + ' ' + str(c_character) + ' '
+    #     w.write(line_start + ' '.join(re.sub(r"\.\d+", "", str(e)) for e in highest_impact_on_word) + '\n')
+    #     w.write(line_start + ' '.join(str(e) for e in value_of_attns) + '\n')
+    #     w.write(line_start + ' '.join(str(e) for e in top_attentions_indexes) + '\n')
+    # w.close()
+    # # os.system('rm ' + word_file_path)
+    # return True
 
 def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions, output_path, num_of_words_to_print, only_failed_words, failed_path, iter_num):
     if(only_failed_words == 1):
@@ -96,8 +98,8 @@ def make_smaller_file_with_only_important_data(attn_file, num_highest_attentions
             i += 1
             finished = make_smaller_file_with_only_important_word(attn_file, num_highest_attentions, output_path, i, 'a')
 
-    df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
-    df.to_csv(output_path + 'attn_only_ordered_nicely_%d.csv' %iter_num ,index=False)
+    # df = pd.read_csv(output_path + 'attn_only_ordered_nicely.txt', sep=' ')
+    # df.to_csv(output_path + 'attn_only_ordered_nicely_%d.csv' %iter_num ,index=False)
 
 def print_image_of_one_word(attn_file, word, word_num, output_path, enlarge_pixels):
     with open(attn_file) as all_attn:
