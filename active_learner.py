@@ -41,6 +41,11 @@ class ActiveLearner:
 		self.outputs_path = os.path.join(self.output_dir, 'outputs')
 		# initialize
 		self.initialize_datasets(experiment)
+		# self.initial_test_size = int(
+		# 	check_output('cat {0} | wc -l'.format(os.path.join(self.datasets_path, 'test0.corpus.ll')),
+		# 				 shell=True).strip())
+		# logging.info('Initial test dataset size is {0}'.format(self.initial_test_size))
+		# self.remaining = self.initial_test_size
 
 	def initialize_datasets(self, experiment):
 		logging.info('Initializing ActiveLearner')
