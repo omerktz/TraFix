@@ -21,12 +21,12 @@ def main(args):
 	if valid_steps == 0:
 		valid_steps = 10
 	train_command = (
-				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=bahdanau --batch_size={9} --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12} --learning_rate={13} --steps_per_valid={14}'.format(
-				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, valid_steps, config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), config.getfloat('TensorFlow', 'learning_rate'), (valid_steps / 2) ))
+				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=bahdanau --batch_size={9} --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12} --learning_rate={13} --steps_per_valid={14} --patience={15}'.format(
+				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, valid_steps, config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), config.getfloat('TensorFlow', 'learning_rate'), (valid_steps / 2), config.getint('TensorFlow', 'patience') ))
 
 	train_command = train_command.strip()
 
-	trans_command = 'python -m ' + train_py + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} --num_translations_per_input={3} --infer_mode={4} --beam_width={5}'.format(
+	trans_command = 'python -m ' + train_py + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} --num_translations_per_input={3} --infer_mode={4} --beam_width={5} --attention=bahdanau'.format(
 					model_path, test + '.corpus.ll', test + '.translated', str(args['num_translations']), 'beam_search' , '5')
 
 	print trans_command
