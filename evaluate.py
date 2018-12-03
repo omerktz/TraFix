@@ -10,6 +10,7 @@ import ConfigParser
 import graph_comparison as gc
 from abstract_numerals import *
 import code_fixer as cf
+import random
 
 
 def parsePostOrder(po):
@@ -50,7 +51,6 @@ def compiler(hl):
 	return hl2ll.compiler(MockHL(s), check_success=True)
 
 
-
 def apply_number_replacements_wrapper(ll, replacements, config):
 	min_value = max(config.getint('Number', 'MinValue'), config.getint('Number', 'MinAbstractedValue'))
 	max_value = min(config.getint('Number', 'MaxValue'), config.getint('Number', 'MaxAbstractedValue'))
@@ -66,7 +66,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
-	out = map(lambda x: apply_number_replacements(x, replacements), out)
+	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
 		return (i, hl, ll, replacements, None, 2)  # unparsable
@@ -76,7 +76,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	if not any(lls):
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
-	ll = apply_number_replacements(ll, replacements)
+	ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
