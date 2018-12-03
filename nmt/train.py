@@ -511,11 +511,11 @@ def train(hparams, scope=None, target_session=""):
   last_eval_step = global_step
   last_external_eval_step = global_step
   best_ppl = 0
-  patient = 0
+  patience = 0
   # This is the training loop.
   stats, info, start_train_time = before_train(
       loaded_train_model, train_model, train_sess, global_step, hparams, log_f)
-  while global_step < num_train_steps and patient <= 10:
+  while global_step < num_train_steps and patience <= hparams.patience:
     ### Run a step ###
     start_time = time.time()
     try:
@@ -571,9 +571,9 @@ def train(hparams, scope=None, target_session=""):
           eval_model, eval_sess, model_dir, hparams, summary_writer)
 
       # update_best_valid
-      utils.print_out("updating best valid, current best_ppl: " + str(best_ppl) + " current patient: " + str(patient) + " current time: " + str(time.ctime()))
+      utils.print_out("updating best valid, current best_ppl: " + str(best_ppl) + " current patience: " + str(patience) + " current time: " + str(time.ctime()))
       if(best_ppl == 0 or dev_ppl < best_ppl):
-          patient = 0
+          patience = 0
           best_ppl = dev_ppl
           # Save checkpoint - we save the best valid ppl
           loaded_train_model.saver.save(
@@ -581,10 +581,10 @@ def train(hparams, scope=None, target_session=""):
               os.path.join(out_dir, "translate.ckpt"),
               global_step=global_step)
       else:
-          patient += 1
-          if(patient > 10):
+          patience += 1
+          if(patience > 10):
               break
-      utils.print_out("updated best valid, current best_ppl: " + str(best_ppl)+ " current patient: " + str(patient) + " current time: " + str(time.ctime()))
+      utils.print_out("updated best valid, current best_ppl: " + str(best_ppl)+ " current patience: " + str(patience) + " current time: " + str(time.ctime()))
     # if global_step - last_external_eval_step >= steps_per_external_eval:
     #   last_external_eval_step = global_step
     #
