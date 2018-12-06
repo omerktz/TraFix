@@ -162,28 +162,38 @@ def single_worker_inference(sess,
         })
     # Decode
     utils.print_out("# Start decoding")
-    if hparams.inference_indices:
-      _decode_inference_indices(
-          loaded_infer_model,
-          sess,
-          output_infer=output_infer,
-          output_infer_summary_prefix=output_infer,
-          inference_indices=hparams.inference_indices,
-          tgt_eos=hparams.eos,
-          subword_option=hparams.subword_option)
+    if hparams.inference_for_attentions == 1:
+        print('new new mine!!')
+        nmt_utils.decode_and_evaluate_for_attn(
+            loaded_infer_model,
+            sess,
+            output_infer,
+            subword_option=hparams.subword_option,
+            tgt_eos=hparams.eos,
+            infer_data=infer_data)
     else:
-      nmt_utils.decode_and_evaluate(
-          "infer",
-          loaded_infer_model,
-          sess,
-          output_infer,
-          ref_file=None,
-          metrics=hparams.metrics,
-          subword_option=hparams.subword_option,
-          beam_width=hparams.beam_width,
-          tgt_eos=hparams.eos,
-          num_translations_per_input=hparams.num_translations_per_input,
-          infer_mode=hparams.infer_mode)
+        if hparams.inference_indices:
+          _decode_inference_indices(
+              loaded_infer_model,
+              sess,
+              output_infer=output_infer,
+              output_infer_summary_prefix=output_infer,
+              inference_indices=hparams.inference_indices,
+              tgt_eos=hparams.eos,
+              subword_option=hparams.subword_option)
+        else:
+          nmt_utils.decode_and_evaluate(
+              "infer",
+              loaded_infer_model,
+              sess,
+              output_infer,
+              ref_file=None,
+              metrics=hparams.metrics,
+              subword_option=hparams.subword_option,
+              beam_width=hparams.beam_width,
+              tgt_eos=hparams.eos,
+              num_translations_per_input=hparams.num_translations_per_input,
+              infer_mode=hparams.infer_mode)
 
 
 def multi_worker_inference(sess,

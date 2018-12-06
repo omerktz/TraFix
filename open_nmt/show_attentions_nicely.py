@@ -53,7 +53,17 @@ def from_df_to_image_and_csv(df, word_file_path, whole_df):
     showAttention(input_sentence, output_sentence, attns, image_output_path)
 
 
-
+def from_df_total(df, word_file_path, over_lap, num_of_words_each_part):
+    df = drop_non_used_columns_from_df(df)
+    from_df_to_image_and_csv(df, word_file_path, True)
+    if df.index.size > (num_of_words_each_part + over_lap):
+        i = 0
+        while i < df.index.size:
+            indexes_to_print = range(i - over_lap, i + num_of_words_each_part)
+            temp_df = df.loc[df.index.isin(indexes_to_print)]
+            from_df_to_image_and_csv(temp_df, word_file_path.replace('.txt', '_%d.txt' %i), False)
+            i += num_of_words_each_part
+    os.system('rm ' + word_file_path)
 
 def make_smaller_file_with_only_important_words(attn_file, output_path, sentence_num):
     over_lap = 5
@@ -67,16 +77,7 @@ def make_smaller_file_with_only_important_words(attn_file, output_path, sentence
         return False
 
     df = pd.read_csv(word_file_path, sep='&')
-    df = drop_non_used_columns_from_df(df)
-    from_df_to_image_and_csv(df, word_file_path, True)
-    if df.index.size > (num_of_words_each_part + over_lap):
-        i = 0
-        while (i < df.index.size):
-            indexes_to_print = range(i - over_lap, i + num_of_words_each_part)
-            temp_df = df.loc[df.index.isin(indexes_to_print)]
-            from_df_to_image_and_csv(df, word_file_path, False)
-            i += num_of_words_each_part
-    os.system('rm ' + word_file_path)
+    from_df_total(df, word_file_path, over_lap, num_of_words_each_part)
     return True
 
 def make_smaller_file_with_only_important_data(attn_file, output_path, num_of_sentences_to_print, only_failed_words, failed_path):

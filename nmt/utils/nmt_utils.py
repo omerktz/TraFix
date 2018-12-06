@@ -23,8 +23,80 @@ import tensorflow as tf
 
 from ..utils import evaluation_utils
 from ..utils import misc_utils as utils
+from ..utils import show_attentions_nicely
 
 __all__ = ["decode_and_evaluate", "get_translation"]
+
+def decode_and_evaluate_for_attn(
+                        model,
+                        sess,
+                        trans_file,
+                        subword_option,
+                        tgt_eos,
+                        infer_data):
+    """Decode a test set and compute a score according to the evaluation task."""
+    # Decode
+
+    utils.print_out("  decoding to output %s" % trans_file)
+
+    start_time = time.time()
+    num_sentences = 0
+    batch_size = 1
+    with codecs.getwriter("utf-8")(
+        tf.gfile.GFile(trans_file, mode="wb")) as trans_f:
+      trans_f.write("")  # Write empty string to ensure file is created.
+      num_translations_per_input = 1
+
+      while True:
+        try:
+          num_sentences += batch_size
+          sentence_id = num_sentences - batch_size
+          nmt_outputs, infer_summary = model.decode(sess)
+          nmt_outputs = np.expand_dims(nmt_outputs, 0)
+
+          word_file_path = trans_file + '_%d' %sentence_id + '.txt'
+          # print(infer_data[sentence_id])
+          for sent_id in range(batch_size):
+            for beam_id in range(num_translations_per_input):
+              translation = get_translation(
+                  nmt_outputs[beam_id],
+                  sent_id,
+                  tgt_eos=tgt_eos,
+                  subword_option=subword_option)
+              trans_f.write((translation + b"\n").decode("utf-8"))
+              if num_translations_per_input == 1:
+                  if infer_summary is not None:  # Attention models
+                      image_file = "/tmp/tmp.png"
+                      utils.print_out("  save attention image to %s*" % image_file)
+                      image_summ = tf.Summary()
+                      image_summ.ParseFromString(infer_summary)
+                      with tf.gfile.GFile(image_file, mode="w") as img_f:
+                          img_f.write(image_summ.value[0].image.encoded_image_string)
+                      import matplotlib.image as mpimg
+                      import pandas as pd
+                      img = mpimg.imread(image_file)
+                      imgTrans = img.transpose()
+                      print(translation.split(' ').__len__())
+                      t = translation + ' ' + tgt_eos
+                      print(t.split(' ').__len__())
+                      df = pd.DataFrame(imgTrans,index=t.split(' ')[:350])
+                      columns = infer_data[sentence_id].split(' ')
+                      new_columns = []
+                      columns_visited = []
+                      for column in columns:
+                          columns_visited.append(column)
+                          new_columns.append(column + '.%d' %columns_visited.count(column))
+                      df.columns = new_columns
+                      print('df.columns:')
+                      print(df.columns)
+                      show_attentions_nicely.from_df_total(df, word_file_path, 5, 20)
+                      df.to_csv(word_file_path,sep='&')
+        except tf.errors.OutOfRangeError:
+          utils.print_time(
+              "  done, num sentences %d, num translations per input %d" %
+              (num_sentences, num_translations_per_input), start_time)
+          break
+
 
 
 def decode_and_evaluate(name,

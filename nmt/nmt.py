@@ -280,7 +280,8 @@ def add_arguments(parser):
                       help=("""\
       Reference file to compute evaluation scores (if provided).\
       """))
-
+  parser.add_argument("--inference_for_attentions", type=int, default=0,
+                      help=("Do we want this inference so we will check attentions"))
   # Advanced inference arguments
   parser.add_argument("--infer_mode", type=str, default="greedy",
                       choices=["greedy", "sample", "beam_search"],
@@ -369,6 +370,7 @@ def create_hparams(flags):
       src_max_len_infer=flags.src_max_len_infer,
       tgt_max_len_infer=flags.tgt_max_len_infer,
       infer_batch_size=flags.infer_batch_size,
+      inference_for_attentions = flags.inference_for_attentions,
 
       # Advanced inference arguments
       infer_mode=flags.infer_mode,
