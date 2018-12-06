@@ -163,14 +163,14 @@ def single_worker_inference(sess,
     # Decode
     utils.print_out("# Start decoding")
     if hparams.inference_for_attentions == 1:
-        print('new new mine!!')
         nmt_utils.decode_and_evaluate_for_attn(
             loaded_infer_model,
             sess,
             output_infer,
             subword_option=hparams.subword_option,
             tgt_eos=hparams.eos,
-            infer_data=infer_data)
+            infer_data=infer_data,
+            failed_translations_csv = hparams.failed_translations_csv)
     else:
         if hparams.inference_indices:
           _decode_inference_indices(

@@ -33,12 +33,13 @@ def decode_and_evaluate_for_attn(
                         trans_file,
                         subword_option,
                         tgt_eos,
-                        infer_data):
+                        infer_data,
+                        failed_translations_csv):
     """Decode a test set and compute a score according to the evaluation task."""
     # Decode
-
+    import pandas as pd
     utils.print_out("  decoding to output %s" % trans_file)
-
+    sentence_numbers_to_translate = pd.read_csv(failed_translations_csv).index
     start_time = time.time()
     num_sentences = 0
     batch_size = 1
@@ -53,7 +54,8 @@ def decode_and_evaluate_for_attn(
           sentence_id = num_sentences - batch_size
           nmt_outputs, infer_summary = model.decode(sess)
           nmt_outputs = np.expand_dims(nmt_outputs, 0)
-
+          if (not sentence_numbers_to_translate.contains(sentence_id)):
+              continue
           word_file_path = trans_file + '_%d' %sentence_id + '.txt'
           # print(infer_data[sentence_id])
           for sent_id in range(batch_size):
@@ -87,8 +89,6 @@ def decode_and_evaluate_for_attn(
                           columns_visited.append(column)
                           new_columns.append(column + '.%d' %columns_visited.count(column))
                       df.columns = new_columns
-                      print('df.columns:')
-                      print(df.columns)
                       show_attentions_nicely.from_df_total(df, word_file_path, 5, 20)
                       df.to_csv(word_file_path,sep='&')
         except tf.errors.OutOfRangeError:

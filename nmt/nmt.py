@@ -282,6 +282,8 @@ def add_arguments(parser):
       """))
   parser.add_argument("--inference_for_attentions", type=int, default=0,
                       help=("Do we want this inference so we will check attentions"))
+  parser.add_argument("--failed_translations_csv", type=str, default=None,
+                      help=("Do we want this inference so we will check attentions"))
   # Advanced inference arguments
   parser.add_argument("--infer_mode", type=str, default="greedy",
                       choices=["greedy", "sample", "beam_search"],
@@ -371,7 +373,7 @@ def create_hparams(flags):
       tgt_max_len_infer=flags.tgt_max_len_infer,
       infer_batch_size=flags.infer_batch_size,
       inference_for_attentions = flags.inference_for_attentions,
-
+      failed_translations_csv = flags.failed_translations_csv,
       # Advanced inference arguments
       infer_mode=flags.infer_mode,
       beam_width=flags.beam_width,
@@ -664,6 +666,9 @@ def run_main(flags, default_hparams, train_fn, inference_fn, target_session=""):
         out_dir, default_hparams, flags.hparams_path,
         save_hparams=(jobid == 0))
 
+  hparams.failed_translations_csv = default_hparams.failed_translations_csv
+  hparams.inference_for_attentions = default_hparams.inference_for_attentions
+  
   ## Train / Decode
   if flags.inference_input_file:
     # Inference output directory
