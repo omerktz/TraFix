@@ -44,16 +44,16 @@ def from_df_to_image_and_csv(df, word_file_path, whole_df):
         df = drop_non_used_columns_from_df(df)
     df.columns = map(lambda col: re.sub(r"\.\d+", "", str(col)), df.columns)
     df.to_csv(word_file_path.replace('.txt', '.csv'))
-
-    attns = np.asarray(map(lambda x: x, df.values))
-    attns = np.multiply(attns, 256)
-    attns = attns.astype(int)
-
-    output_sentence = df.index.insert(0,'')
-    input_sentence = ' '.join(df.columns)
-    image_output_path = word_file_path.replace('.txt', '.png')
-    # print image_output_path
-    showAttention(input_sentence, output_sentence, attns, image_output_path)
+    # if want to print picture (takes a lot of time)
+    # attns = np.asarray(map(lambda x: x, df.values))
+    # attns = np.multiply(attns, 256)
+    # attns = attns.astype(int)
+    #
+    # output_sentence = df.index.insert(0,'')
+    # input_sentence = ' '.join(df.columns)
+    # image_output_path = word_file_path.replace('.txt', '.png')
+    # # print image_output_path
+    # showAttention(input_sentence, output_sentence, attns, image_output_path)
 
 
 def from_df_total(df, word_file_path, over_lap, num_of_words_each_part):

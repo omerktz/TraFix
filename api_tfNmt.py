@@ -15,14 +15,13 @@ def main(args):
 	vocabs = os.path.abspath(args['vocabs'])
 	model_path = os.path.abspath(args['model_path'])
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.tf_nmt')) if args['previous'] is not None else ''
-	num_train_steps = config.getint('TensorFlow', 'batch_size') * config.getint('TensorFlow', 'epochs')
-	valid_steps = int(math.floor(args['data_set_size'] / config.getint('TensorFlow', 'batch_size'))) if args[
-																									 'data_set_size'] is not None else 300
-	if valid_steps == 0:
-		valid_steps = 10
+	num_train_steps = 10000000 #config.getint('TensorFlow', 'batch_size') * config.getint('TensorFlow', 'epochs')
+	# valid_steps = int(math.floor(args['data_set_size'] / config.getint('TensorFlow', 'batch_size'))) if args[
+	# 																								 'data_set_size'] is not None else 300
+
 	train_command = (
 				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=luong --batch_size={9} --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12} --learning_rate={13} --steps_per_valid={14} --patience={15}'.format(
-				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, valid_steps, config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), config.getfloat('TensorFlow', 'learning_rate'), valid_steps, config.getint('TensorFlow', 'patience') ))
+				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), config.getfloat('TensorFlow', 'learning_rate'), config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'patience')))
 
 	train_command = train_command.strip()
 
