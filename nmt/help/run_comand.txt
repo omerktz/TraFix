@@ -13,5 +13,8 @@ python -m nmt.nmt --vocab_prefix=tf_first/mod/vocab1  --train_prefix=tf_first/da
  python -m nmt.scripts.update_vocab --model_dir tf_first/tf_models2/ --output_dir tf_first/tf_models2/bla --src_vocab tf_first/datasets/vocab.ll --tgt_vocab tf_first/datasets/vocab.hl --new_src_vocab tf_first/datasets/vocab1.ll --new_tgt_vocab tf_first/datasets/vocab1.hl --mode replace
 
 
-translate
+# translate
 python -m nmt.nmt --out_dir=tf_third/models/model0/ --inference_input_file=tf_third/datasets/test0.corpus.ll --inference_output_file=tf_third/datasets/test0.translated --num_translations_per_input=5 --infer_mode=beam_search --beam_width=5
+
+# get attns
+python -m nmt.nmt --out_dir=tf_23/models/model0/ --inference_input_file=tf_23/datasets/test0.corpus.ll --inference_output_file=tf_23/check/test0.translated --failed_translations_csv=tf_23/datasets/test0.fail.5.csv --inference_for_attentions=1 --tgt_max_len_infer=350 --infer_batch_size=1

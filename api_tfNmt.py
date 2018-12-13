@@ -25,7 +25,7 @@ def main(args):
 
 	train_command = train_command.strip()
 
-	trans_command = 'python -m ' + train_py + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} --num_translations_per_input={3} --infer_mode={4} --beam_width={5} --attention=bahdanau'.format(
+	trans_command = 'python -m ' + train_py + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} --num_translations_per_input={3} --infer_mode={4} --beam_width={5} --attention=luong'.format(
 					model_path, test + '.corpus.ll', test + '.translated', str(args['num_translations']), 'beam_search' , '5')
 
 	print trans_command

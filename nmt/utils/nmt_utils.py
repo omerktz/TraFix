@@ -55,7 +55,9 @@ def decode_and_evaluate_for_attn(
           nmt_outputs, infer_summary = model.decode(sess)
           nmt_outputs = np.expand_dims(nmt_outputs, 0)
           if (not sentence_numbers_to_translate.contains(sentence_id)):
+              print(str(sentence_id) + ' not in fails')
               continue
+          print(str(sentence_id) + ' yes in fails')
           word_file_path = trans_file + '_%d' %sentence_id + '.txt'
           # print(infer_data[sentence_id])
           for sent_id in range(batch_size):
