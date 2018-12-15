@@ -10,7 +10,7 @@ whick_opers = ['+','-']
 opers = strong_opers + whick_opers
 equal = '='
 short_opers = ['++','--']
-conditions = ['>','>=','<','<=','==','!=','=']
+conditions = ['>','>=','<','<=','==','!=']
 numbers_pattern = '^N?\d+'
 vars_pattern = '^X\d+'
 none_oper_index = -100
@@ -101,44 +101,72 @@ def get_type(h_val):
 
 def compare_node(h_val, hl_val):
     if (h_val == hl_val):
-        return True
+        return [True, '']
     h_type = get_type(h_val)
     hl_type = get_type(hl_val)
     if (h_type == hl_type):
-        print 'same type, both: ' + h_type + ' model value: ' + h_val + ' wanted value: ' + hl_val
+        exp = 'same type, both: ' + h_type + ' model value: ' + h_val + ' wanted value: ' + hl_val
     else:
-        print 'not same type, model type: ' + h_type + ' wanted type: ' + hl_type
-    return False
+        exp = 'not same type, model type: ' + h_type + ' wanted type: ' + hl_type
+    return [False, exp]
 
 
-def get_to_return_oper(h_tree_line, hl_tree_line):
-    to_return_right_left = compare_lines(h_tree_line.right, hl_tree_line.left)
-    to_return_left_right = compare_lines(h_tree_line.left, hl_tree_line.right)
-    return get_to_return_short_oper(h_tree_line, hl_tree_line) or (to_return_left_right and to_return_right_left)
+def get_to_return_4_combinations(h_tree_line, hl_tree_line, depth):
+    to_return_same_side = get_to_return_same_side(h_tree_line, hl_tree_line, depth)
+    if (to_return_same_side[0]):
+        return to_return_same_side
+
+    to_return_right_left = compare_lines(h_tree_line.right, hl_tree_line.left, depth)
+    to_return_left_right = compare_lines(h_tree_line.left, hl_tree_line.right, depth)
+
+    to_return_not_same_side = combine_two_returns(to_return_right_left, to_return_left_right)
+    if (to_return_not_same_side[0]):
+        return to_return_not_same_side
+
+    if (to_return_not_same_side[2] > to_return_same_side[2]):
+        return to_return_not_same_side
+
+    return to_return_same_side
+
+def combine_two_returns(to_return_1, to_return_2):
+    if (to_return_1[0] and to_return_2[0]):
+        return [True, '', to_return_2[2] + to_return_1[2]]
+    elif (to_return_1[0]):
+        return to_return_2
+    elif (to_return_2[0]):
+        return to_return_1
+    else:
+        if (to_return_1[2] > to_return_2[2]):
+            return to_return_1
+        else:
+            return to_return_2
 
 
-def get_to_return_short_oper(h_tree_line, hl_tree_line):
-    to_return_right = compare_lines(h_tree_line.right, hl_tree_line.right)
-    to_return_left = compare_lines(h_tree_line.left, hl_tree_line.left)
-    return to_return_right and to_return_left
+def get_to_return_same_side(h_tree_line, hl_tree_line, depth):
+    to_return_right = compare_lines(h_tree_line.right, hl_tree_line.right, depth)
+    to_return_left = compare_lines(h_tree_line.left, hl_tree_line.left, depth)
+    return combine_two_returns(to_return_right, to_return_left)
 
-
-def compare_lines(h_tree_line, hl_tree_line):
-    to_return = False
+def compare_lines(h_tree_line, hl_tree_line, depth):
+    to_return = []
     if(h_tree_line == None or hl_tree_line == None):
-        to_return = h_tree_line == hl_tree_line
-    elif(compare_node(h_tree_line.value,hl_tree_line.value)):
-        if (is_var(h_tree_line.value)):
-            to_return = True
-        elif (is_number(h_tree_line.value)):
-            to_return = True
-        elif (opers.__contains__(hl_tree_line.value)):
-            to_return = get_to_return_oper(h_tree_line, hl_tree_line)
-        elif (short_opers.__contains__(h_tree_line.value) or h_tree_line.value == equal):
-            to_return = get_to_return_short_oper(h_tree_line, hl_tree_line)
-    print 'h_tree_line: ' + h_tree_line.__str__()
-    print 'hl_tree_line: ' + hl_tree_line.__str__()
-    print 'to_return: ' + str(to_return)
+        to_return = [h_tree_line == hl_tree_line, '', depth]
+    else:
+        compared_nodes = compare_node(h_tree_line.value, hl_tree_line.value)
+        if(compared_nodes[0]):
+            if (is_var(h_tree_line.value)):
+                to_return = [True, '', depth]
+            elif (is_number(h_tree_line.value)):
+                to_return = [True, '', depth]
+            elif (opers.__contains__(hl_tree_line.value)):
+                to_return = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
+            elif (short_opers.__contains__(h_tree_line.value) or h_tree_line.value == equal or conditions.__contains__(h_tree_line.value)):
+                to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
+        else:
+            to_return = [False, compared_nodes[1], depth]
+    # print 'h_tree_line: ' + h_tree_line.__str__()
+    # print 'hl_tree_line: ' + hl_tree_line.__str__()
+    # print 'to_return: ' + str(to_return)
     return to_return
 
 
@@ -148,7 +176,7 @@ def compare_trees(h_tree, hl_tree):
         hl_tree_line = hl_tree[x]
         print h_tree_line
         print hl_tree_line
-        print compare_lines(h_tree_line, hl_tree_line)
+        print compare_lines(h_tree_line, hl_tree_line, 0)
 
 def writeMisMatches_hl(fhl, h, hl):
     h_tree = from_list_to_tree(h.split(' '))
