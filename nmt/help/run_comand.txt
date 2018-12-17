@@ -18,3 +18,7 @@ python -m nmt.nmt --out_dir=tf_third/models/model0/ --inference_input_file=tf_th
 
 # get attns
 python -m nmt.nmt --out_dir=tf_23/models/model0/ --inference_input_file=tf_23/datasets/test0.corpus.ll --inference_output_file=tf_23/check/test0.translated --failed_translations_csv=tf_23/datasets/test0.fail.5.csv --inference_for_attentions=1 --tgt_max_len_infer=350 --infer_batch_size=1
+
+
+#evaluate:
+python evaluate.py tf_20/datasets/test1 5 x86Util.py -d tf_20/datasets/failed1 -v

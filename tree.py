@@ -8,6 +8,12 @@ class Node:
     def set_right(self, right_tree):
         self.right = right_tree
 
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
+
     def get_right(self):
         return self.right
 
@@ -42,6 +48,6 @@ class Node:
             self.right.get_most_right()
 
     def __str__(self):
-        right_side = self.right.__str__() if (self.right != None) else ''
-        left_side = self.left.__str__() if (self.left != None) else ''
-        return left_side + ' ' + self.value + ' ' + right_side
+        right_side = ' ' + self.right.__str__() if (self.right != None) else ''
+        left_side = self.left.__str__() + ' ' if (self.left != None) else ''
+        return left_side + self.value + right_side
