@@ -372,22 +372,30 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
 
 def compare_trees(h_tree, hl_tree):
     to_return = []
+    first_line_mistake = -1
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
         hl_tree_line = hl_tree[x]
         # print h_tree_line
         # print hl_tree_line
         # print compare_lines(h_tree_line, hl_tree_line, 0)
-        to_return.append(compare_lines(h_tree_line, hl_tree_line, 0))
+        compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
+        print compared_line
+        if (not compared_line.__len__() == 0 and not compared_line[0] and first_line_mistake == -1):
+            first_line_mistake = x
+
+        to_return.append(compared_line)
+
     if (not h_tree.__len__() == hl_tree.__len__()):
         to_return.append('num lines diff. model: ' + h_tree.__len__() + 'origin: ' + hl_tree.__len__())
+    to_return.append('first line mistake: %d' %(first_line_mistake+1))
     return to_return
 
 def writeMisMatches_hl(fhl, h, hl):
     fhl.write('origin: ' + hl + '\n')
     h_post_order_list = h.split(' ')
     hl_post_order_list = hl.split(' ')
-    fhl.write(str(find_first_difference(h_post_order_list, hl_post_order_list)) + '\n')
+    # fhl.write(str(find_first_difference(h_post_order_list, hl_post_order_list)) + '\n')
 
     normal_order_h = postOrderUtil.parse(h)[1].c()
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
@@ -414,18 +422,15 @@ def find_first_difference(h_post_order_list, hl_post_order_list):
         to_return.append('length diff. model: ' + str(h_post_order_list.__len__()) + ' wanted: ' + str(hl_post_order_list.__len__()))
     return to_return
 
-
-def collaps_similarities(h_tree_line):
-    pass
-
-
 if __name__ == "__main__":
-    h_sentence = '( X1 + 5 ) - 6 ;'
-    h_tree = from_list_to_tree(h_sentence.split(' '))
-    print h_tree[0]
-    exit (0)
-    h_post_order = 'X3 87 + 87 + 87 X3 - 75 + % X12 X++ X9 + - X1 X-- + X7 ='
-    hl_post_order = '11 92 X3 + + N18 X3 - % X12 X++ X9 + - X1 X-- + X7 ='
+    # h_sentence = '( X1 + 5 ) - 6 ;'
+    # h_tree = from_list_to_tree(h_sentence.split(' '))
+    # print h_tree[0]
+    # exit (0)
+    # h_post_order = 'X3 87 + 87 + 87 X3 - 75 + % X12 X++ X9 + - X1 X-- + X7 ='
+    # hl_post_order = '11 92 X3 + + N18 X3 - % X12 X++ X9 + - X1 X-- + X7 ='
+    h_post_order = '18 X7 ='
+    hl_post_order = '18 X7 ='
     h_post_order_list = h_post_order.split(' ')
     hl_post_order_list = hl_post_order.split(' ')
 
@@ -434,19 +439,26 @@ if __name__ == "__main__":
     h_sentence = postOrderUtil.parse(h_post_order)[1].c()
     hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
+    h_sentence = 'while ( -- X14 >= 53 ) { X11 = ( X5 -- / X5 ) * ( ( X14 * X12 ) / ( X0 / ( X4 / 14 ) ) ) ; X2 = -- X8 % ( ++ X11 / X13 -- ) ; } ;'
+    hl_sentence = 'while ( 31 >= -- X14 ) { X11 = ( X5 -- / X5 ) * ( ( X14 * X12 ) / ( ( X0 - X4 ) / ( X4 / 56 ) ) ) ; X2 = -- X8 % ( ++ X11 / X13 -- ) ; } ;'
 
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
 
     h_tree = from_list_to_tree(h_sentence.split(' '))
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
-    h_sentence_after_collapce_similarities = collaps_similarities(h_tree)
-    hl_sentence_after_collapce_similarities = collaps_similarities(hl_tree)
     print h_sentence
-    print h_sentence_after_collapce_similarities
+    h_string = ''
+    for tree in h_tree:
+        h_string += tree.__str__() + ' ; '
+    print h_string
     print hl_sentence
-    print hl_sentence_after_collapce_similarities
+    hl_string = ''
+    for tree in hl_tree:
+        hl_string += tree.__str__() + ' ; '
+    print hl_string
     print compare_trees (h_tree, hl_tree)
+
     # lines = (from_list_to_tree('while ( ( ( X13 ++ % X13 ) % ( ( N8 % X13 ) / X2 -- ) ) >= ( N16 / ( ( X7 * ( N13 + X0 ) ) % X13 ) ) ) { X7 = N2 ; X10 = X2 + ( ( X13 / -- X4 ) + X1 ) ; } ; X7 = -- X9 ; if ( X14 <= ( -- X6 + X6 ++ ) ) { X2 = N14 * ( X4 ++ / ( ( X8 - X1 ) - X11 ) ) ; X11 = ( ( X0 - ( N0 - X8 ) ) * ( N12 * ( X1 + N3 ) ) ) % ( ( 28 * ( N15 + X11 ) ) / ( N11 % -- X6 ) ) ; } else { X6 = N18 - ( ( N7 % X5 ) % -- X13 ) ; } ; X13 = ( 21 * X14 ) * N16 ; if ( 7 > ( -- X1 - X7 -- ) ) { X0 = N6 ; } ;'.split(' ')))
     # for line in lines:
     #     print line

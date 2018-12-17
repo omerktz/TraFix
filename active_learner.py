@@ -327,7 +327,7 @@ if __name__ == "__main__":
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
 	parser.add_argument('-m', '--initial-model', type=str,
 						help="trained model to to use as basis for current active learner")
-	parser.add_argument('-w', '--patience', type=int, default=10,
+	parser.add_argument('-w', '--patience', type=int, default=5,
 						help="Number of iterations without progress before early-stop (default: %(default)s)")
 	parser.add_argument('-s', '--max-iterations', type=int,
 						help="Maximum number of iterations before stopping")
