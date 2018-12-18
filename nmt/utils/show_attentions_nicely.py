@@ -1,7 +1,5 @@
 import re
 import pandas as pd
-import numpy as np
-from visualize_attn import showAttention
 import os
 
 def prepare_and_write_line(w,line):
