@@ -24,4 +24,4 @@ python -m nmt.nmt --out_dir=tf_23/models/model0/ --inference_input_file=tf_23/da
 python evaluate.py tf_20/datasets/test1 5 x86Util.py -d tf_20/datasets/failed1 -v
 
 # codenator
-python codenator.py x86Util.py -n 20 -c configs/codenator.config -o tf_26/ -v
+python codenator.py x86Util.py -n 2000 -c configs/codenator.config -o tf_28/input -v

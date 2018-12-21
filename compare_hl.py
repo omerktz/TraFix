@@ -1,6 +1,12 @@
+import os
+
+import numpy
+
 from tree import Node
 import re
 import postOrderUtil
+import csv
+import pandas as pd
 
 line_seperator = ';'
 start_bracket = '('
@@ -24,6 +30,8 @@ ifs = ['else', 'if']
 special_bracket_start = '{'
 special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
+# by importance
+types = ['lines', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'var', 'number' ,'special_brackets', 'brackets']
 
 none_oper_index = -100
 
@@ -281,10 +289,17 @@ def compare_node(h_val, hl_val):
     h_type = get_type(h_val)
     hl_type = get_type(hl_val)
     if (h_type == hl_type):
-        exp = 'model: ' + h_val + ' wanted: ' + hl_val
+        exp = h_type + ', model: ' + h_val + ' wanted: ' + hl_val
     else:
-        exp = 'type_diff - model: ' + h_val + ' wanted: ' + hl_val
+        exp = 'type_diff, model: ' + h_val + ' wanted: ' + hl_val
     return [False, [exp]]
+
+
+def opposite_cond(h_val, hl_val):
+    return ((h_val == '>' and hl_val == '<')
+            or (h_val == '<' and hl_val == '>')
+                or (h_val == '>=' and hl_val == '<=')
+                    or (h_val == '<=' and hl_val == '>='))
 
 
 def combine_two_returns_and(to_return_1, to_return_2):
@@ -297,16 +312,17 @@ def combine_two_returns_and(to_return_1, to_return_2):
     else:
         return [False, to_return_1[1] + to_return_2[1], [to_return_1[2], to_return_2[2]]]
 
+def get_to_return_not_same_side(h_tree_line, hl_tree_line, depth):
+    to_return_right_left = compare_lines(h_tree_line.right, hl_tree_line.left, depth)
+    to_return_left_right = compare_lines(h_tree_line.left, hl_tree_line.right, depth)
+    return combine_two_returns_and(to_return_right_left, to_return_left_right)
 
 def get_to_return_4_combinations(h_tree_line, hl_tree_line, depth):
     to_return_same_side = get_to_return_same_side(h_tree_line, hl_tree_line, depth)
     if (to_return_same_side[0]):
         return to_return_same_side
 
-    to_return_right_left = compare_lines(h_tree_line.right, hl_tree_line.left, depth)
-    to_return_left_right = compare_lines(h_tree_line.left, hl_tree_line.right, depth)
-
-    to_return_not_same_side = combine_two_returns_and(to_return_right_left, to_return_left_right)
+    to_return_not_same_side = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth)
     if (to_return_not_same_side[0]):
         return to_return_not_same_side
     return combine_two_returns_or(to_return_same_side, to_return_not_same_side)
@@ -353,7 +369,10 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                 else:
                     to_return = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
             elif (h_tree_line.value == equal or conditions.__contains__(h_tree_line.value)):
-                to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
+                if (h_tree_line.value == '=='):
+                    to_return = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
+                else:
+                    to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
             elif (short_opers.__contains__(h_tree_line.value)):
                 if (h_tree_line.get_left() is not None) and is_var(h_tree_line.get_left().value):
                     to_return = compare_lines(h_tree_line.get_left(), hl_tree_line.get_left(), depth + 1)
@@ -361,7 +380,8 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                     to_return = compare_lines(h_tree_line.get_right(), hl_tree_line.get_right(), depth + 1)
             elif (h_tree_line.value == special_bracket_start):
                 to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
-
+        elif (opposite_cond(h_tree_line.value, hl_tree_line.value)):
+            to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
         else:
             to_return = [False, compared_nodes[1], depth]
     # print 'h_tree_line: ' + h_tree_line.__str__()
@@ -372,7 +392,6 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
 
 def compare_trees(h_tree, hl_tree):
     to_return = []
-    first_line_mistake = -1
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
         hl_tree_line = hl_tree[x]
@@ -380,32 +399,53 @@ def compare_trees(h_tree, hl_tree):
         # print hl_tree_line
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
-        print compared_line
-        if (not compared_line.__len__() == 0 and not compared_line[0] and first_line_mistake == -1):
-            first_line_mistake = x
-
-        to_return.append(compared_line)
+        if(not compared_line == []):
+            to_return.append(compared_line[1])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
-        to_return.append('num lines diff. model: ' + h_tree.__len__() + 'origin: ' + hl_tree.__len__())
-    to_return.append('first line mistake: %d' %(first_line_mistake+1))
+        to_return.append(['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())])
+
     return to_return
 
-def writeMisMatches_hl(fhl, h, hl):
-    fhl.write('origin: ' + hl + '\n')
-    h_post_order_list = h.split(' ')
-    hl_post_order_list = hl.split(' ')
-    # fhl.write(str(find_first_difference(h_post_order_list, hl_post_order_list)) + '\n')
 
-    normal_order_h = postOrderUtil.parse(h)[1].c()
-    normal_order_hl = postOrderUtil.parse(hl)[1].c()
-    fhl.write('model, normal: ' + normal_order_h + '\n')
-    fhl.write('origin, normal: ' + normal_order_hl + '\n')
+def get_worst_or_best_type(error_types, get_worst=True):
+    types_to_use = types if get_worst else types[::-1]
+    for type in types_to_use:
+        if error_types.__contains__(type):
+            return type
+    return 'victory!!'
 
-    h_tree = from_list_to_tree(normal_order_h.split(' '))
-    hl_tree = from_list_to_tree(normal_order_hl.split(' '))
-    fhl.write(str(compare_trees(h_tree, hl_tree)) + '\n')
 
+def writeMisMatches_hl(i, fhl, h, hl):
+    if (not os.path.isfile(fhl + 'understand_fails.csv')):
+        with open(fhl + 'understand_fails.csv', 'w') as f:
+            csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types','worst_type'])
+
+    with open(fhl + 'understand_fails.csv', 'a') as f:
+        normal_order_h = postOrderUtil.parse(h)[1].c()
+        normal_order_hl = postOrderUtil.parse(hl)[1].c()
+        h_tree = from_list_to_tree(normal_order_h.split(' '))
+        hl_tree = from_list_to_tree(normal_order_hl.split(' '))
+        compared_trees = compare_trees(h_tree, hl_tree)
+        to_write_in_csv_origin_hl = ' ; '.join(map(lambda x: str(x), hl_tree))
+        to_write_in_csv_models_h = ' ; '.join(map(lambda x: str(x), h_tree))
+        error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist])
+        worst_type = get_worst_or_best_type(error_types)
+        csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types),worst_type])
+
+def analize_mistakes(fhl):
+    data_path = fhl + 'understand_fails.csv'
+    df = pd.read_csv(data_path)
+    worst_types = df[['sentence_id', 'worst_type']]
+    ids = numpy.unique(worst_types['sentence_id'])
+    times_dict = {}
+    for id in ids:
+        type = get_worst_or_best_type((worst_types.loc[worst_types['sentence_id'] == id])['worst_type'].values, False)
+        if type not in times_dict.keys():
+            times_dict[type] = 1
+        else:
+            times_dict[type] += 1
+    print times_dict
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
     to_return = []
