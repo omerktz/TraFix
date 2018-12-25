@@ -302,6 +302,11 @@ def opposite_cond(h_val, hl_val):
                 or (h_val == '>=' and hl_val == '<=')
                     or (h_val == '<=' and hl_val == '>='))
 
+def allmost_same_cond(h_val, hl_val):
+    return ((h_val == '>' and hl_val == '>=')
+            or (h_val == '<' and hl_val == '<=')
+                or (h_val == '>=' and hl_val == '>')
+                    or (h_val == '<=' and hl_val == '<'))
 
 def combine_two_returns_and(to_return_1, to_return_2):
     if (to_return_1[0] and to_return_2[0]):
@@ -355,6 +360,7 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
         to_return = [h_tree_line == hl_tree_line, '', depth]
     else:
         compared_nodes = compare_node(h_tree_line.value, hl_tree_line.value)
+
         if(compared_nodes[0]):
             if (is_var(h_tree_line.value)):
                 to_return = [True, '', depth]
@@ -381,12 +387,24 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                     to_return = compare_lines(h_tree_line.get_right(), hl_tree_line.get_right(), depth + 1)
             elif (h_tree_line.value == special_bracket_start):
                 to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
-        elif (opposite_cond(h_tree_line.value, hl_tree_line.value)):
-            to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
-        elif (opposite_cond(h_tree_line.value, hl_tree_line.value)):
-            to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
-        elif ():
 
+
+        elif (not compared_nodes[1][0].__contains__('type_diff')):
+            if (opposite_cond(h_tree_line.value, hl_tree_line.value)):
+                to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
+            elif (allmost_same_cond(h_tree_line.value, hl_tree_line.value)):
+                continued_tree = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
+                to_return = [False, compared_nodes[1] + continued_tree[1] , [depth, continued_tree[2]]]
+            elif (opers.__contains__(hl_tree_line.value)):
+                continued_tree = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
+                to_return = [False, compared_nodes[1] + continued_tree[1], [depth, continued_tree[2]]]
+            elif (short_opers.__contains__(h_tree_line.value)):
+                if (h_tree_line.get_left() is not None) and is_var(h_tree_line.get_left().value):
+                    continued_tree = compare_lines(h_tree_line.get_left(), hl_tree_line.get_left(), depth + 1)
+                    to_return = [False, compared_nodes[1] + continued_tree[1], [depth, continued_tree[2]]]
+                else:
+                    continued_tree = compare_lines(h_tree_line.get_right(), hl_tree_line.get_right(), depth + 1)
+                    to_return = [False, compared_nodes[1] + continued_tree[1], [depth, continued_tree[2]]]
         else:
             to_return = [False, compared_nodes[1], depth]
     # print 'h_tree_line: ' + h_tree_line.__str__()
