@@ -387,8 +387,7 @@ def split_numbers(x):
 
 
 def from_numbers_to_digits(line):
-	splitted = line.split(' ')
-	to_return = ' '.join(map(lambda x: split_numbers(x), splitted))
+	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
 
 
 def generate_statements():
@@ -446,8 +445,8 @@ def generate_statements():
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
-		hl_line = from_numbers_to_digits(hl_line.strip())
-		ll_line = from_numbers_to_digits(ll_line.strip())
+		hl_line = hl_line.strip()
+		ll_line = ll_line.strip()
 
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)
