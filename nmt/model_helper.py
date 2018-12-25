@@ -39,6 +39,15 @@ __all__ = [
 # If a vocab size is greater than this value, put the embedding on cpu instead
 VOCAB_SIZE_THRESHOLD_CPU = 50000
 
+def get_temp_input_file(input):
+    temp_file = input + '.temp'
+    with open(input, 'r') as fin:
+        with open(temp_file, 'w') as fout:
+            for l in fin.readlines():
+                fout.write(l.strip().replace(' ;','').replace(' ,','')+'\n')
+    src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(temp_file))
+    os.remove(temp_file)
+    return src_dataset
 
 def get_initializer(init_op, seed=None, init_weight=None):
   """Create an initializer. init_weight is only for uniform."""
@@ -91,7 +100,7 @@ def create_train_model(
     src_vocab_table, tgt_vocab_table = vocab_utils.create_vocab_tables(
         src_vocab_file, tgt_vocab_file, hparams.share_vocab)
 
-    src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(src_file))
+    src_dataset = get_temp_input_file(src_file)
     tgt_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tgt_file))
     skip_count_placeholder = tf.placeholder(shape=(), dtype=tf.int64)
 

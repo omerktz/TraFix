@@ -68,7 +68,7 @@ def _decode_inference_indices(model, sess, output_infer,
   utils.print_time("  done", start_time)
 
 
-def load_data(inference_input_file, hparams=None):
+def load_data(inference_input_file, hparams=None, replace_vocab=False):
   """Load inference data."""
   with codecs.getreader("utf-8")(
       tf.gfile.GFile(inference_input_file, mode="rb")) as f:
@@ -76,6 +76,8 @@ def load_data(inference_input_file, hparams=None):
 
   if hparams and hparams.inference_indices:
     inference_data = [inference_data[i] for i in hparams.inference_indices]
+  if replace_vocab:
+    inference_data = map(lambda x: x.replace(' ;', '').replace(' ,', ''), inference_data)
 
   return inference_data
 
@@ -151,7 +153,7 @@ def single_worker_inference(sess,
   output_infer = inference_output_file
 
   # Read data
-  infer_data = load_data(inference_input_file, hparams)
+  infer_data = load_data(inference_input_file, hparams, replace_vocab=True)
 
   with infer_model.graph.as_default():
     sess.run(
@@ -212,7 +214,7 @@ def multi_worker_inference(sess,
   output_infer_done = "%s_done_%d" % (inference_output_file, jobid)
 
   # Read data
-  infer_data = load_data(inference_input_file, hparams)
+  infer_data = load_data(inference_input_file, hparams, replace_vocab=True)
 
   # Split data to multiple workers
   total_load = len(infer_data)

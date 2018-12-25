@@ -159,7 +159,7 @@ def run_external_eval(infer_model,
   dev_src_file = "%s.%s" % (hparams.dev_prefix, hparams.src)
   dev_tgt_file = "%s.%s" % (hparams.dev_prefix, hparams.tgt)
   dev_infer_iterator_feed_dict[
-      infer_model.src_placeholder] = inference.load_data(dev_src_file)
+      infer_model.src_placeholder] = inference.load_data(dev_src_file, replace_vocab=True)
   dev_infer_iterator_feed_dict[
       infer_model.batch_size_placeholder] = hparams.infer_batch_size
   dev_scores = _external_eval(
@@ -469,7 +469,7 @@ def train(hparams, scope=None, target_session=""):
   # Preload data for sample decoding.
   dev_src_file = "%s.%s" % (hparams.dev_prefix, hparams.src)
   dev_tgt_file = "%s.%s" % (hparams.dev_prefix, hparams.tgt)
-  sample_src_data = inference.load_data(dev_src_file)
+  sample_src_data = inference.load_data(dev_src_file, replace_vocab=True)
   sample_tgt_data = inference.load_data(dev_tgt_file)
 
   summary_name = "train_log"

@@ -5,7 +5,7 @@ python -m nmt.scripts.build_vocab --size 50000 --save_vocab tf_first/datasets/vo
 
 
 # run the train
-python -m nmt.nmt --vocab_prefix=tf_first/datasets/vocab  --train_prefix=tf_first/datasets/train0.corpus --dev_prefix=tf_first/datasets/validate0.corpus --out_dir=tf_first/mod --num_train_steps=1200000 --steps_per_stats=100 --num_layers=2 --num_units=100 --metrics=bleu --src=ll --tgt=hl --attention=bahdanau --batch_size=64 --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm=1 --learning_rate=0.001 --optimizer=adam --encoder_type=bi --best_bleu_dir=tf_first/mod/best_bleu --num_keep_ckpts=1
+python -m nmt.nmt --vocab_prefix=tf_21/datasets/vocab  --train_prefix=tf_21/datasets/train0.corpus --dev_prefix=tf_21/datasets/validate0.corpus --out_dir=tf_21/mod --num_train_steps=1200000 --steps_per_stats=100 --num_layers=2 --num_units=100 --metrics=bleu --src=ll --tgt=hl --attention=bahdanau --batch_size=64 --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm=1 --learning_rate=0.001 --optimizer=adam --encoder_type=bi --best_bleu_dir=tf_21/mod/best_bleu --num_keep_ckpts=1
 
 python -m nmt.nmt --vocab_prefix=tf_first/mod/vocab1  --train_prefix=tf_first/datasets/train1.corpus --dev_prefix=tf_first/datasets/validate0.corpus --out_dir=tf_first/mod --num_train_steps=1200000 --steps_per_stats=150 --num_layers=2 --num_units=100 --metrics=bleu --src=ll --tgt=hl --attention=bahdanau --batch_size=64 --src_max_len=1500 --tgt_max_len=150 --max_gradient_norm=1 --learning_rate=0.001 --optimizer=adam --encoder_type=bi --best_bleu_dir=tf_first/mod/best_bleu
 
@@ -14,7 +14,7 @@ python -m nmt.nmt --vocab_prefix=tf_first/mod/vocab1  --train_prefix=tf_first/da
 
 
 # translate
-python -m nmt.nmt --out_dir=tf_third/models/model0/ --inference_input_file=tf_third/datasets/test0.corpus.ll --inference_output_file=tf_third/datasets/test0.translated --num_translations_per_input=5 --infer_mode=beam_search --beam_width=5
+python -m nmt.nmt --out_dir=tf_21/models/model0/ --inference_input_file=tf_21/datasets/test0.corpus.ll --inference_output_file=tf_21/datasets/test0.translated --num_translations_per_input=5 --infer_mode=beam_search --beam_width=5
 
 # get attns
 python -m nmt.nmt --out_dir=tf_23/models/model0/ --inference_input_file=tf_23/datasets/test0.corpus.ll --inference_output_file=tf_23/check/test0.translated --failed_translations_csv=tf_23/datasets/test0.fail.5.csv --inference_for_attentions=1 --tgt_max_len_infer=350 --infer_batch_size=1
