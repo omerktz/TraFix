@@ -374,6 +374,22 @@ def compiler(s):
 def preprocess_hl(s):
 	return s.po()
 
+numbers_pattern = '^(-|N)?\d+'
+
+def split_numbers(x):
+    temp = re.match(numbers_pattern, x)
+    if  (temp is not None and temp.group() == x):
+        to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
+        return to_return[1:] if to_return.startswith(' ') else to_return
+    else:
+        return x
+
+
+
+def from_numbers_to_digits(line):
+	splitted = line.split(' ')
+	to_return = ' '.join(map(lambda x: split_numbers(x), splitted))
+
 
 def generate_statements():
 	limit = args.n
@@ -430,8 +446,9 @@ def generate_statements():
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
-		hl_line = hl_line.strip()
-		ll_line = ll_line.strip()
+		hl_line = from_numbers_to_digits(hl_line.strip())
+		ll_line = from_numbers_to_digits(ll_line.strip())
+
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)
 			corpus_hl.append(hl_line)
