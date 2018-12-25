@@ -483,6 +483,7 @@ def analize_mistakes(fhl, fails_num):
             times_dict[type] += 1
     if(ids.__len__() < fails_num):
         times_dict['compile_err'] = fails_num - ids.__len__()
+
     print times_dict
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
