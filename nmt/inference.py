@@ -78,7 +78,7 @@ def load_data(inference_input_file, hparams=None, replace_vocab=False):
     inference_data = [inference_data[i] for i in hparams.inference_indices]
   if replace_vocab:
     # inference_data = map(lambda x: x.replace(' ;', '').replace(' ,', ''), inference_data)
-    inference_data = map(lambda x: x.replace(' ;', ''), inference_data)
+    inference_data = map(lambda x: x.replace(';', '').replace(',','').replace('  ',' '), inference_data)
 
   return inference_data
 
