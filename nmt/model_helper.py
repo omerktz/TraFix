@@ -46,8 +46,8 @@ def get_temp_input_file(input):
             for l in fin.readlines():
                 fout.write(l.strip().replace(';', '').replace(',','').replace('  ',' ') + '\n')
                 # fout.write(l.strip().replace(' ;', '') + '\n')
-    src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(temp_file))
-    # os.remove(temp_file)
+    src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(input))
+    os.remove(temp_file)
     return src_dataset
 
 def get_initializer(init_op, seed=None, init_weight=None):
