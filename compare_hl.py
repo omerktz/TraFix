@@ -27,11 +27,12 @@ numbers_pattern = '^-?\d+'
 vars_pattern = '^X\d+'
 loops = ['while']
 ifs = ['else', 'if']
+branch_types = loops + ifs
 special_bracket_start = '{'
 special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
 # by importance
-types = ['lines', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'var', 'number' ,'special_brackets', 'brackets']
+types = ['while_num', 'else_num', 'if_num', 'lines', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'var', 'number' ,'special_brackets', 'brackets']
 
 none_oper_index = -100
 
@@ -382,6 +383,10 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                 to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
         elif (opposite_cond(h_tree_line.value, hl_tree_line.value)):
             to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
+        elif (opposite_cond(h_tree_line.value, hl_tree_line.value)):
+            to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
+        elif ():
+
         else:
             to_return = [False, compared_nodes[1], depth]
     # print 'h_tree_line: ' + h_tree_line.__str__()
@@ -389,6 +394,16 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
     # print 'to_return: ' + str(to_return)
     return to_return
 
+
+def get_beanches_nums_diffs(h_tree, hl_tree):
+    to_return = []
+    for branch_type in branch_types:
+        for line in h_tree:
+            h_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), h_tree))
+            hl_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), hl_tree))
+        if (not h_branch_num == hl_branch_num):
+            to_return.append([branch_type + '_num', str(h_branch_num), str(hl_branch_num)])
+    return to_return
 
 def compare_trees(h_tree, hl_tree):
     to_return = []
@@ -403,7 +418,10 @@ def compare_trees(h_tree, hl_tree):
             to_return.append(compared_line[1])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
+        branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
         to_return.append(['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())])
+        for num_diffs in branches_nums_diffs:
+            to_return.append([num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]])
 
     return to_return
 
@@ -433,7 +451,7 @@ def writeMisMatches_hl(i, fhl, h, hl):
         worst_type = get_worst_or_best_type(error_types)
         csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types),worst_type])
 
-def analize_mistakes(fhl):
+def analize_mistakes(fhl, fails_num):
     data_path = fhl + 'understand_fails.csv'
     df = pd.read_csv(data_path)
     worst_types = df[['sentence_id', 'worst_type']]
@@ -445,6 +463,8 @@ def analize_mistakes(fhl):
             times_dict[type] = 1
         else:
             times_dict[type] += 1
+    if(ids.__len__() < fails_num):
+        times_dict['compile_err'] = fails_num - ids.__len__()
     print times_dict
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
@@ -469,24 +489,27 @@ if __name__ == "__main__":
     # exit (0)
     # h_post_order = 'X3 87 + 87 + 87 X3 - 75 + % X12 X++ X9 + - X1 X-- + X7 ='
     # hl_post_order = '11 92 X3 + + N18 X3 - % X12 X++ X9 + - X1 X-- + X7 ='
-    h_post_order = '18 X7 ='
-    hl_post_order = '18 X7 ='
-    h_post_order_list = h_post_order.split(' ')
-    hl_post_order_list = hl_post_order.split(' ')
+    # h_post_order = '18 X7 ='
+    # hl_post_order = '18 X7 ='
+    # h_post_order_list = h_post_order.split(' ')
+    # hl_post_order_list = hl_post_order.split(' ')
+    #
+    # print find_first_difference(h_post_order_list, hl_post_order_list)
 
-    print find_first_difference(h_post_order_list, hl_post_order_list)
+    # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
+    # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    h_sentence = postOrderUtil.parse(h_post_order)[1].c()
-    hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
-
-    h_sentence = 'while ( -- X14 >= 53 ) { X11 = ( X5 -- / X5 ) * ( ( X14 * X12 ) / ( X0 / ( X4 / 14 ) ) ) ; X2 = -- X8 % ( ++ X11 / X13 -- ) ; } ;'
-    hl_sentence = 'while ( 31 >= -- X14 ) { X11 = ( X5 -- / X5 ) * ( ( X14 * X12 ) / ( ( X0 - X4 ) / ( X4 / 56 ) ) ) ; X2 = -- X8 % ( ++ X11 / X13 -- ) ; } ;'
+    hl_sentence = 'X8 = X8 ++ / ( 92 + X11 ) ; X4 = X9 ; X6 = X14 + X4 ; if ( ( ( 18 + X3 ) + ( 42 / ( X4 / ++ X8 ) ) ) < ( X2 / 82 ) ) { X6 = 81 ; X11 = X4 * X3 ; X13 = 79 ; X0 = ( ( ( 26 * ( 65 - X6 ) ) % 9 ) - ( X0 / 43 ) ) - X6 ; X4 = X7 + X10 ; } ; X14 = 77 % ( X9 / ( ( ( X4 - ( X9 / X1 ) ) / ( 80 * X2 ) ) * 67 ) ) ;'
+    h_sentence = 'X8 = X8 ++ / ( X11 + 92 ) ; X4 = X9 ; X6 = X14 + X4 ; if ( ( ( 42 + X3 ) + ( 42 / ( X4 / ++ X8 ) ) ) < ( X2 / 41 ) ) { X6 = 81 ; if ( ( ( X4 * X3 ) + ( 42 / ( X4 / ++ X8 ) ) ) < ( X2 / 41 ) ) { X6 = 81 ; X11 = X4 * X3 ; X13 = 26 ; X0 = ( ( 26 * ( 65 - X6 ) ) % 9 ) - X0 ; X4 = X7 + X10 ; } ; } ; X14 = 77 % ( X9 / ( ( ( X4 - ( X9 / X1 ) ) / ( 40 * X2 ) ) * 67 ) ) ;'
 
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
 
     h_tree = from_list_to_tree(h_sentence.split(' '))
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
+    branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
+    print branches_nums_diffs
+    exit(0)
     print h_sentence
     h_string = ''
     for tree in h_tree:
