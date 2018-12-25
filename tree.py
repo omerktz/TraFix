@@ -47,6 +47,12 @@ class Node:
         else:
             self.right.get_most_right()
 
+    def get_branch_number(self, branch):
+        right_number = self.right.get_branch_number(branch) if self.right is not None else 0
+        left_number = self.left.get_branch_number(branch) if self.left is not None else 0
+        self_number = 1 if self.value == branch else 0
+        return right_number + left_number + self_number
+
     def __str__(self):
         right_side = ' ' + self.right.__str__() if (self.right != None) else ''
         left_side = self.left.__str__() + ' ' if (self.left != None) else ''
