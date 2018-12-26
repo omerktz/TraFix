@@ -375,18 +375,20 @@ def preprocess_hl(s):
 	return s.po()
 
 numbers_pattern = '^(-|N)?\d+'
+two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
+regexp = re.compile(two_numbers_pattern)
 
 def split_numbers(x):
-    temp = re.match(numbers_pattern, x)
-    if  (temp is not None and temp.group() == x):
-        to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
-        return to_return[1:] if to_return.startswith(' ') else to_return
-    else:
-        return x
-
-
+	temp = re.match(numbers_pattern, x)
+	if  (temp is not None and temp.group() == x):
+		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
+		return to_return[1:] if to_return.startswith(' ') else to_return
+	else:
+		return x
 
 def from_numbers_to_digits(line):
+	while (regexp.search(line) is not None):
+		line = line.replace(regexp.search(line).group()[1:], regexp.search(line).group()[1:].replace(' ', ' | '))
 	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
 
 
@@ -445,8 +447,8 @@ def generate_statements():
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
-		hl_line = hl_line.strip()
-		ll_line = ll_line.strip()
+		hl_line = from_numbers_to_digits(hl_line.strip())
+		ll_line = from_numbers_to_digits(ll_line.strip())
 
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)

@@ -11,6 +11,7 @@ import graph_comparison as gc
 from abstract_numerals import *
 import code_fixer as cf
 import random
+import compare_hl as hl_util
 
 
 def parsePostOrder(po):
@@ -60,10 +61,19 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
+numbers_pattern = '(-|\d)'
+two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
+regexp = re.compile(two_numbers_pattern)
+
+def combine_digits(code):
+	while (regexp.search(code) is not None):
+		code = code.replace(regexp.search(code).group(), regexp.search(code).group().replace(' ', ''))
+	return code.replace(' | ', ' ')
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
+	ll = combine_digits(ll)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
@@ -101,14 +111,18 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
 							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
+							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
 	return (i, hl, ll, replacements, None, 4)  # fail
 
 
 def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
+	# hl_util.analize_mistakes(failed_dataset, 500)
 	nsuccess = 0
 	nfail = 0
+	# if (True):
+	# 	return (nsuccess, nfail)
 	hls = [re.sub('[ \t]+', ' ', l.strip()) for l in fhl.readlines()]
 	lls = [re.sub('[ \t]+', ' ', l.strip()) for l in fll.readlines()]
 	outs = [map(lambda x: re.sub('[ \t]+', ' ', x.strip()), l.strip().split('|||')[0:2]) for l in fout.readlines()]
@@ -131,6 +145,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
 				os.remove(f)
+	hl_util.analize_mistakes(failed_dataset, nfail)
 	return (nsuccess, nfail)
 
 

@@ -244,7 +244,18 @@ class Statement:
         return (self.other.c() if self.other else '')+self.inner.c()+' ; '
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
+
+numbers_pattern = '(-|\d)'
+two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
+regexp = re.compile(two_numbers_pattern)
+
+def combine_digits(code):
+    while (regexp.search(code) is not None):
+        code = code.replace(regexp.search(code).group(), regexp.search(code).group().replace(' ', ''))
+    return code.replace(' | ', ' ')
+
 def parse(code):
+    combine_digits(code)
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:
@@ -258,4 +269,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('N2 X0 * N15 < COND X5 X11 N14 X5 X10 * - - N3 / = TRUE IF X10 X7 = X9 X10 X7 + N0 N19 X2  - + + X1 N18 X2 % / * N4 / =')[1].c()
+    print parse('X12 N7 N7 X10 % * X14 / % X12 = N4 X14 / X9 / X2 59 - / X2 = N2 X0 9 * 9 % % N10 X14 / / X13 X10 - - X0 =')[1].c()
