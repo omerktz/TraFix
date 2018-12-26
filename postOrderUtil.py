@@ -245,7 +245,7 @@ class Statement:
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
 
-numbers_pattern = '(-|\d)'
+numbers_pattern = '\d'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
