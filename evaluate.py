@@ -67,7 +67,7 @@ regexp = re.compile(two_numbers_pattern)
 
 def combine_digits(code):
 	while (regexp.search(code) is not None):
-		code = code.replace(regexp.search(code).group(), regexp.search(code).group().replace(' ', ''))
+		code = code.replace(regexp.search(code).group()[1:], regexp.search(code).group()[1:].replace(' ', ''))
 	return code.replace(' | ', ' ')
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
