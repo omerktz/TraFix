@@ -61,13 +61,15 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
-numbers_pattern = '(-|\d)'
+numbers_pattern = '(-|\d|10)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
 def combine_digits(code):
 	while (regexp.search(code) is not None):
-		code = code.replace(regexp.search(code).group()[1:], regexp.search(code).group()[1:].replace(' ', ''))
+		to_search = regexp.search(code).group()
+		add = '' if to_search[0].isdigit() else ' '
+		code = code.replace(to_search, add + to_search.replace(' ', ''))
 	return code.replace(' | ', ' ')
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):

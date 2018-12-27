@@ -245,17 +245,21 @@ class Statement:
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
 
-numbers_pattern = '\d'
+numbers_pattern = '(\d|10)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
 def combine_digits(code):
     while (regexp.search(code) is not None):
-        code = code.replace(regexp.search(code).group()[1:], regexp.search(code).group()[1:].replace(' ', ''))
+        to_search = regexp.search(code).group()
+        add = '' if to_search[0].isdigit() else ' '
+        code = code.replace(to_search, add + to_search.replace(' ', ''))
     return code.replace(' | ', ' ')
 
 def parse(code):
-    combine_digits(code)
+    print code
+    code = combine_digits(code)
+    print code
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:

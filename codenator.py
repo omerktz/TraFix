@@ -388,7 +388,9 @@ def split_numbers(x):
 
 def from_numbers_to_digits(line):
 	while (regexp.search(line) is not None):
-		line = line.replace(regexp.search(line).group()[1:], regexp.search(line).group()[1:].replace(' ', ' | '))
+		to_search = regexp.search(line).group()
+		add = 0 if to_search[0].isdigit() else 2
+		line = line.replace(to_search, to_search.replace(' ', ' | ')[add:])
 	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
 
 
