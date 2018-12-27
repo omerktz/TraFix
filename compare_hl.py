@@ -461,19 +461,21 @@ def compare_trees(h_tree, hl_tree):
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
         if(not compared_line == []):
-            to_return.append([compared_line[1], min(compared_line[2]) if isinstance(compared_line[1], list) else compared_line[1]])
+            to_return.append([compared_line[1], min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2], hl_tree_line.get_depth()])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
         branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
-        to_return.append(['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())])
+        to_return.append([['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())]])
         for num_diffs in branches_nums_diffs:
-            to_return.append([num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]])
+            to_return.append([[num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]]])
 
     return to_return
 
 
 def get_worst_or_best_type(error_types, get_worst=True):
     types_to_use = types if get_worst else types[::-1]
+    if not get_worst and error_types.__contains__('victory!!'):
+        return 'victory!!'
     for type in types_to_use:
         if error_types.__contains__(type):
             return type

@@ -120,7 +120,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 
 
 def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
-	# hl_util.analize_mistakes(failed_dataset, 500)
+	# hl_util.analize_mistakes(failed_dataset, 961)
 	nsuccess = 0
 	nfail = 0
 	# if (True):

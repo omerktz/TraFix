@@ -57,3 +57,10 @@ class Node:
         right_side = ' ' + self.right.__str__() if (self.right != None) else ''
         left_side = self.left.__str__() + ' ' if (self.left != None) else ''
         return left_side + self.value + right_side
+
+    def get_depth(self):
+        if self.get_value() == None:
+            return 0
+        depth_left = 0 if self.get_left() == None else self.get_left().get_depth()
+        depth_right = 0 if self.get_right() == None else self.get_right().get_depth()
+        return 1 + max(depth_left, depth_right)
