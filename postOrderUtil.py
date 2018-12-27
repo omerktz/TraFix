@@ -257,7 +257,7 @@ def combine_digits(code):
     return code.replace(' | ', ' ')
 
 def parse(code):
-    code = combine_digits(code)
+    # code = combine_digits(code)
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:

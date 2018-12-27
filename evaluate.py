@@ -75,7 +75,7 @@ def combine_digits(code):
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
-	ll = combine_digits(ll)
+	# ll = combine_digits(ll)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
