@@ -451,7 +451,7 @@ def get_beanches_nums_diffs(h_tree, hl_tree):
             to_return.append([branch_type + '_num', str(h_branch_num), str(hl_branch_num)])
     return to_return
 
-def compare_trees(h_tree, hl_tree):
+def compare_trees(h_tree, hl_tree, fhl, i):
     to_return = []
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
@@ -461,7 +461,12 @@ def compare_trees(h_tree, hl_tree):
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
         if(not compared_line == []):
-            to_return.append([compared_line[1], min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2], hl_tree_line.get_depth()])
+            to_return.append([compared_line[1]])
+            min_depth_error =  min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
+            with open(fhl + 'trees_stats.csv', 'a') as f:
+                csv.writer(f).writerow(
+                    [str(i), str(x), str(compared_line[0]), str(min_depth_error), str(compared_line[2]),
+                     str(hl_tree_line.get_depth()),str(h_tree_line.get_depth()),str(hl_tree.__len__()),str(h_tree.__len__())])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
         branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
@@ -487,16 +492,20 @@ def writeMisMatches_hl(i, fhl, h, hl):
         with open(fhl + 'understand_fails.csv', 'w') as f:
             csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types','worst_type'])
 
+    if (not os.path.isfile(fhl + 'trees_stats.csv')):
+        with open(fhl + 'trees_stats.csv', 'w') as f:
+            csv.writer(f).writerow(['sentence_id', 'line_id', 'is_successful', 'min_depth_error','all_error_depths','line_depth_origin','line_depth_model','origin_lines', 'model_lines'])
+
+    normal_order_h = postOrderUtil.parse(h)[1].c()
+    normal_order_hl = postOrderUtil.parse(hl)[1].c()
+    h_tree = from_list_to_tree(normal_order_h.split(' '))
+    hl_tree = from_list_to_tree(normal_order_hl.split(' '))
+    compared_trees = compare_trees(h_tree, hl_tree, fhl, i)
+    to_write_in_csv_origin_hl = ' ; '.join(map(lambda x: str(x), hl_tree))
+    to_write_in_csv_models_h = ' ; '.join(map(lambda x: str(x), h_tree))
+    error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
+    worst_type = get_worst_or_best_type(error_types)
     with open(fhl + 'understand_fails.csv', 'a') as f:
-        normal_order_h = postOrderUtil.parse(h)[1].c()
-        normal_order_hl = postOrderUtil.parse(hl)[1].c()
-        h_tree = from_list_to_tree(normal_order_h.split(' '))
-        hl_tree = from_list_to_tree(normal_order_hl.split(' '))
-        compared_trees = compare_trees(h_tree, hl_tree)
-        to_write_in_csv_origin_hl = ' ; '.join(map(lambda x: str(x), hl_tree))
-        to_write_in_csv_models_h = ' ; '.join(map(lambda x: str(x), h_tree))
-        error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
-        worst_type = get_worst_or_best_type(error_types)
         csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types),worst_type])
 
 def analize_mistakes(fhl, fails_num):
@@ -508,13 +517,23 @@ def analize_mistakes(fhl, fails_num):
     for id in ids:
         type = get_worst_or_best_type((worst_types.loc[worst_types['sentence_id'] == id])['worst_type'].values, False)
         if type not in times_dict.keys():
-            times_dict[type] = 1
+            times_dict[type] = {}
+            times_dict[type]['times'] = 1
         else:
-            times_dict[type] += 1
+            times_dict[type]['times'] += 1
     if(ids.__len__() < fails_num):
-        times_dict['compile_err'] = fails_num - ids.__len__()
+        times_dict['compile_err'] = {}
+        times_dict['compile_err']['times'] = fails_num - ids.__len__()
 
-    print times_dict
+    for type in times_dict.keys():
+        times_dict[type]['percentage'] = float(times_dict[type]['times']) / float(fails_num)
+
+    with open(fhl + 'mistakes_stats.csv', 'wb') as f:  # Just use 'w' mode in 3.x
+        w = csv.writer(f)
+        w.writerow(times_dict.keys())
+        w.writerow(map(lambda x: x['times'], times_dict.values()))
+        w.writerow(map(lambda x: x['percentage'], times_dict.values()))
+
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
     to_return = []
