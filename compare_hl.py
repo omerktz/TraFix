@@ -378,19 +378,19 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
     # print 'hl_tree_line: ' + hl_tree_line.__str__()
     to_return = []
     if(h_tree_line == None or hl_tree_line == None):
-        to_return = [h_tree_line == hl_tree_line, '', [depth]]
+        to_return = [h_tree_line == hl_tree_line, [], [depth]]
     else:
         compared_nodes = compare_node(h_tree_line.value, hl_tree_line.value)
 
         if(compared_nodes[0]):
             if (is_var(h_tree_line.value)):
-                to_return = [True, '', [depth]]
+                to_return = [True, [], [depth]]
             elif (is_number(h_tree_line.value)):
-                to_return = [True, '', [depth]]
+                to_return = [True, [], [depth]]
             elif (loops.__contains__(h_tree_line.value) or ifs.__contains__(h_tree_line.value)):
-                to_return = [True, '', [depth]]
+                to_return = [True, [], [depth]]
             elif (h_tree_line == special_bracket_close):
-                to_return = [True, '', [depth]]
+                to_return = [True, [], [depth]]
             elif (opers.__contains__(hl_tree_line.value)):
                 if (non_komotative_opers.__contains__(hl_tree_line.value)):
                     to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
