@@ -74,13 +74,23 @@ def concat_digits_plus_plus(tree, value):
         return tree
     return None
 
+
+def without_double_minus(tree, value):
+    diff = int(tree.get_right().get_value()) - int(value)
+    if (diff < 0):
+        tree.set_value(plus)
+        diff *= -1
+    tree.get_right().set_value(str(diff))
+    return tree
+
+
 def concat_digits_plus_minus(tree, value):
     if (is_left_digit(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) + int(value)))
         return tree
     if (is_right_digit(tree)):
-        tree.get_right().set_value(str(int(tree.get_right().get_value()) - int(value)))
-        return tree
+        return without_double_minus(tree, value)
+
     return None
 
 def concat_digits_minus_plus(tree, value):
@@ -88,8 +98,8 @@ def concat_digits_minus_plus(tree, value):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) - int(value)))
         return tree
     if (is_right_digit(tree)):
-        tree.get_right().set_value(str(int(tree.get_right().get_value()) - int(value)))
-        return tree
+        return without_double_minus(tree, value)
+
     return None
 
 def concat_digits_minus_minus(tree, value):
@@ -177,6 +187,15 @@ def handle_mult_concatination(left_tree, right_tree):
     return None
 
 
+def handle_div_concatination(left_tree, right_tree):
+    if (right_tree.get_value().isdigit() and left_tree.get_value() == div and left_tree.get_right().get_value().isdigit()):
+        tree = left_tree
+        tree.set_right(Node(str(int(left_tree.get_right().get_value()) * int(right_tree.get_value()))))
+        return tree
+
+    else:
+        return None
+
 def concatinate_opers(root_val, left_tree, right_tree):
     tree = None
     if(root_val == plus):
@@ -187,6 +206,9 @@ def concatinate_opers(root_val, left_tree, right_tree):
 
     if (root_val == mult):
         tree = handle_mult_concatination(left_tree, right_tree)
+
+    if (root_val == div):
+        tree = handle_div_concatination(left_tree, right_tree)
 
     if(tree is not None):
         return tree
@@ -309,10 +331,8 @@ def compare_node(h_val, hl_val):
 
 
 def opposite_cond(h_val, hl_val):
-    return ((h_val == '>' and hl_val == '<')
-            or (h_val == '<' and hl_val == '>')
-                or (h_val == '>=' and hl_val == '<=')
-                    or (h_val == '<=' and hl_val == '>='))
+    return (( ((h_val == '>') or (h_val == '>=')) and ((hl_val == '<') or (hl_val == '<=')) )
+            or ( ((h_val == '<') or (h_val == '<=')) and ((hl_val == '>') or (hl_val == '>=')) ))
 
 def allmost_same_cond(h_val, hl_val):
     return ((h_val == '>' and hl_val == '>=')
@@ -348,19 +368,13 @@ def get_to_return_4_combinations(h_tree_line, hl_tree_line, depth):
     return combine_two_returns_or(to_return_same_side, to_return_not_same_side)
 
 def combine_two_returns_or(to_return_1, to_return_2):
-    # print 'to_return1: ' + str(to_return_1)
-    # print 'to_return2: ' + str(to_return_2)
-    depth_1 = max(to_return_1[2]) if isinstance(to_return_1[2],list) else to_return_1[2]
-    depth_2 = max(to_return_2[2]) if isinstance(to_return_2[2], list) else to_return_2[2]
-    if (depth_1 > depth_2):
+    worst_type1 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_1] for item in sublist[1]]))
+    worst_type2 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_2] for item in sublist[1]]))
+
+    if (worst_type1 == 'depth' and worst_type2 == 'type_diff') or (types.index(worst_type1) > types.index(worst_type2)):
         return to_return_1
-    elif (depth_1 < depth_2):
-        return to_return_2
     else:
-        if any('type_diff' in s for s in to_return_1[1]):
-            return to_return_2
-        else:
-            return to_return_1
+        return to_return_2
 
 
 def get_to_return_same_side(h_tree_line, hl_tree_line, depth):
@@ -378,7 +392,7 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
     # print 'hl_tree_line: ' + hl_tree_line.__str__()
     to_return = []
     if(h_tree_line == None or hl_tree_line == None):
-        to_return = [h_tree_line == hl_tree_line, [], [depth]]
+        return [h_tree_line == hl_tree_line, [], [depth]]
     else:
         compared_nodes = compare_node(h_tree_line.value, hl_tree_line.value)
 
@@ -411,16 +425,15 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
 
 
         elif (not compared_nodes[1][0].__contains__('type_diff')):
-            # print('in here!!')
-            # print(compared_nodes[1][0])
             if (opposite_cond(h_tree_line.value, hl_tree_line.value)):
-                to_return = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
+                continue_with_mistake = make_to_return(compared_nodes, get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1))
+                try_opposite_cond = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
+                to_return = combine_two_returns_or(continue_with_mistake, try_opposite_cond)
             elif (allmost_same_cond(h_tree_line.value, hl_tree_line.value)):
                 continued_tree = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
                 to_return = make_to_return(compared_nodes, continued_tree, depth)
             elif (opers.__contains__(hl_tree_line.value)):
                 continued_tree = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
-
                 to_return = make_to_return(compared_nodes, continued_tree, depth)
             elif (short_opers.__contains__(h_tree_line.value)):
                 if (h_tree_line.get_left() is not None) and is_var(h_tree_line.get_left().value):
@@ -433,15 +446,17 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                 to_return = [False, compared_nodes[1], [depth]]
         else:
             to_return = [False, compared_nodes[1], [depth]]
+
+
+    if ((h_tree_line.get_depth() == 1 or hl_tree_line.get_depth() == 1)) \
+        and (h_tree_line.get_depth() != hl_tree_line.get_depth()):
+        to_return = make_to_return(['',['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']], to_return, depth)
+
     # print 'h_tree_line: ' + h_tree_line.__str__()
     # print 'h value: ' + h_tree_line.value
     # print 'hl_tree_line: ' + hl_tree_line.__str__()
     # print 'hl value: ' + hl_tree_line.value
     # print to_return
-
-    if ((h_tree_line.get_depth() == 1 or hl_tree_line.get_depth() == 1)) \
-        and (h_tree_line.get_depth() != hl_tree_line.get_depth()):
-        to_return = make_to_return(['',['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']], to_return, depth)
 
     return to_return
 
@@ -544,6 +559,7 @@ def analize_mistakes(fhl, fails_num):
     # create Tree's CSV
     data_path = fhl + 'trees_stats.csv'
     df = pd.read_csv(data_path)
+    df = df[(df.is_successful == False)]
 
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
@@ -566,8 +582,8 @@ if __name__ == "__main__":
     # h_tree = from_list_to_tree(h_sentence.split(' '))
     # print h_tree[0]
     # exit (0)
-    # h_post_order = 'X3 87 + 87 + 87 X3 - 75 + % X12 X++ X9 + - X1 X-- + X7 ='
-    # hl_post_order = '11 92 X3 + + N18 X3 - % X12 X++ X9 + - X1 X-- + X7 ='
+    h_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
+    hl_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
     # h_post_order = '18 X7 ='
     # hl_post_order = '18 X7 ='
     # h_post_order_list = h_post_order.split(' ')
@@ -575,19 +591,19 @@ if __name__ == "__main__":
     #
     # print find_first_difference(h_post_order_list, hl_post_order_list)
 
-    # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
-    # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
+    h_sentence = postOrderUtil.parse(h_post_order)[1].c()
+    hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    hl_sentence = 'X11 = X6 + ( ( ( ( 25 * X3 ) % 22 ) + X4 ) - X8 ) ;'
-    h_sentence = 'X11 = ( ( ( X4 + ( ( 25 * X3 ) % 22 ) ) - X8 ) + 73 ) + 5 ;'
+    # hl_sentence = 'X0 = ( ( ( X13 - X12 ) - 139 ) ) % X0 ;'
+    # h_sentence = 'X0 = ( 79 * ( ( X13 - X12 ) - 79 ) ) % X0 ;'
 
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
 
     h_tree = from_list_to_tree(h_sentence.split(' '))
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
-    print h_tree[0].get_depth()
-    print hl_tree[0].get_depth()
+    print h_tree[0]
+    print hl_tree[0]
     print compare_lines(h_tree[0], hl_tree[0], 0)
     exit (0)
     compared_trees = compare_trees (h_tree, hl_tree , 1, 1)
