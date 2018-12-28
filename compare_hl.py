@@ -33,7 +33,7 @@ special_bracket_start = '{'
 special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
 # by importance
-types = ['while_num', 'else_num', 'if_num', 'lines', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
+types = ['while_num', 'else_num', 'if_num', 'lines', 'depth', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
 
 none_oper_index = -100
 
@@ -438,6 +438,11 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
     # print 'hl_tree_line: ' + hl_tree_line.__str__()
     # print 'hl value: ' + hl_tree_line.value
     # print to_return
+
+    if ((h_tree_line.get_depth() == 1 or hl_tree_line.get_depth() == 1)) \
+        and (h_tree_line.get_depth() != hl_tree_line.get_depth()):
+        to_return = make_to_return(['',['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']], to_return, depth)
+
     return to_return
 
 
@@ -460,6 +465,7 @@ def compare_trees(h_tree, hl_tree, fhl, i):
         # print hl_tree_line
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
+
         if(not compared_line == []):
             to_return.append([compared_line[1]])
             min_depth_error =  min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
@@ -506,9 +512,10 @@ def writeMisMatches_hl(i, fhl, h, hl):
     error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
     worst_type = get_worst_or_best_type(error_types)
     with open(fhl + 'understand_fails.csv', 'a') as f:
-        csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types),worst_type])
+        csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), worst_type])
 
 def analize_mistakes(fhl, fails_num):
+    # create mistakes CSV
     data_path = fhl + 'understand_fails.csv'
     df = pd.read_csv(data_path)
     worst_types = df[['sentence_id', 'worst_type']]
@@ -533,6 +540,10 @@ def analize_mistakes(fhl, fails_num):
         w.writerow(times_dict.keys())
         w.writerow(map(lambda x: x['times'], times_dict.values()))
         w.writerow(map(lambda x: x['percentage'], times_dict.values()))
+
+    # create Tree's CSV
+    data_path = fhl + 'trees_stats.csv'
+    df = pd.read_csv(data_path)
 
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
@@ -567,16 +578,19 @@ if __name__ == "__main__":
     # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
     # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    hl_sentence = 'X14 = X2 * 3 ; X14 = X2 * 3 ;'
-    h_sentence = 'X14 = X2 + 3 ; X14 = X7 * 3 ;'
+    hl_sentence = 'X11 = X6 + ( ( ( ( 25 * X3 ) % 22 ) + X4 ) - X8 ) ;'
+    h_sentence = 'X11 = ( ( ( X4 + ( ( 25 * X3 ) % 22 ) ) - X8 ) + 73 ) + 5 ;'
 
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
 
     h_tree = from_list_to_tree(h_sentence.split(' '))
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
-
-    compared_trees = compare_trees (h_tree, hl_tree)
+    print h_tree[0].get_depth()
+    print hl_tree[0].get_depth()
+    print compare_lines(h_tree[0], hl_tree[0], 0)
+    exit (0)
+    compared_trees = compare_trees (h_tree, hl_tree , 1, 1)
     print compared_trees
     error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
     print min(map(lambda x: x[1], compared_trees))
