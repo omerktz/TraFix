@@ -5,6 +5,8 @@ special_bracket_start = '{'
 special_bracket_close = '}'
 brakets = [special_bracket_start, special_bracket_close,start_bracket,close_bracket]
 
+have_conditions = ['if', 'while']
+
 class Node:
     def __init__(self, value):
         self.value = value
@@ -60,6 +62,11 @@ class Node:
         return right_number + left_number + self_number
 
     def __str__(self):
+        if (self.value in have_conditions):
+            right_side = ' ' + self.right.__str__() if (self.right != None) else ''
+            left_side = ' ' + self.left.__str__() if (self.left != None) else ''
+            return self.value + left_side + right_side
+
         right_side = ' ' + self.right.__str__() if (self.right != None) else ''
         left_side = self.left.__str__() + ' ' if (self.left != None) else ''
         return left_side + self.value + right_side
