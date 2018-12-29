@@ -1,4 +1,10 @@
 
+start_bracket = '('
+close_bracket = ')'
+special_bracket_start = '{'
+special_bracket_close = '}'
+brakets = [special_bracket_start, special_bracket_close,start_bracket,close_bracket]
+
 class Node:
     def __init__(self, value):
         self.value = value
@@ -63,4 +69,4 @@ class Node:
             return 0
         depth_left = 0 if self.get_left() == None else self.get_left().get_depth()
         depth_right = 0 if self.get_right() == None else self.get_right().get_depth()
-        return 1 + max(depth_left, depth_right)
+        return (1 if self.get_value() not in brakets else 0) + depth_left + depth_right

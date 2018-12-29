@@ -33,7 +33,7 @@ special_bracket_start = '{'
 special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
 # by importance
-types = ['while_num', 'else_num', 'if_num', 'lines', 'depth', 'type_diff', 'loop', 'if/else', equal, 'cond', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
+types = ['while_num', 'else_num', 'if_num', 'lines', 'depth', 'type_diff', 'loop', 'if/else', equal, 'cond', 'wrong_sides_oper', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
 
 none_oper_index = -100
 
@@ -164,6 +164,10 @@ def handle_minus_concatination(left_tree, right_tree):
             if (tree is not None):
                 return tree
 
+    elif (is_number(right_tree.get_value()) and right_tree.get_value()[0] == minus):
+        tree = Node(plus)
+        tree.set_left(left_tree)
+        tree.set_right(right_tree.get_value()[1:])
     # TODO: num - (x +- num) - changes a lot
 
     return None
@@ -365,13 +369,14 @@ def get_to_return_4_combinations(h_tree_line, hl_tree_line, depth):
     to_return_not_same_side = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth)
     if (to_return_not_same_side[0]):
         return to_return_not_same_side
+
     return combine_two_returns_or(to_return_same_side, to_return_not_same_side)
 
 def combine_two_returns_or(to_return_1, to_return_2):
     worst_type1 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_1] for item in sublist[1]]))
     worst_type2 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_2] for item in sublist[1]]))
 
-    if (worst_type1 == 'depth' and worst_type2 == 'type_diff') or (types.index(worst_type1) > types.index(worst_type2)):
+    if (types.index(worst_type1) > types.index(worst_type2)):
         return to_return_1
     else:
         return to_return_2
@@ -408,6 +413,11 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
             elif (opers.__contains__(hl_tree_line.value)):
                 if (non_komotative_opers.__contains__(hl_tree_line.value)):
                     to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
+                    if (not to_return[0]):
+                        not_same_side = [False,['wrong_sides_oper, ' + hl_tree_line.value]]
+                        check_wrong_sides = make_to_return(not_same_side, get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1), depth)
+                        to_return = combine_two_returns_or(to_return, check_wrong_sides)
+
                 else:
                     to_return = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
             elif (h_tree_line.value == equal or conditions.__contains__(h_tree_line.value)):
@@ -447,11 +457,6 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
         else:
             to_return = [False, compared_nodes[1], [depth]]
 
-
-    if ((h_tree_line.get_depth() == 1 or hl_tree_line.get_depth() == 1)) \
-        and (h_tree_line.get_depth() != hl_tree_line.get_depth()):
-        to_return = make_to_return(['',['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']], to_return, depth)
-
     # print 'h_tree_line: ' + h_tree_line.__str__()
     # print 'h value: ' + h_tree_line.value
     # print 'hl_tree_line: ' + hl_tree_line.__str__()
@@ -482,12 +487,17 @@ def compare_trees(h_tree, hl_tree, fhl, i):
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
 
         if(not compared_line == []):
+            if (not hl_tree_line.get_depth() == h_tree_line.get_depth()):
+                compared_line = make_to_return(
+                    ['', ['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']],
+                    compared_line,
+                    0)
             to_return.append([compared_line[1]])
-            min_depth_error =  min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
+            min_depth_error = min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
             with open(fhl + 'trees_stats.csv', 'a') as f:
                 csv.writer(f).writerow(
                     [str(i), str(x), str(compared_line[0]), str(min_depth_error), str(compared_line[2]),
-                     str(hl_tree_line.get_depth()),str(h_tree_line.get_depth()),str(hl_tree.__len__()),str(h_tree.__len__())])
+                     str(hl_tree_line.get_depth()), str(h_tree_line.get_depth()), str(hl_tree.__len__()), str(h_tree.__len__())])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
         branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
@@ -591,11 +601,11 @@ if __name__ == "__main__":
     #
     # print find_first_difference(h_post_order_list, hl_post_order_list)
 
-    h_sentence = postOrderUtil.parse(h_post_order)[1].c()
-    hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
+    # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
+    # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    # hl_sentence = 'X0 = ( ( ( X13 - X12 ) - 139 ) ) % X0 ;'
-    # h_sentence = 'X0 = ( 79 * ( ( X13 - X12 ) - 79 ) ) % X0 ;'
+    h_sentence = 'X10 = ( ( ++ X11 / 11 ) + ( ( X8 / ( X8 - X13 ) ) * ( X13 % X7 ) ) ) % 19 ;'
+    hl_sentence = 'X10 = 19 % ( ( ++ X11 / 22 ) + ( ( X8 / ( X8 - X13 ) ) * ( X13 % X7 ) ) ) ;'
 
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
@@ -604,7 +614,13 @@ if __name__ == "__main__":
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
     print h_tree[0]
     print hl_tree[0]
-    print compare_lines(h_tree[0], hl_tree[0], 0)
+    compared_line = compare_lines(h_tree[0], hl_tree[0], 0)
+    if (not compared_line == []):
+        if (not hl_tree[0].get_depth() == h_tree[0].get_depth()):
+            compared_line = make_to_return(
+                ['', ['depth, missing: ' + str(hl_tree[0].get_depth() - h_tree[0].get_depth()) + ' levels']],
+                compared_line,0)
+    print compared_line
     exit (0)
     compared_trees = compare_trees (h_tree, hl_tree , 1, 1)
     print compared_trees
