@@ -467,7 +467,10 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
             if (opposite_cond(h_tree_line.value, hl_tree_line.value)):
                 continue_with_mistake = make_to_return(compared_nodes, get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1), depth)
                 try_opposite_cond = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
-                to_return = combine_two_returns_or(continue_with_mistake, try_opposite_cond)
+                if (try_opposite_cond[0]):
+                    to_return = try_opposite_cond
+                else:
+                    to_return = combine_two_returns_or(continue_with_mistake, try_opposite_cond)
             elif (allmost_same_cond(h_tree_line.value, hl_tree_line.value)):
                 continued_tree = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
                 to_return = make_to_return(compared_nodes, continued_tree, depth)
@@ -510,8 +513,7 @@ def compare_trees(h_tree, hl_tree, fhl, i):
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
         hl_tree_line = hl_tree[x]
-        print h_tree_line
-        print hl_tree_line
+
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
 
@@ -656,8 +658,8 @@ if __name__ == "__main__":
     # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
     # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    h_sentence = 'if ( X4 == 8 ) { while ( X4 == 8 ) { while ( 8 > X7 ) { while ( X6 > 8 ) { if ( X4 == 8 ) { X11 = 5 ; } else { if ( X2 >= X3 ) { X12 = X6 ; } ; } ; } ; } ; } ; } ;'
-    hl_sentence = 'if ( X4 == 8 ) { while ( X4 == 8 ) { while ( 8 > X7 ) { while ( X6 > 8 ) { if ( X4 == 8 ) { X11 = 5 ; } else { if ( X2 >= X3 ) { X12 = X6 ; } ; } ; } ; } ; } ; } ;'
+    h_sentence = 'if ( X14 >= -- X13 ) { X6 = X9 -- ; } '
+    hl_sentence = 'if ( -- X13 < X14 ) { X6 = X9 -- ; } '
 
     # h_sentence = 'if ( 80 >= X2 ) { X11 = 5 ; X12 = 6 } ;'
 
