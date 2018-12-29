@@ -8,7 +8,7 @@ import postOrderUtil
 import csv
 import pandas as pd
 
-line_seperator = ';'
+line_separator = ';'
 start_bracket = '('
 close_bracket = ')'
 brakets = [start_bracket,close_bracket]
@@ -228,24 +228,37 @@ def from_line_to_tree(h_list_line):
     # print (h_list_line.__len__())
     left_tree = None
     right_tree = None
+
     if (h_list_line.__len__() == 0):
         return None
 
     if (h_list_line.__len__() == 1):
         root_val = h_list_line[0]
 
-    elif (h_list_line[0] == special_bracket_close):
-        return from_line_to_tree(h_list_line[1:])
-
     elif (loops.__contains__(h_list_line[0]) or ifs.__contains__(h_list_line[0])):
         start_inside_loop_if = h_list_line.index(special_bracket_start)
-        root_val = special_bracket_start
+        root_val = h_list_line[0]
         left_tree = from_line_to_tree(h_list_line[1:start_inside_loop_if])
-        if (left_tree is not None):
-            left_tree.set_most_left(h_list_line[0])
+        right_tree = from_line_to_tree(h_list_line[start_inside_loop_if:])
+
+    elif (h_list_line[0] == special_bracket_start):
+        end_special_brackets = get_branch_end(h_list_line)
+        if (end_special_brackets == h_list_line.__len__()):
+            bracket_tree = from_line_to_tree(h_list_line[1:-1])
+            bracket_tree.set_most_left(special_bracket_start)
+            bracket_tree.set_most_right(special_bracket_close)
+            return bracket_tree
         else:
-            left_tree = Node(h_list_line[0])
-        right_tree = from_line_to_tree(h_list_line[start_inside_loop_if + 1:])
+            root_val = line_separator
+            left_tree = from_line_to_tree(h_list_line[:end_special_brackets])
+            right_tree = from_line_to_tree(h_list_line[end_special_brackets:])
+
+
+    elif (h_list_line.__contains__(line_separator)):
+        index = h_list_line.index(line_separator)
+        root_val = line_separator
+        left_tree = from_line_to_tree(h_list_line[:index])
+        right_tree = from_line_to_tree(h_list_line[index + 1:])
 
     else:
         oper_index = find_oper_idex(h_list_line)
@@ -254,11 +267,13 @@ def from_line_to_tree(h_list_line):
             left_tree = from_line_to_tree(h_list_line[:oper_index])
             right_tree = from_line_to_tree(h_list_line[oper_index + 1:])
             return concatinate_opers(root_val, left_tree, right_tree)
-        elif (h_list_line[0] == start_bracket):
+
+        if (h_list_line[0] == start_bracket):
             bracket_tree = from_line_to_tree(h_list_line[1:-1])
             bracket_tree.set_most_left(start_bracket)
             bracket_tree.set_most_right(close_bracket)
             return bracket_tree
+
         elif (short_opers.__contains__(h_list_line[1])):
             root_val = h_list_line[1]
             left_tree = from_line_to_tree(h_list_line[:-1])
@@ -273,10 +288,25 @@ def from_line_to_tree(h_list_line):
 
 def from_list_to_tree(h_list):
     lines = []
+
     while h_list.__len__() > 1:
-        index = h_list.index(line_seperator)
-        lines.append(from_line_to_tree(h_list[:index]))
-        h_list = h_list[index + 1:]
+        if (h_list.__contains__(loops[0]) and h_list.index(loops[0]) == 0):
+            index_end = get_branch_end(h_list)
+            index_start = index_end + 1
+        elif (h_list.__contains__(ifs[0]) and h_list.index(ifs[0]) == 0):
+            index_end = get_branch_end(h_list)
+            index_start = index_end + 1
+        elif (h_list.__contains__(ifs[1]) and h_list.index(ifs[1]) == 0):
+            index_end = get_branch_end(h_list)
+            index_start = index_end + (0 if h_list[index_end] == ifs[0] else 1)
+        else:
+            index_end = h_list.index(line_separator)
+            index_start = index_end + 1
+
+        lines.append(from_line_to_tree(h_list[:index_end]))
+        # lines.append(h_list[:index_end])
+        h_list = h_list[index_start:]
+
     return lines
 
 def is_var(hl_val):
@@ -309,6 +339,8 @@ def get_type(h_val):
         return 'if/else'
     if (special_brackets.__contains__(h_val)):
         return 'special_brackets'
+    if (h_val == line_separator):
+        return 'line_separator'
 
 
 def compare_node(h_val, hl_val):
@@ -393,23 +425,20 @@ def make_to_return(compared_nodes, continued_tree, depth):
 
 
 def compare_lines(h_tree_line, hl_tree_line, depth):
-    # print 'h_tree_line: ' + h_tree_line.__str__()
-    # print 'hl_tree_line: ' + hl_tree_line.__str__()
     to_return = []
     if(h_tree_line == None or hl_tree_line == None):
         return [h_tree_line == hl_tree_line, [], [depth]]
     else:
         compared_nodes = compare_node(h_tree_line.value, hl_tree_line.value)
-
         if(compared_nodes[0]):
             if (is_var(h_tree_line.value)):
                 to_return = [True, [], [depth]]
             elif (is_number(h_tree_line.value)):
                 to_return = [True, [], [depth]]
+            elif (h_tree_line.value == special_bracket_close):
+                to_return = [True, [], [depth]]
             elif (loops.__contains__(h_tree_line.value) or ifs.__contains__(h_tree_line.value)):
-                to_return = [True, [], [depth]]
-            elif (h_tree_line == special_bracket_close):
-                to_return = [True, [], [depth]]
+                to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
             elif (opers.__contains__(hl_tree_line.value)):
                 if (non_komotative_opers.__contains__(hl_tree_line.value)):
                     to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
@@ -417,7 +446,6 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                         not_same_side = [False,['wrong_sides_oper, ' + hl_tree_line.value]]
                         check_wrong_sides = make_to_return(not_same_side, get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1), depth)
                         to_return = combine_two_returns_or(to_return, check_wrong_sides)
-
                 else:
                     to_return = get_to_return_4_combinations(h_tree_line, hl_tree_line, depth + 1)
             elif (h_tree_line.value == equal or conditions.__contains__(h_tree_line.value)):
@@ -432,11 +460,12 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
                     to_return = compare_lines(h_tree_line.get_right(), hl_tree_line.get_right(), depth + 1)
             elif (h_tree_line.value == special_bracket_start):
                 to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
-
+            elif (h_tree_line.value == line_separator):
+                to_return = get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1)
 
         elif (not compared_nodes[1][0].__contains__('type_diff')):
             if (opposite_cond(h_tree_line.value, hl_tree_line.value)):
-                continue_with_mistake = make_to_return(compared_nodes, get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1))
+                continue_with_mistake = make_to_return(compared_nodes, get_to_return_same_side(h_tree_line, hl_tree_line, depth + 1), depth)
                 try_opposite_cond = get_to_return_not_same_side(h_tree_line, hl_tree_line, depth + 1)
                 to_return = combine_two_returns_or(continue_with_mistake, try_opposite_cond)
             elif (allmost_same_cond(h_tree_line.value, hl_tree_line.value)):
@@ -481,8 +510,8 @@ def compare_trees(h_tree, hl_tree, fhl, i):
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
         hl_tree_line = hl_tree[x]
-        # print h_tree_line
-        # print hl_tree_line
+        print h_tree_line
+        print hl_tree_line
         # print compare_lines(h_tree_line, hl_tree_line, 0)
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
 
@@ -587,6 +616,29 @@ def find_first_difference(h_post_order_list, hl_post_order_list):
         to_return.append('length diff. model: ' + str(h_post_order_list.__len__()) + ' wanted: ' + str(hl_post_order_list.__len__()))
     return to_return
 
+def get_branch_end(h_list):
+    open_brackets = 1
+    i = h_list.index(special_bracket_start) + 1
+
+    for word in h_list[h_list.index(special_bracket_start) + 1:]:
+        i += 1
+        if (word == special_bracket_start):
+            open_brackets += 1
+        elif (word == special_bracket_close):
+            open_brackets -= 1
+        if (open_brackets == 0):
+            return i
+
+def get_cut_index_loop(h_list):
+    return get_branch_end(h_list)
+
+def get_cut_index_branch(h_list):
+    index = get_branch_end(h_list)
+    if (h_list[index] == ifs[0]):
+        index += get_branch_end(h_list[index:])
+
+    return index
+
 if __name__ == "__main__":
     # h_sentence = '( X1 + 5 ) - 6 ;'
     # h_tree = from_list_to_tree(h_sentence.split(' '))
@@ -604,11 +656,18 @@ if __name__ == "__main__":
     # h_sentence = postOrderUtil.parse(h_post_order)[1].c()
     # hl_sentence = postOrderUtil.parse(hl_post_order)[1].c()
 
-    h_sentence = 'X10 = ( ( ++ X11 / 11 ) + ( ( X8 / ( X8 - X13 ) ) * ( X13 % X7 ) ) ) % 19 ;'
-    hl_sentence = 'X10 = 19 % ( ( ++ X11 / 22 ) + ( ( X8 / ( X8 - X13 ) ) * ( X13 % X7 ) ) ) ;'
+    h_sentence = 'if ( X4 == 8 ) { while ( X4 == 8 ) { while ( 8 > X7 ) { while ( X6 > 8 ) { if ( X4 == 8 ) { X11 = 5 ; } else { if ( X2 >= X3 ) { X12 = X6 ; } ; } ; } ; } ; } ; } ;'
+    hl_sentence = 'if ( X4 == 8 ) { while ( X4 == 8 ) { while ( 8 > X7 ) { while ( X6 > 8 ) { if ( X4 == 8 ) { X11 = 5 ; } else { if ( X2 >= X3 ) { X12 = X6 ; } ; } ; } ; } ; } ; } ;'
 
+    # h_sentence = 'if ( 80 >= X2 ) { X11 = 5 ; X12 = 6 } ;'
+
+    # print from_list_to_tree(hl_sentence.split(' '))[0]
+    # print from_list_to_tree(hl_sentence.split(' '))[1]
+    # exit(0)
     # h_sentence = postOrderUtil.parse('X5 X8 ++X 21 % N11 + + X5 + X0 X-- * X12 ++X != COND X6 ++X N7 * X7 51 - N2 X14 X10 % N4 * % / - X0 = WHILE')[1].c()
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
+
+
 
     h_tree = from_list_to_tree(h_sentence.split(' '))
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
@@ -619,7 +678,7 @@ if __name__ == "__main__":
         if (not hl_tree[0].get_depth() == h_tree[0].get_depth()):
             compared_line = make_to_return(
                 ['', ['depth, missing: ' + str(hl_tree[0].get_depth() - h_tree[0].get_depth()) + ' levels']],
-                compared_line,0)
+                    compared_line, 0)
     print compared_line
     exit (0)
     compared_trees = compare_trees (h_tree, hl_tree , 1, 1)
