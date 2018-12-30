@@ -72,10 +72,19 @@ def combine_digits(code):
 		code = code.replace(to_search, add + to_search.replace(' ', ''))
 	return code.replace(' | ', ' ')
 
+
+def write_stats(id, hl, succeeded, csv_path):
+	with open(csv_path, 'a') as f:
+		stats = hl_util.calculate_hl_stats(hl)
+		csv.writer(f).writerow([id, str(succeeded), stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], hl])
+
+
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	# ll = combine_digits(ll)
+	# if(i > 100):
+	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
@@ -119,6 +128,17 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	return (i, hl, ll, replacements, None, 4)  # fail
 
 
+def open_stats_csvs(failed_dataset):
+	with open(failed_dataset + 'trees_stats.csv', 'w') as f:
+		csv.writer(f).writerow(
+			['sentence_id', 'is_successful', 'total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num', 'hl'])
+
+	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
+		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'worst_type'])
+
+	return failed_dataset + 'trees_stats.csv';
+
+
 def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
 	# hl_util.analize_mistakes(failed_dataset, 961)
 	nsuccess = 0
@@ -132,16 +152,19 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	groups = {}
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
+	csv_path = open_stats_csvs(failed_dataset)
 	results = map(
 		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)))
 	for x in results:
 		if x[5] == 0:
 			if fs:
 				fs.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
+			write_stats(str(x[0]), x[1], True, csv_path)
 			nsuccess += 1
 		else:
 			if ff:
 				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
+			write_stats(str(x[0]), x[1], False, csv_path)
 			nfail += 1
 	if force:
 		for f in os.listdir('.'):

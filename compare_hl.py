@@ -37,7 +37,6 @@ types = ['while_num', 'else_num', 'if_num', 'lines', 'depth', 'type_diff', 'loop
 
 none_oper_index = -100
 
-
 def find_oper_idex(h_list_line):
     open_brackets = 0
     first_whick_oper_index = none_oper_index
@@ -508,7 +507,7 @@ def get_beanches_nums_diffs(h_tree, hl_tree):
             to_return.append([branch_type + '_num', str(h_branch_num), str(hl_branch_num)])
     return to_return
 
-def compare_trees(h_tree, hl_tree, fhl, i):
+def compare_trees(h_tree, hl_tree):
     to_return = []
     for x in range(min(h_tree.__len__(),hl_tree.__len__())):
         h_tree_line = h_tree[x]
@@ -525,10 +524,6 @@ def compare_trees(h_tree, hl_tree, fhl, i):
                     0)
             to_return.append([compared_line[1]])
             min_depth_error = min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
-            with open(fhl + 'trees_stats.csv', 'a') as f:
-                csv.writer(f).writerow(
-                    [str(i), str(x), str(compared_line[0]), str(min_depth_error), str(compared_line[2]),
-                     str(hl_tree_line.get_depth()), str(h_tree_line.get_depth()), str(hl_tree.__len__()), str(h_tree.__len__())])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
         branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
@@ -549,30 +544,35 @@ def get_worst_or_best_type(error_types, get_worst=True):
     return 'victory!!'
 
 
-def writeMisMatches_hl(i, fhl, h, hl):
-    if (not os.path.isfile(fhl + 'understand_fails.csv')):
-        with open(fhl + 'understand_fails.csv', 'w') as f:
-            csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types','worst_type'])
+def calculate_hl_stats(hl):
+    normal_order_hl = postOrderUtil.parse(hl)[1].c()
+    hl_tree = from_list_to_tree(normal_order_hl.split(' '))
+    stats = []
+    depths = map(lambda x: x.get_depth(), hl_tree)
+    stats.append(sum(depths))
+    stats.append(max(depths))
+    stats.append(hl_tree.__len__())
+    stats.append(normal_order_hl.count(ifs[1]))
+    stats.append(normal_order_hl.count(ifs[0]))
+    stats.append(normal_order_hl.count(loops[0]))
+    return stats
 
-    if (not os.path.isfile(fhl + 'trees_stats.csv')):
-        with open(fhl + 'trees_stats.csv', 'w') as f:
-            csv.writer(f).writerow(['sentence_id', 'line_id', 'is_successful', 'min_depth_error','all_error_depths','line_depth_origin','line_depth_model','origin_lines', 'model_lines'])
-
+def writeMisMatches_hl(i, failed_dataset, h, hl):
     normal_order_h = postOrderUtil.parse(h)[1].c()
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
     h_tree = from_list_to_tree(normal_order_h.split(' '))
     hl_tree = from_list_to_tree(normal_order_hl.split(' '))
-    compared_trees = compare_trees(h_tree, hl_tree, fhl, i)
+    compared_trees = compare_trees(h_tree, hl_tree)
     to_write_in_csv_origin_hl = ' ; '.join(map(lambda x: str(x), hl_tree))
     to_write_in_csv_models_h = ' ; '.join(map(lambda x: str(x), h_tree))
     error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
     worst_type = get_worst_or_best_type(error_types)
-    with open(fhl + 'understand_fails.csv', 'a') as f:
+    with open(failed_dataset + 'understand_fails.csv', 'a') as f:
         csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), worst_type])
 
-def analize_mistakes(fhl, fails_num):
+def analize_mistakes(failed_dataset, fails_num):
     # create mistakes CSV
-    data_path = fhl + 'understand_fails.csv'
+    data_path = failed_dataset + 'understand_fails.csv'
     df = pd.read_csv(data_path)
     worst_types = df[['sentence_id', 'worst_type']]
     ids = numpy.unique(worst_types['sentence_id'])
@@ -591,14 +591,14 @@ def analize_mistakes(fhl, fails_num):
     for type in times_dict.keys():
         times_dict[type]['percentage'] = float(times_dict[type]['times']) / float(fails_num)
 
-    with open(fhl + 'mistakes_stats.csv', 'wb') as f:  # Just use 'w' mode in 3.x
+    with open(failed_dataset + 'mistakes_stats.csv', 'wb') as f:  # Just use 'w' mode in 3.x
         w = csv.writer(f)
         w.writerow(times_dict.keys())
         w.writerow(map(lambda x: x['times'], times_dict.values()))
         w.writerow(map(lambda x: x['percentage'], times_dict.values()))
 
     # create Tree's CSV
-    data_path = fhl + 'trees_stats.csv'
+    data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
     df = df[(df.is_successful == False)]
 
@@ -683,7 +683,7 @@ if __name__ == "__main__":
                     compared_line, 0)
     print compared_line
     exit (0)
-    compared_trees = compare_trees (h_tree, hl_tree , 1, 1)
+    compared_trees = compare_trees(h_tree, hl_tree)
     print compared_trees
     error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
     print min(map(lambda x: x[1], compared_trees))
@@ -692,3 +692,4 @@ if __name__ == "__main__":
     # lines = (from_list_to_tree('while ( ( ( X13 ++ % X13 ) % ( ( N8 % X13 ) / X2 -- ) ) >= ( N16 / ( ( X7 * ( N13 + X0 ) ) % X13 ) ) ) { X7 = N2 ; X10 = X2 + ( ( X13 / -- X4 ) + X1 ) ; } ; X7 = -- X9 ; if ( X14 <= ( -- X6 + X6 ++ ) ) { X2 = N14 * ( X4 ++ / ( ( X8 - X1 ) - X11 ) ) ; X11 = ( ( X0 - ( N0 - X8 ) ) * ( N12 * ( X1 + N3 ) ) ) % ( ( 28 * ( N15 + X11 ) ) / ( N11 % -- X6 ) ) ; } else { X6 = N18 - ( ( N7 % X5 ) % -- X13 ) ; } ; X13 = ( 21 * X14 ) * N16 ; if ( 7 > ( -- X1 - X7 -- ) ) { X0 = N6 ; } ;'.split(' ')))
     # for line in lines:
     #     print line
+

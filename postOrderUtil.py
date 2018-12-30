@@ -271,4 +271,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('6 5 X9 X13 / 9 1 * - 6 6 X1 % X5 ++X % / X13 =')[1].c()
+    print parse('X12 ++X X7 X4 X14 + / X2 % / X2 80 - N9 X0 X14 X4 * + / + N5 * >= COND X5 X++ X3 X14 / 72 * + X11 = TRUE 17 X14 X++ * N1 N2 X3 - N11 % / == COND X1 ++X N3 X1 - X9 N10 N0 X6 + * % + X11 % / X3 = WHILE FALSE IF')[1].c()
