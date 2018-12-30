@@ -136,11 +136,11 @@ def open_stats_csvs(failed_dataset):
 	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
 		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'worst_type'])
 
-	return failed_dataset + 'trees_stats.csv';
+	return failed_dataset + 'trees_stats.csv'
 
 
 def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
-	# hl_util.analize_mistakes(failed_dataset, 961)
+	# hl_util.analize_mistakes(failed_dataset, 431)
 	nsuccess = 0
 	nfail = 0
 	# if (True):

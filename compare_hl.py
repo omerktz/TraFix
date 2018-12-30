@@ -570,6 +570,22 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
     with open(failed_dataset + 'understand_fails.csv', 'a') as f:
         csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), worst_type])
 
+
+def one_percentile(df, percentage):
+    titles = ['total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    percentile = [str(percentage)]
+    for title in titles:
+        percentile.append(str(numpy.percentile(df[title], percentage)))
+    return percentile
+
+def calculate_all_percentiles(df):
+    to_return = [one_percentile(df, 10)]
+    to_return.append(one_percentile(df, 50))
+    to_return.append(one_percentile(df, 75))
+    to_return.append(one_percentile(df, 90))
+    return to_return
+
+
 def analize_mistakes(failed_dataset, fails_num):
     # create mistakes CSV
     data_path = failed_dataset + 'understand_fails.csv'
@@ -591,7 +607,7 @@ def analize_mistakes(failed_dataset, fails_num):
     for type in times_dict.keys():
         times_dict[type]['percentage'] = float(times_dict[type]['times']) / float(fails_num)
 
-    with open(failed_dataset + 'mistakes_stats.csv', 'wb') as f:  # Just use 'w' mode in 3.x
+    with open(failed_dataset + 'mistakes_stats.csv', 'wb') as f:
         w = csv.writer(f)
         w.writerow(times_dict.keys())
         w.writerow(map(lambda x: x['times'], times_dict.values()))
@@ -600,8 +616,16 @@ def analize_mistakes(failed_dataset, fails_num):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
-    df = df[(df.is_successful == False)]
-
+    titles = ['percentile', 'total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
+        w = csv.writer(f)
+        w.writerow(titles)
+        w.writerow(['all sentences'])
+        w.writerows(calculate_all_percentiles(df))
+        w.writerow(['only failed'])
+        w.writerows(calculate_all_percentiles(df[(df.is_successful == False)]))
+        w.writerow(['only success'])
+        w.writerows(calculate_all_percentiles(df[(df.is_successful == True)]))
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
     to_return = []
