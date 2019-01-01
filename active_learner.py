@@ -232,7 +232,8 @@ class ActiveLearner:
 					for l in list(csv.reader(fin))[1:]:
 						csvout.writerow(l[1:])
 			return num_remaining
-
+		# if (i == 0):
+		# 	return False
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'evaluate%d' % i), 'w', 0) as f:
 			Popen('python {0} {1} {2} {3} -d {4} -v'.format(self.evaluate,
@@ -321,7 +322,7 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=50000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
