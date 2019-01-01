@@ -33,7 +33,7 @@ special_bracket_start = '{'
 special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
 # by importance
-types = ['while_num', 'else_num', 'if_num', 'lines', 'depth', 'type_diff', 'loop', 'if/else', equal, 'cond', 'wrong_sides_oper', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
+types = ['while_num', 'else_num', 'if_num', 'lines', 'nodes_num' ,'type_diff', 'loop', 'if/else', equal, 'cond', 'wrong_sides_oper', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
 
 none_oper_index = -100
 
@@ -516,9 +516,9 @@ def compare_trees(h_tree, hl_tree):
         compared_line = compare_lines(h_tree_line, hl_tree_line, 0)
 
         if(not compared_line == []):
-            if (not hl_tree_line.get_depth() == h_tree_line.get_depth()):
+            if (not hl_tree_line.get_nodes_num() == h_tree_line.get_nodes_num()):
                 compared_line = make_to_return(
-                    ['', ['depth, missing: ' + str(hl_tree_line.get_depth() - h_tree_line.get_depth()) + ' levels']],
+                    ['', ['nodes_num, missing: ' + str(hl_tree_line.get_nodes_num() - h_tree_line.get_nodes_num()) + ' levels']],
                     compared_line,
                     0)
             to_return.append([compared_line[1]])
@@ -548,9 +548,9 @@ def calculate_hl_stats(hl):
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
     hl_tree = from_list_to_tree(normal_order_hl.split(' '))
     stats = []
-    depths = map(lambda x: x.get_depth(), hl_tree)
-    stats.append(sum(depths))
-    stats.append(max(depths))
+    nodes_nums = map(lambda x: x.get_nodes_num(), hl_tree)
+    stats.append(sum(nodes_nums))
+    stats.append(max(nodes_nums))
     stats.append(hl_tree.__len__())
     stats.append(normal_order_hl.count(ifs[1]))
     stats.append(normal_order_hl.count(ifs[0]))
@@ -572,7 +572,7 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
 
 
 def one_percentile(df, percentage):
-    titles = ['total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['total_nodes_num', 'longest_line_nodes_num', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
     percentile = [str(percentage)]
     for title in titles:
         percentile.append(str(numpy.percentile(df[title], percentage)))
@@ -616,7 +616,7 @@ def analize_mistakes(failed_dataset, fails_num):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
-    titles = ['percentile', 'total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['percentile', 'total_nodes_num', 'longest_line_nodes_num', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
     with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
         w = csv.writer(f)
         w.writerow(titles)
@@ -701,9 +701,9 @@ if __name__ == "__main__":
     print hl_tree[0]
     compared_line = compare_lines(h_tree[0], hl_tree[0], 0)
     if (not compared_line == []):
-        if (not hl_tree[0].get_depth() == h_tree[0].get_depth()):
+        if (not hl_tree[0].get_nodes_num() == h_tree[0].get_nodes_num()):
             compared_line = make_to_return(
-                ['', ['depth, missing: ' + str(hl_tree[0].get_depth() - h_tree[0].get_depth()) + ' levels']],
+                ['', ['nodes_num, missing: ' + str(hl_tree[0].get_nodes_num() - h_tree[0].get_nodes_num()) + ' levels']],
                     compared_line, 0)
     print compared_line
     exit (0)
