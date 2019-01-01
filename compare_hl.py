@@ -585,7 +585,7 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
 
 
 def one_percentile(df, percentage):
-    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line', 'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num', 'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num']
     percentile = [str(percentage)]
     for title in titles:
         percentile.append(str(numpy.percentile(df[title], percentage)))
@@ -631,7 +631,7 @@ def analize_mistakes(failed_dataset, fails_num):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
-    titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line', 'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num', 'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num']
     with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
         w = csv.writer(f)
         w.writerow(titles)

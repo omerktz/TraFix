@@ -131,8 +131,8 @@ def open_stats_csvs(failed_dataset):
 
 	with open(failed_dataset + 'trees_stats.csv', 'w') as f:
 		csv.writer(f).writerow(
-			['sentence_id', 'is_successful', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line',
-			  'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num'])
+			['sentence_id', 'is_successful', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num', 'mistake_line',
+			  'mistake_depth', 'ifs_num', 'else_num', 'loops_num'])
 
 	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
 		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'line_mistaken', 'depth_mistaken', 'worst_type'])
