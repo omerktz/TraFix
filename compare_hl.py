@@ -500,9 +500,8 @@ def compare_lines(h_tree_line, hl_tree_line, depth):
 def get_beanches_nums_diffs(h_tree, hl_tree):
     to_return = []
     for branch_type in branch_types:
-        for line in h_tree:
-            h_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), h_tree))
-            hl_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), hl_tree))
+        h_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), h_tree))
+        hl_branch_num = sum(map(lambda x: x.get_branch_number(branch_type), hl_tree))
         if (not h_branch_num == hl_branch_num):
             to_return.append([branch_type + '_num', str(h_branch_num), str(hl_branch_num)])
     return to_return
@@ -525,11 +524,12 @@ def compare_trees(h_tree, hl_tree):
             to_return.append([compared_line[1]])
             min_depth_error = min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
 
+    branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
+    for num_diffs in branches_nums_diffs:
+        to_return.append([[num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]]])
+
     if (not h_tree.__len__() == hl_tree.__len__()):
-        branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
         to_return.append([['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())]])
-        for num_diffs in branches_nums_diffs:
-            to_return.append([[num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]]])
 
     return to_return
 
