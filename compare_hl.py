@@ -34,7 +34,7 @@ special_bracket_close = '}'
 special_brackets = [special_bracket_start, special_bracket_close]
 # by importance
 types = ['while_num', 'else_num', 'if_num', 'lines', 'nodes_num' ,'type_diff', 'loop', 'if/else', equal, 'cond', 'wrong_sides_oper', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
-
+types_with_victory = types + ['victory!!']
 none_oper_index = -100
 
 def find_oper_idex(h_list_line):
@@ -406,8 +406,7 @@ def get_to_return_4_combinations(h_tree_line, hl_tree_line, depth):
 def combine_two_returns_or(to_return_1, to_return_2):
     worst_type1 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_1] for item in sublist[1]]))
     worst_type2 = get_worst_or_best_type(map(lambda x: x.split(',')[0], [item for sublist in [to_return_2] for item in sublist[1]]))
-
-    if (types.index(worst_type1) > types.index(worst_type2)):
+    if (types_with_victory.index(worst_type1) > types_with_victory.index(worst_type2)):
         return to_return_1
     else:
         return to_return_2
@@ -518,18 +517,15 @@ def compare_trees(h_tree, hl_tree):
         if(not compared_line == []):
             if (not hl_tree_line.get_nodes_num() == h_tree_line.get_nodes_num()):
                 compared_line = make_to_return(
-                    ['', ['nodes_num, missing: ' + str(hl_tree_line.get_nodes_num() - h_tree_line.get_nodes_num()) + ' levels']],
-                    compared_line,
-                    0)
-            to_return.append([compared_line[1]])
-            min_depth_error = min(compared_line[2]) if isinstance(compared_line[2], list) else compared_line[2]
+                    ['', ['nodes_num, missing: ' + str(hl_tree_line.get_nodes_num() - h_tree_line.get_nodes_num()) + ' levels']], compared_line, 0)
+            to_return.append(compared_line)
 
     branches_nums_diffs = get_beanches_nums_diffs(h_tree, hl_tree)
     for num_diffs in branches_nums_diffs:
-        to_return.append([[num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]]])
+        to_return.append([False, [num_diffs[0] + ', model num: ' + num_diffs[1] + ' origin: ' + num_diffs[2]], [0]])
 
     if (not h_tree.__len__() == hl_tree.__len__()):
-        to_return.append([['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())]])
+        to_return.append([False, ['lines, diff. model: ' + str(h_tree.__len__()) + 'origin: ' + str(hl_tree.__len__())], [0]])
 
     return to_return
 
@@ -548,8 +544,7 @@ def calculate_hl_stats(hl):
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
     hl_tree = from_list_to_tree(normal_order_hl.split(' '))
     stats = []
-    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line',
-              'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+
     nodes_nums = map(lambda x: x.get_nodes_num(), hl_tree)
     depths = map(lambda x: x.get_depth(), hl_tree)
     stats.append(sum(nodes_nums))
@@ -572,10 +567,21 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
     compared_trees = compare_trees(h_tree, hl_tree)
     to_write_in_csv_origin_hl = ' ; '.join(map(lambda x: str(x), hl_tree))
     to_write_in_csv_models_h = ' ; '.join(map(lambda x: str(x), h_tree))
-    error_types = map(lambda x: x.split(',')[0], [item for sublist in compared_trees for item in sublist[0]])
+    error_types = []
+    first_line_mistaken = 0
+    first_depth_mistaken = 0
+    j = 0
+    for compared_line in compared_trees:
+        if not compared_line == []:
+            error_types += map(lambda x: x.split(',')[0], compared_line[1])
+            if (first_line_mistaken == 0 and not compared_line[0]):
+                first_line_mistaken = j
+                first_depth_mistaken = min(compared_line[2])
+            j += 1
+
     worst_type = get_worst_or_best_type(error_types)
     with open(failed_dataset + 'understand_fails.csv', 'a') as f:
-        csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), worst_type])
+        csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), str(first_line_mistaken), str(first_depth_mistaken), worst_type])
 
 
 def one_percentile(df, percentage):

@@ -61,7 +61,7 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
-numbers_pattern = '(-|\d|10)'
+numbers_pattern = '(-\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
@@ -81,7 +81,7 @@ def write_stats(id, hl, succeeded, csv_path):
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
-	# ll = combine_digits(ll)
+	ll = combine_digits(ll)
 	# if(i > 100):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
@@ -121,7 +121,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
 							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
-							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
+							hl_util.writeMisMatches_hl(i, failed_dataset, h, hl)
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
 	return (i, hl, ll, replacements, None, 4)  # fail
@@ -132,10 +132,10 @@ def open_stats_csvs(failed_dataset):
 	with open(failed_dataset + 'trees_stats.csv', 'w') as f:
 		csv.writer(f).writerow(
 			['sentence_id', 'is_successful', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line',
-              'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num'])
+			  'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num'])
 
 	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
-		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'worst_type'])
+		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'line_mistaken', 'depth_mistaken', 'worst_type'])
 
 	return failed_dataset + 'trees_stats.csv'
 
