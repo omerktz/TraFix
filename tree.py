@@ -74,6 +74,13 @@ class Node:
     def get_nodes_num(self):
         if self.get_value() == None:
             return 0
-        depth_left = 0 if self.get_left() == None else self.get_left().get_nodes_num()
-        depth_right = 0 if self.get_right() == None else self.get_right().get_nodes_num()
-        return (1 if self.get_value() not in brakets else 0) + depth_left + depth_right
+        nodes_num_left = 0 if self.get_left() == None else self.get_left().get_nodes_num()
+        nodes_num_right = 0 if self.get_right() == None else self.get_right().get_nodes_num()
+        return (1 if self.get_value() not in brakets else 0) + nodes_num_left + nodes_num_right
+
+    def get_depth(self):
+        if self.get_value() == None:
+            return 0
+        depth_left = 0 if self.get_left() == None else self.get_left().get_depth()
+        depth_right = 0 if self.get_right() == None else self.get_right().get_depth()
+        return (1 if self.get_value() not in brakets else 0) + max(depth_left, depth_right)

@@ -548,9 +548,16 @@ def calculate_hl_stats(hl):
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
     hl_tree = from_list_to_tree(normal_order_hl.split(' '))
     stats = []
+    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line',
+              'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
     nodes_nums = map(lambda x: x.get_nodes_num(), hl_tree)
+    depths = map(lambda x: x.get_depth(), hl_tree)
     stats.append(sum(nodes_nums))
+    stats.append(sum(depths))
     stats.append(max(nodes_nums))
+    stats.append(max(depths))
+    stats.append(0) # mistake_line
+    stats.append(0) # mistake_depth
     stats.append(hl_tree.__len__())
     stats.append(normal_order_hl.count(ifs[1]))
     stats.append(normal_order_hl.count(ifs[0]))
@@ -572,17 +579,19 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
 
 
 def one_percentile(df, percentage):
-    titles = ['total_nodes_num', 'longest_line_nodes_num', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line', 'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
     percentile = [str(percentage)]
     for title in titles:
         percentile.append(str(numpy.percentile(df[title], percentage)))
     return percentile
 
 def calculate_all_percentiles(df):
-    to_return = [one_percentile(df, 10)]
+    to_return = [one_percentile(df, 0)]
+    to_return.append(one_percentile(df, 10))
     to_return.append(one_percentile(df, 50))
     to_return.append(one_percentile(df, 75))
     to_return.append(one_percentile(df, 90))
+    to_return.append(one_percentile(df, 100))
     return to_return
 
 
@@ -616,7 +625,7 @@ def analize_mistakes(failed_dataset, fails_num):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
-    titles = ['percentile', 'total_nodes_num', 'longest_line_nodes_num', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
+    titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line', 'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num']
     with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
         w = csv.writer(f)
         w.writerow(titles)

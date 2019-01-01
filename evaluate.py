@@ -75,8 +75,7 @@ def combine_digits(code):
 
 def write_stats(id, hl, succeeded, csv_path):
 	with open(csv_path, 'a') as f:
-		stats = hl_util.calculate_hl_stats(hl)
-		csv.writer(f).writerow([id, str(succeeded), stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], hl])
+		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl))
 
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
@@ -129,9 +128,11 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 
 
 def open_stats_csvs(failed_dataset):
+
 	with open(failed_dataset + 'trees_stats.csv', 'w') as f:
 		csv.writer(f).writerow(
-			['sentence_id', 'is_successful', 'total_depth', 'longest_line_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num', 'hl'])
+			['sentence_id', 'is_successful', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'mistake_line',
+              'mistake_depth', 'lines_num', 'ifs_num', 'else_num', 'loops_num'])
 
 	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
 		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'worst_type'])
