@@ -544,20 +544,19 @@ def calculate_hl_stats(hl, df):
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
     hl_tree = from_list_to_tree(normal_order_hl.split(' '))
     stats = []
-
     nodes_nums = map(lambda x: x.get_nodes_num(), hl_tree)
     depths = map(lambda x: x.get_depth(), hl_tree)
     stats.append(sum(nodes_nums))
     stats.append(sum(depths))
     stats.append(max(nodes_nums))
     stats.append(max(depths))
-    if(df is None):
+    if(df is None or df.empty):
         stats.append(0) # mistake_line
         stats.append(0) # mistake_depth
     else:
         error_types = df['worst_type'].values
         best_error = get_worst_or_best_type(error_types, False)
-        df_in_best_error = [df['worst_type'] == best_error].head(1)
+        df_in_best_error = df[df['worst_type'] == best_error].head(1)
         stats.append(df_in_best_error['line_mistaken'].values[0])  # mistake_line
         stats.append(df_in_best_error['depth_mistaken'].values[0])  # mistake_depth
     stats.append(hl_tree.__len__())
