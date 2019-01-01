@@ -12,7 +12,7 @@ from abstract_numerals import *
 import code_fixer as cf
 import random
 import compare_hl as hl_util
-
+import pandas
 
 def parsePostOrder(po):
 	return po_util.parse(po)
@@ -73,9 +73,9 @@ def combine_digits(code):
 	return code.replace(' | ', ' ')
 
 
-def write_stats(id, hl, succeeded, csv_path):
+def write_stats(id, hl, succeeded, csv_path, df):
 	with open(csv_path, 'a') as f:
-		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl))
+		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl, df))
 
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
@@ -121,7 +121,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
 							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
-							hl_util.writeMisMatches_hl(i, failed_dataset, h, hl)
+							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
 	return (i, hl, ll, replacements, None, 4)  # fail
@@ -156,16 +156,17 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	csv_path = open_stats_csvs(failed_dataset)
 	results = map(
 		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)))
+	df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:
 			if fs:
 				fs.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
-			write_stats(str(x[0]), x[1], True, csv_path)
+			write_stats(str(x[0]), x[1], True, csv_path, None)
 			nsuccess += 1
 		else:
 			if ff:
 				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
-			write_stats(str(x[0]), x[1], False, csv_path)
+			write_stats(str(x[0]), x[1], False, csv_path, df[df['sentence_id'] == x[0]])
 			nfail += 1
 	if force:
 		for f in os.listdir('.'):
