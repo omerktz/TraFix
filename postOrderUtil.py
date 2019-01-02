@@ -253,7 +253,7 @@ def combine_digits(code):
     while (regexp.search(code) is not None):
         to_search = regexp.search(code).group()
         add = '' if to_search[0].isdigit() else ' '
-        code = code.replace(to_search, add + to_search.replace(' ', ''))
+        code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
     return code.replace(' | ', ' ')
 
 def parse(code):
@@ -271,4 +271,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('7 8 9 1 1 X5 =')[1].c()
+    print parse('4 1 X8 1 / % 3 7 X11 - X11 / - X4 1 X2 * 2 0 X0 X3 % * X7 / / / 2 6 + >= COND 5 4 X9 * 1 X14 ++X - + X13 = TRUE IF 6 4 | 5 9 X8 3 7 * % + X9 =')[1].c()
