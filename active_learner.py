@@ -83,7 +83,7 @@ class ActiveLearner:
 		if not experiment:
 			os.system('cp {0} {1}'.format(self.input + '.*', self.output_dir))
 		else:
-			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 1000, self.codenator_config,
+			os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
 																	  os.path.join(self.output_dir, basename),
 																	  self.compiler))
 		for ext in ['ll', 'hl', 'replacements']:

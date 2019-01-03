@@ -295,7 +295,6 @@ class Branch:
 
 
 class Loop:
-
 	def __init__(self, nesting_level=0):
 		def body_generator():
 			return Statements(
