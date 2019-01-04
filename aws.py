@@ -10,9 +10,8 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 
 class AWShandler:
-	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
-				 security_group='omer-sg', termination_protection=False, instance_name='olshaker-{0}-{1}',
-				 main_dir='Codenator', retries=5, branch='tf_usage', config_dir=None, instance_type='p2.xlarge'): #r5.xlarge
+	def __init__(self, compiler, output, index, image, username, key, security_group, termination_protection,
+				 instance_name, main_dir, retries, branch, config_dir, instance_type, gpu):
 		self._index = index
 		self._ami_id = image
 		self._instance_username = username
@@ -26,7 +25,11 @@ class AWShandler:
 		self._main_dir = main_dir
 		self._retries = retries
 		self._branch = branch
-		self._config_dir = config_dir
+		if config_dir is not None:
+			self._config_dir = config_dir+str(index)
+		else:
+			self._config_dir = None
+		self._gpu = gpu
 
 		self._ec2 = boto3.resource('ec2')
 		self._ec2client = boto3.client('ec2')
@@ -39,7 +42,10 @@ class AWShandler:
 		logging.error('Instance #{0}: {1}'.format(self._index, msg))
 
 	def create_instance(self):
-		self.log_info('Creating instance')
+		if self._gpu:
+			self.log_info('Creating GPU instance')
+		else:
+			self.log_info('Creating instance')
 		instance = self._ec2.create_instances(ImageId=self._ami_id, MinCount=1, MaxCount=1, EbsOptimized=True,
 											  InstanceType=self._instance_type, SecurityGroups=[self._security_group],
 											  DisableApiTermination=self._termination_protection,
@@ -56,7 +62,6 @@ class AWShandler:
 
 
 	def get_client(self):
-
 		dns = self._ec2client.describe_instances(InstanceIds=[self._instance.id])['Reservations'][0]['Instances'][0]['PublicDnsName']
 		self.log_info('dns: ' + dns)
 		self.log_info('Connecting to instance')
@@ -84,18 +89,14 @@ class AWShandler:
 
 	def exec_instance(self):
 		self.log_info('Executing experiment')
-		self.exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		activate_gpu_workspace = 'source activate tensorflow_p27; '
+		self.exec_command('cd {0}; {3}./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler, activate_gpu_workspace if self._gpu else ''))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
 		self.log_info('Updating code')
 		self.exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
 
-	def install_tf(self):
-		self.log_info('installing tensor-flow')
-		self.exec_command('pip install tensorflow --user')
-		self.exec_command('pip install pyyaml --user')
-		self.exec_command('pip install pandas --user')
 
 	def download_from_instance(self):
 		self.log_info('Downloading results')
@@ -124,9 +125,12 @@ class AWShandler:
 	def launch_instance(self):
 		self._instance = self.create_instance()
 		self._client = self.get_client()
-		self.install_tf()
 		self.update_code()
 		if self._config_dir is not None:
+			if not os.path.exists(self._config_dir):
+				print 'Configs folder does not exist'
+				import sys
+				sys.exit(1)
 			self.update_configurations()
 		self.exec_instance()
 		self.download_from_instance()
@@ -142,9 +146,14 @@ def instance_wrapper((args, i)):
 
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	hide_logs()
-	AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key,
+	if args.gpu:
+		AWShandler(args.compiler, args.output, i, image=args.gpu_image, username=args.username, key=args.key, retries=args.retries,
+			   instance_type=args.gpu_type, security_group=args.security, termination_protection=args.protection,
+			   instance_name=args.gpu_naming, main_dir=args.directory, branch=args.gpu_branch, config_dir=args.configs, gpu=True).launch_instance()
+	else:
+		AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key, retries=args.retries,
 			   instance_type=args.type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.naming, main_dir=args.main, branch=args.branch, config_dir=args.configs).launch_instance()
+			   instance_name=args.naming, main_dir=args.directory, branch=args.branch, config_dir=args.configs, gpu=False).launch_instance()
 
 if __name__ == "__main__":
 	import argparse
@@ -153,26 +162,35 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'compiler' function")
-	parser.add_argument('-i', '--image', type=str, default='ami-08016dab96d85a8d1',
+	parser.add_argument('--gpu', help="Use gpu instance", action='store_true')
+	parser.add_argument('--image', type=str, default='ami-08016dab96d85a8d1',
 						help="AWS image id (default: \'%(default)s\')")
+	parser.add_argument('--gpu-image', type=str, default='ami-0c51d7776ce4f70dc',
+						help="AWS image id for gpu (default: \'%(default)s\')")
 	parser.add_argument('-u', '--username', type=str, default='ubuntu',
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
 						help="key filename (default: \'%(default)s)\'")
-	parser.add_argument('-t', '--type', type=str, default='p2.xlarge',#r5.xlarge
+	parser.add_argument('--type', type=str, default='r5.large',#r5.xlarge
 						help="AWS instance type (default: \'%(default)s)\'")
+	parser.add_argument('--gpu-type', type=str, default='p2.xlarge',
+						help="AWS instance type for gpu (default: \'%(default)s)\'")
 	parser.add_argument('-s', '--security', type=str, default='omer-sg',
 						help="AWS security group for instances (default: \'%(default)s)\'")
-	parser.add_argument('-n', '--naming', type=str, default='olshaker-{0}-{1}',
+	parser.add_argument('--naming', type=str, default='{0}-{1}-{2}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
-	parser.add_argument('-m', '--main', type=str, default='Codenator',
+	parser.add_argument('--gpu-naming', type=str, default='{0}-gpu-{1}-{2}',
+						help="naming pattern for instances (default: \'%(default)s)\'")
+	parser.add_argument('-d', '--directory', type=str, default='Codenator',
 						help="name of main directory on instance (default: \'%(default)s)\'")
-	parser.add_argument('-p', '--protection', type=bool, default=False,
+	parser.add_argument('-p', '--protection', type=bool, default=True,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
-	parser.add_argument('-b', '--branch', type=str, default='tf_usage',
+	parser.add_argument('--branch', type=str, default='master',
 						help="repository branch to use (default: \'%(default)s\')")
+	parser.add_argument('--gpu-branch', type=str, default='tf_usage',
+						help="repository branch to use for gpu (default: \'%(default)s\')")
 	parser.add_argument('-c', '--configs', type=str,
 						help="folder containing configurations to push to instance")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
@@ -183,15 +201,8 @@ if __name__ == "__main__":
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
 
-	if args.configs:
-		if not os.path.exists(args.configs):
-			print 'Configs folder does not exist'
-			import sys
-			sys.exit(1)
-
 	pool = multiprocessing.Pool(processes=args.count)
 	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
 	pool.close()
 	pool.join()
-
 
