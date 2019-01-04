@@ -11,8 +11,8 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 class AWShandler:
 	def __init__(self, compiler, output, index, image='ami-08016dab96d85a8d1', username='ubuntu', key='omer1.pem',
-				 security_group='omer-sg', termination_protection=False, instance_name='omer-{0}-{1}',
-				 main_dir='Codenator', retries=5, branch='master', config_dir=None, instance_type='r5.large'): #r5.xlarge
+				 security_group='omer-sg', termination_protection=False, instance_name='olshaker-{0}-{1}',
+				 main_dir='Codenator', retries=5, branch='tf_usage', config_dir=None, instance_type='p2.xlarge'): #r5.xlarge
 		self._index = index
 		self._ami_id = image
 		self._instance_username = username
@@ -56,7 +56,9 @@ class AWShandler:
 
 
 	def get_client(self):
+
 		dns = self._ec2client.describe_instances(InstanceIds=[self._instance.id])['Reservations'][0]['Instances'][0]['PublicDnsName']
+		self.log_info('dns: ' + dns)
 		self.log_info('Connecting to instance')
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
@@ -82,13 +84,18 @@ class AWShandler:
 
 	def exec_instance(self):
 		self.log_info('Executing experiment')
-		self.exec_command('cd {0}; ./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
+		self.exec_command('cd {0}; ./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
 		self.log_info('Updating code')
 		self.exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
 
+	def install_tf(self):
+		self.log_info('installing tensor-flow')
+		self.exec_command('pip install tensorflow --user')
+		self.exec_command('pip install pyyaml --user')
+		self.exec_command('pip install pandas --user')
 
 	def download_from_instance(self):
 		self.log_info('Downloading results')
@@ -117,6 +124,7 @@ class AWShandler:
 	def launch_instance(self):
 		self._instance = self.create_instance()
 		self._client = self.get_client()
+		self.install_tf()
 		self.update_code()
 		if self._config_dir is not None:
 			self.update_configurations()
@@ -151,11 +159,11 @@ if __name__ == "__main__":
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
 						help="key filename (default: \'%(default)s)\'")
-	parser.add_argument('-t', '--type', type=str, default='r5.large',#r5.xlarge
+	parser.add_argument('-t', '--type', type=str, default='p2.xlarge',#r5.xlarge
 						help="AWS instance type (default: \'%(default)s)\'")
 	parser.add_argument('-s', '--security', type=str, default='omer-sg',
 						help="AWS security group for instances (default: \'%(default)s)\'")
-	parser.add_argument('-n', '--naming', type=str, default='omer-{0}-{1}',
+	parser.add_argument('-n', '--naming', type=str, default='olshaker-{0}-{1}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-m', '--main', type=str, default='Codenator',
 						help="name of main directory on instance (default: \'%(default)s)\'")
@@ -163,7 +171,7 @@ if __name__ == "__main__":
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
-	parser.add_argument('-b', '--branch', type=str, default='master',
+	parser.add_argument('-b', '--branch', type=str, default='tf_usage',
 						help="repository branch to use (default: \'%(default)s\')")
 	parser.add_argument('-c', '--configs', type=str,
 						help="folder containing configurations to push to instance")
