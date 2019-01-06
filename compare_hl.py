@@ -550,6 +550,7 @@ def calculate_hl_stats(hl, df):
     stats.append(sum(depths))
     stats.append(max(nodes_nums))
     stats.append(max(depths))
+    stats.append(hl_tree.__len__())
     if(df is None or df.empty):
         stats.append(0) # mistake_line
         stats.append(0) # mistake_depth
@@ -559,7 +560,6 @@ def calculate_hl_stats(hl, df):
         df_in_best_error = df[df['worst_type'] == best_error].head(1)
         stats.append(df_in_best_error['line_mistaken'].values[0])  # mistake_line
         stats.append(df_in_best_error['depth_mistaken'].values[0])  # mistake_depth
-    stats.append(hl_tree.__len__())
     stats.append(normal_order_hl.count(ifs[1]))
     stats.append(normal_order_hl.count(ifs[0]))
     stats.append(normal_order_hl.count(loops[0]))
