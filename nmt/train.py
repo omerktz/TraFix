@@ -515,7 +515,7 @@ def train(hparams, scope=None, target_session=""):
   # This is the training loop.
   stats, info, start_train_time = before_train(
       loaded_train_model, train_model, train_sess, global_step, hparams, log_f)
-  while global_step < num_train_steps and patience <= hparams.patience:
+  while global_step < num_train_steps and patience < hparams.patience:
     ### Run a step ###
     start_time = time.time()
     try:
