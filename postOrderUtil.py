@@ -245,7 +245,7 @@ class Statement:
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
 
-numbers_pattern = '(\d+)'
+numbers_pattern = '(@@\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
@@ -254,7 +254,7 @@ def combine_digits(code):
         to_search = regexp.search(code).group()
         add = '' if to_search[0].isdigit() else ' '
         code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
-    return code.replace(' | ', ' ')
+    return code.replace(' | ', ' ').replace('@@', '-')
 
 def parse(code):
     code = combine_digits(code)
@@ -271,4 +271,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('4 1 X8 1 / % 3 7 X11 - X11 / - X4 1 X2 * 2 0 X0 X3 % * X7 / / / 2 6 + >= COND 5 4 X9 * 1 X14 ++X - + X13 = TRUE IF 6 4 | 5 9 X8 3 7 * % + X9 =')[1].c()
+    print parse('@@ 3 4 4 2 X7 - X7 ++X @@ 9 4 8 2 * / 2 7 7 9 X2 - * X12 = @@ 3 5 7 4 X0 =')[1].c()

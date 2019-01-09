@@ -61,7 +61,7 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
-numbers_pattern = '(-\d*|\d+)'
+numbers_pattern = '(@@\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
@@ -69,8 +69,8 @@ def combine_digits(code):
 	while (regexp.search(code) is not None):
 		to_search = regexp.search(code).group()
 		add = '' if to_search[0].isdigit() else ' '
-		code = code.replace(to_search, add + to_search.replace(' ', ''))
-	return code.replace(' | ', ' ')
+		code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
+	return code.replace(' | ', ' ').replace('@@', '-')
 
 
 def write_stats(id, hl, succeeded, csv_path, df):
