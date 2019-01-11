@@ -13,6 +13,7 @@ import code_fixer as cf
 import random
 import compare_hl as hl_util
 import pandas
+import fix_hl_by_ll
 
 def parsePostOrder(po):
 	return po_util.parse(po)
@@ -61,7 +62,7 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
-numbers_pattern = '(@@\d*|\d+)'
+numbers_pattern = '(-\d*|\d+)' #'(@@\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
@@ -70,7 +71,7 @@ def combine_digits(code):
 		to_search = regexp.search(code).group()
 		add = '' if to_search[0].isdigit() else ' '
 		code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
-	return code.replace(' | ', ' ').replace('@@', '-')
+	return code.replace(' | ', ' ')#.replace('@@', '-')
 
 
 def write_stats(id, hl, succeeded, csv_path, df):
@@ -82,7 +83,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	ll = combine_digits(ll)
-	# if(i > 100):
+	# if(i is not 15):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
@@ -99,6 +100,14 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
+	# print 'start my part, number: ' + str(i)
+	fixed_hls = map(lambda x: fix_hl_by_ll.fix_hl(cs[x], ll, lls[x]), range(lls.__len__()))
+	# print fixed_hls
+	fixed_lls = map(lambda y: compiler(y), fixed_hls)
+	if ll in fixed_lls:
+		# print 'fixed!!! number: ' + str(i)
+		return (i, hl, ll, replacements, fixed_hls[fixed_lls.index(ll)], 0)
+	# print 'did not fix. number: ' + str(i)
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
 	if len(successful_comparisons) > 0:
