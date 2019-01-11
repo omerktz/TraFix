@@ -377,12 +377,12 @@ def preprocess_hl(s):
 numbers_pattern = '^(-|N)?\d+'
 two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
 regexp = re.compile(two_numbers_pattern)
-negative_num_sign = '@@'
+# negative_num_sign = '@@'
 
 def split_numbers(x):
 	temp = re.match(numbers_pattern, x)
 	if  (temp is not None and temp.group() == x):
-		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x)).replace('-', negative_num_sign)
+		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))#.replace('-', negative_num_sign)
 		return to_return[1:] if to_return.startswith(' ') else to_return
 	else:
 		return x

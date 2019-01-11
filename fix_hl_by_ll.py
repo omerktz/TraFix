@@ -66,6 +66,8 @@ def create_and_check_hl(list_hl, i, ll_origin, index, new_value, div=False):
     try_hl[i] = new_value
     try_hl = ' '.join(try_hl)
     try_ll = compiler(try_hl)
+    if try_ll is None:
+        return None
     first_mis_match = find_first_mis_match(ll_origin, try_ll.split(' '))
     if (first_mis_match == -1 or first_mis_match > index):
         if (div):
@@ -86,6 +88,10 @@ def fix_number_in_hl(hl, ll_origin, old_num, index):
             try_hl = create_and_check_hl(list_hl, i, ll_origin, index, new_num)
             if try_hl is None and is_minus_new_num:
                 try_hl = create_and_check_hl(list_hl, i, ll_origin, index, new_num[1:])
+                if try_hl is None and list_hl[i - 1] == '+':
+                    temp = list_hl[:]
+                    temp[i - 1] = '-'
+                    try_hl = create_and_check_hl(temp, i, ll_origin, index, new_num[1:])
 
             if try_hl is not None:
                 return try_hl
@@ -138,9 +144,13 @@ def is_devide_num_prob(num1, num2):
     return abs(num1) > max_num and abs(num2) > max_num
 
 def fix_hl(hl, ll_origin, ll_model):
+    # print hl
+    # print ll_origin
+    # print ll_model
+
     load_compiler('x86Util.py')
-    hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
-    hl = from_tree_to_code(hl_tree)
+    # hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
+    # hl = from_tree_to_code(hl_tree)
     ll_origin = ll_origin.split(' ')
     ll_model = ll_model.split(' ')
     close_numbers = False
@@ -178,19 +188,19 @@ def fix_hl(hl, ll_origin, ll_model):
 
 
 def from_tree_to_code(hl_tree):
-    return ' ; '.join(map(lambda x: x.__str__(), hl_tree))
+    return ' ; '.join(map(lambda x: x.__str__(), hl_tree)).replace('  ', ' ').replace('} }', '} ; }')
 
 
 if __name__ == "__main__":
     load_compiler('x86Util.py')
-    hl = 'X8 7 4 * 6 0 X8 * * X8 == COND X9 9 2 | 8 6 X10 X3 X4 + - - % X1 % % X14 = X0 X4 = TRUE IF 3 3 X6 / X12 1 1 X2 / % X7 + X6 * % X11 = 4 4 X0 / 5 8 X2 X9 + - 4 4 % - X2 = X7 X1 X++ - X11 * X6 = '
-    hl = po_util.parse(hl)[1].c().strip()
-    print hl
-    hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
-    hl = from_tree_to_code(hl_tree)
-
-    ll_origin = 'movl X8 , %eax ; imull 74 , %eax , %edx ; movl X8 , %eax ; sall 2 , %eax ; movl %eax , %ecx ; sall 4 , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; imull %eax , %edx ; movl X8 , %eax ; cmpl %eax , %edx ; jne .L0 ; movl X9 , %ecx ; movl X10 , %eax ; movl X3 , %ebx ; movl X4 , %edx ; addl %ebx , %edx ; subl %edx , %eax ; movl 86 , %edx ; movl %edx , %ebx ; subl %eax , %ebx ; movl 92 , %eax ; idivl %ebx ; movl %edx , %eax ; movl X1 , %ebx ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl %eax , X14 ; movl X0 , %eax ; movl %eax , X4 ; .L0 : ; movl X6 , %esi ; movl 23 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X12 , %ecx ; movl X2 , %esi ; movl 11 , %eax ; idivl %esi ; movl %eax , %esi ; movl %ecx , %eax ; idivl %esi ; movl X7 , %eax ; addl %eax , %edx ; movl X6 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %eax ; movl %eax , X11 ; movl X0 , %esi ; movl 54 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X2 , %edx ; movl X9 , %eax ; addl %edx , %eax ; movl 58 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -1307163959 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 5 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 46 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X2 ; movl X7 , %ecx ; movl X1 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X1 ; subl %eax , %ecx ; movl %ecx , %edx ; movl X11 , %eax ; imull %edx , %eax ; movl %eax , X6 ;'
-    ll_model = 'movl X8 , %eax ; imull 74 , %eax , %edx ; movl X8 , %eax ; sall 2 , %eax ; movl %eax , %ecx ; sall 4 , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; imull %eax , %edx ; movl X8 , %eax ; cmpl %eax , %edx ; jne .L0 ; movl X9 , %ecx ; movl X10 , %eax ; movl X3 , %ebx ; movl X4 , %edx ; addl %ebx , %edx ; subl %edx , %eax ; movl 86 , %edx ; movl %edx , %ebx ; subl %eax , %ebx ; movl 92 , %eax ; idivl %ebx ; movl %edx , %eax ; movl X1 , %ebx ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl %eax , X14 ; movl X0 , %eax ; movl %eax , X4 ; .L0 : ; movl X6 , %esi ; movl 33 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X12 , %ecx ; movl X2 , %esi ; movl 11 , %eax ; idivl %esi ; movl %eax , %esi ; movl %ecx , %eax ; idivl %esi ; movl X7 , %eax ; addl %eax , %edx ; movl X6 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %eax ; movl %eax , X11 ; movl X0 , %esi ; movl 44 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X2 , %edx ; movl X9 , %eax ; addl %edx , %eax ; movl 58 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 3 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 44 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X2 ; movl X7 , %ecx ; movl X1 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X1 ; subl %eax , %ecx ; movl %ecx , %edx ; movl X11 , %eax ; imull %edx , %eax ; movl %eax , X6 ;'
+    # hl = 'X8 7 4 * 6 0 X8 * * X8 == COND X9 9 2 | 8 6 X10 X3 X4 + - - % X1 % % X14 = X0 X4 = TRUE IF 3 3 X6 / X12 1 1 X2 / % X7 + X6 * % X11 = 4 4 X0 / 5 8 X2 X9 + - 4 4 % - X2 = X7 X1 X++ - X11 * X6 = '
+    # hl = po_util.parse(hl)[1].c().strip()
+    # print hl
+    # hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
+    # hl = from_tree_to_code(hl_tree)
+    hl = 'while ( ( X9 / ( ( 88 * X3 ) - X1 ) ) <= ( ( ( X10 % 95 ) - X5 ) - X7 ) ) { while ( X3 ++ < ( ( ( ( 69 / X9 ) % X13 ) + 33 ) % X6 ) ) { if ( ( ( ( X0 + 44 ) / ( 78 % X9 ) ) % 80 ) <= ( ( ( X7 / X13 ) % 55 ) - ( ( 24 - X2 ) % X8 ) ) ) { while ( X3 ++ < ( ( ( ( 39 / X9 ) % X13 ) + 33 ) % X6 ) ) { X3 = 77 / X3 ; } ; } else { X1 = ( X11 / 55 ) + X7 ; } ; } ; } ;'
+    ll_origin = 'jmp .L2 ; .L0 : ; movl X0 , %eax ; leal -34 ( %eax ) , %ecx ; movl X9 , %ebx ; movl 87 , %eax ; idivl %ebx ; movl %edx , %esi ; movl %ecx , %eax ; idivl %esi ; movl %eax , %ebx ; movl 1717986919 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 5 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; sall 2 , %eax ; addl %ecx , %eax ; sall 4 , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X7 , %eax ; movl X13 , %esi ; idivl %esi ; movl %eax , %esi ; movl 156180629 , %edx ; movl %esi , %eax ; imull %edx ; sarl 1 , %edx ; movl %esi , %eax ; sarl 31 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; imull 55 , %ebx , %eax ; subl %eax , %esi ; movl %esi , %ebx ; movl X2 , %eax ; movl 24 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl X8 , %esi ; idivl %esi ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; cmpl %eax , %ecx ; jg .L3 ; jmp .L2 ; .L1 : ; movl X3 , %esi ; movl 77 , %eax ; idivl %esi ; movl %eax , X3 ; .L2 : ; movl X3 , %ecx ; leal 1 ( %ecx ) , %eax ; movl %eax , X3 ; movl X9 , %esi ; movl 69 , %eax ; idivl %esi ; movl X13 , %ebx ; idivl %ebx ; movl %edx , %eax ; addl 31 , %eax ; movl X6 , %ebx ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; jl .L1 ; jmp .L3 ; .L3 : ; movl X11 , %ecx ; movl 1374389535 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl X7 , %eax ; addl %edx , %eax ; movl %eax , X1 ; .L3 : ; movl X10 , %eax ; addl 1 , %eax ; movl %eax , X10 ; movl X10 , %eax ; movl 57 , %edx ; movl %edx , %esi ; subl %eax , %esi ; movl X11 , %ebx ; movl 45 , %eax ; idivl %ebx ; movl %eax , %edx ; movl X6 , %eax ; leal ( %edx ,%eax ) , %ecx ; movl X0 , %eax ; movl X4 , %ebx ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %esi ; jle .L0 ; .L2 : ; movl X9 , %eax ; movl X3 , %edx ; imull 38 , %edx , %ecx ; movl X1 , %edx ; subl %edx , %ecx ; movl %ecx , %esi ; idivl %esi ; movl %eax , %ebx ; movl X10 , %ecx ; movl -1401515643 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 6 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 95 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X5 , %edx ; subl %edx , %eax ; movl %eax , %edx ; movl X7 , %eax ; subl %eax , %edx ; movl %edx , %eax ; cmpl %eax , %ebx ; jle .L3 ;'
+    ll_model = 'jmp .L2 ; .L0 : ; movl X0 , %eax ; leal 44 ( %eax ) , %ecx ; movl X9 , %ebx ; movl 78 , %eax ; idivl %ebx ; movl %edx , %esi ; movl %ecx , %eax ; idivl %esi ; movl %eax , %ebx ; movl 1717986919 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 5 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; sall 2 , %eax ; addl %ecx , %eax ; sall 4 , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X7 , %eax ; movl X13 , %esi ; idivl %esi ; movl %eax , %esi ; movl 156180629 , %edx ; movl %esi , %eax ; imull %edx ; sarl 1 , %edx ; movl %esi , %eax ; sarl 31 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; imull 55 , %ebx , %eax ; subl %eax , %esi ; movl %esi , %ebx ; movl X2 , %eax ; movl 24 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl X8 , %esi ; idivl %esi ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; cmpl %eax , %ecx ; jg .L3 ; jmp .L2 ; .L1 : ; movl X3 , %esi ; movl 77 , %eax ; idivl %esi ; movl %eax , X3 ; .L2 : ; movl X3 , %ecx ; leal 1 ( %ecx ) , %eax ; movl %eax , X3 ; movl X9 , %esi ; movl 39 , %eax ; idivl %esi ; movl X13 , %ebx ; idivl %ebx ; movl %edx , %eax ; addl 33 , %eax ; movl X6 , %ebx ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; jl .L1 ; jmp .L3 ; .L3 : ; movl X11 , %ecx ; movl 156180629 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 1 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl X7 , %eax ; addl %edx , %eax ; movl %eax , X1 ; .L3 : ; movl X3 , %ecx ; leal 1 ( %ecx ) , %eax ; movl %eax , X3 ; movl X9 , %esi ; movl 69 , %eax ; idivl %esi ; movl X13 , %ebx ; idivl %ebx ; movl %edx , %eax ; addl 33 , %eax ; movl X6 , %ebx ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; jl .L0 ; .L2 : ; movl X9 , %eax ; movl X3 , %edx ; imull 88 , %edx , %ecx ; movl X1 , %edx ; subl %edx , %ecx ; movl %ecx , %esi ; idivl %esi ; movl %eax , %ebx ; movl X10 , %ecx ; movl -1401515643 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 6 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 95 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X5 , %edx ; subl %edx , %eax ; movl %eax , %edx ; movl X7 , %eax ; subl %eax , %edx ; movl %edx , %eax ; cmpl %eax , %ebx ; jle .L3 ;'
     fixed_hl = fix_hl(hl, ll_origin, ll_model)
     print fixed_hl
     print compiler(fixed_hl) == ll_origin

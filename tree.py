@@ -89,13 +89,18 @@ class Node:
                         + self.value + left_side + right_side  \
                         + (' ' + special_bracket_close if add_special_end else '')
 
+        elif (self.value == line_separator) \
+            and (self.left is None or self.left.value in have_conditions):
+            right_side = ' ' + self.right.__str__() if (self.right != None) else ''
+            left_side = self.left.__str__() if (self.left != None) else ''
+            return left_side + right_side
+
         elif (self.value == line_separator and self.right.value == special_bracket_close and self.right.get_nodes_num() == 0):
             if(self.left != None):
                 to_return = self.left.__str__() + ' ' + line_separator + ' ' + special_bracket_close
             else:
                 to_return = special_bracket_close + ' ' + line_separator
             return to_return
-
 
         right_side = ' ' + self.right.__str__() if (self.right != None) else ''
         left_side = self.left.__str__() + ' ' if (self.left != None) else ''

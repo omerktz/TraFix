@@ -245,7 +245,7 @@ class Statement:
 
 postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
 
-numbers_pattern = '(@@\d*|\d+)'
+numbers_pattern = '\d+' #'(@@\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
 
@@ -254,7 +254,7 @@ def combine_digits(code):
         to_search = regexp.search(code).group()
         add = '' if to_search[0].isdigit() else ' '
         code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
-    return code.replace(' | ', ' ').replace('@@', '-')
+    return code.replace(' | ', ' ')#.replace('@@', '-')
 
 def parse(code):
     code = combine_digits(code)
