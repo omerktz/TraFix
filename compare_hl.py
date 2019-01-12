@@ -36,6 +36,9 @@ special_brackets = [special_bracket_start, special_bracket_close]
 types = ['while_num', 'else_num', 'if_num', 'lines', 'nodes_num' ,'type_diff', 'loop', 'if/else', equal, 'cond', 'wrong_sides_oper', 'oper', 'short_oper', 'div_mod' ,'num_var', 'var', 'number' ,'special_brackets', 'brackets']
 types_with_victory = types + ['victory!!']
 none_oper_index = -100
+titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num',
+          'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num', 'nested_depth']
+
 
 def find_oper_idex(h_list_line):
     open_brackets = 0
@@ -539,6 +542,18 @@ def get_worst_or_best_type(error_types, get_worst=True):
             return type
     return 'victory!!'
 
+def calc_max_nested(normal_order_hl):
+    max_nested = 0
+
+    for i in range(normal_order_hl.__len__()):
+        if(normal_order_hl[i] in branch_types):
+            hl_in_branch = get_hl_in_branch(normal_order_hl[i + 1:])
+            if (calc_max_nested(hl_in_branch) + 1 > max_nested):
+                max_nested = calc_max_nested(hl_in_branch) + 1
+
+    return max_nested
+
+
 
 def calculate_hl_stats(hl, df):
     normal_order_hl = postOrderUtil.parse(hl)[1].c()
@@ -563,6 +578,7 @@ def calculate_hl_stats(hl, df):
     stats.append(normal_order_hl.count(ifs[1]))
     stats.append(normal_order_hl.count(ifs[0]))
     stats.append(normal_order_hl.count(loops[0]))
+    stats.append(calc_max_nested(normal_order_hl))
     return stats
 
 def writeMisMatches_hl(i, failed_dataset, h, hl):
@@ -591,7 +607,6 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
 
 
 def one_percentile(df, percentage):
-    titles = ['total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num', 'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num']
     percentile = [str(percentage)]
     for title in titles:
         percentile.append(str(numpy.percentile(df[title], percentage)))
@@ -637,7 +652,6 @@ def analize_mistakes(failed_dataset, fails_num):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
-    titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num', 'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num']
     with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
         w = csv.writer(f)
         w.writerow(titles)
@@ -663,6 +677,16 @@ def find_first_difference(h_post_order_list, hl_post_order_list):
         to_return.append('length diff. model: ' + str(h_post_order_list.__len__()) + ' wanted: ' + str(hl_post_order_list.__len__()))
     return to_return
 
+def get_hl_in_branch(hl):
+    start = get_branch_start(hl)
+    end = get_branch_end(hl[start:]) + start
+    return hl[start+1:end-1]
+
+def get_branch_start(hl):
+    for i in range(hl.__len__()):
+        if(hl[i] == special_bracket_start):
+            return i
+
 def get_branch_end(h_list):
     open_brackets = 1
     i = h_list.index(special_bracket_start) + 1
@@ -687,10 +711,13 @@ def get_cut_index_branch(h_list):
     return index
 
 if __name__ == "__main__":
+    h_sentence = 'while ( ( X4 / ( -- X6 * X5 -- ) ) >= ( 67 * ( 81 % ( X13 - X5 ) ) ) ) { X7 = X11 ; } ; X6 = ++ X0 % 84 ; X4 = 19 - ( ( X0 / 80 ) * ( X2 + X12 ) ) ; while ( ( ( ( X13 / ( 90 - X8 ) ) * X12 ) / X9 ) == ( ( 32 - ( X3 / X10 ) ) - X6 ) ) { X3 = 100 / X7 ; } ; if ( ( ( 90 % ( X9 * X4 ) ) - ( ++ X4 * X14 ) ) < ( ( X9 % -- X6 ) / ( X3 - X10 ) ) ) { while ( X3 -- <= ( X5 - ( X13 + X6 ) ) ) { X5 = X2 + ( X12 - -- X4 ) ; if ( X4 == 5 ) { X4 = 5 } ; } ;  } ; else { X14 = 91 ; X8 = ( X5 / 11 ) - X8 ; }'
+    print calc_max_nested(h_sentence.split(' '))
+
     # h_sentence = '( X1 + 5 ) - 6 ;'
     # h_tree = from_list_to_tree(h_sentence.split(' '))
     # print h_tree[0]
-    # exit (0)
+    exit (0)
     h_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
     hl_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
     # h_post_order = '18 X7 ='
