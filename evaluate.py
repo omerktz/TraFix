@@ -83,7 +83,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	ll = combine_digits(ll)
-	# if(i is not 15):
+	# if(not i == 504):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
@@ -100,14 +100,21 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
-	# print 'start my part, number: ' + str(i)
+	print 'start my part, number: ' + str(i)
+	# print parsePostOrder(hl)[1].c()
 	fixed_hls = map(lambda x: fix_hl_by_ll.fix_hl(cs[x], ll, lls[x]), range(lls.__len__()))
 	# print fixed_hls
 	fixed_lls = map(lambda y: compiler(y), fixed_hls)
 	if ll in fixed_lls:
-		# print 'fixed!!! number: ' + str(i)
+		print 'fixed!!! number: ' + str(i)
 		return (i, hl, ll, replacements, fixed_hls[fixed_lls.index(ll)], 0)
-	# print 'did not fix. number: ' + str(i)
+	else:
+		fixed_hls = map(lambda x: fix_hl_by_ll.fix_hl(cs[x], ll, lls[x], combine=True), range(lls.__len__()))
+		fixed_lls = map(lambda y: compiler(y), fixed_hls)
+		if ll in fixed_lls:
+			print 'fixed!!! second try number: ' + str(i)
+			return (i, hl, ll, replacements, fixed_hls[fixed_lls.index(ll)], 0)
+	print 'did not fix. number: ' + str(i)
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
 	if len(successful_comparisons) > 0:
@@ -120,6 +127,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 				fixed_code = cf.fix_code(cs[j], ll, hl2ll, gc, lls[j], needed_replacements)
 				if fixed_code is not None:
 					logging.debug('Fix successful!')
+					print 'omers_fix. number: ' + str(i)
 					return (i, hl, ll, replacements, fixed_code, 0)  # success
 	if failed_dataset:
 		with open(failed_dataset + '.corpus.hl', 'a') as fhl:

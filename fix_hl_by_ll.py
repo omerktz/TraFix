@@ -56,6 +56,8 @@ def is_number(ll_word):
 
 def find_first_mis_match(ll_origin, ll_model):
     for i in range(ll_origin.__len__()):
+        if ll_model.__len__() == i:
+            return i
         if not (ll_origin[i] == ll_model[i]):
             return i
     return -1
@@ -143,20 +145,23 @@ def is_close_numbers(num1, num2):
 def is_devide_num_prob(num1, num2):
     return abs(num1) > max_num and abs(num2) > max_num
 
-def fix_hl(hl, ll_origin, ll_model):
+def fix_hl(hl, ll_origin, ll_model, combine=False):
     # print hl
     # print ll_origin
     # print ll_model
 
     load_compiler('x86Util.py')
-    # hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
-    # hl = from_tree_to_code(hl_tree)
+    if (combine):
+        hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
+        hl = from_tree_to_code(hl_tree)
     ll_origin = ll_origin.split(' ')
     ll_model = ll_model.split(' ')
     close_numbers = False
     # if not (ll_origin.__len__() == ll_model.__len__()):
     #     return None
     for i in range(ll_origin.__len__()):
+        if ll_model.__len__() == i:
+            return None
         if (ll_origin[i] == ll_model[i]):
             continue
         # print 'll_origin[i]: ' + ll_origin[i]
