@@ -121,6 +121,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 		for j in successful_comparisons:
 			needed_replacements = graph_comparisons[j][1]
 			if all(map(lambda l: len(l) == 0, needed_replacements.values())):
+				print 'graph comperison fix. number: ' + str(i)
 				return (i, hl, ll, replacements, cs[j], 0)  # success
 			else:
 				logging.debug('Attempting to fix code for input '+str(i))
