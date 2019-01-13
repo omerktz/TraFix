@@ -198,26 +198,37 @@ def from_tree_to_code(hl_tree):
     return ' ; '.join(map(lambda x: x.__str__(), hl_tree)).replace('  ', ' ').replace('} }', '} ; }')
 
 def check_successes(exp_name):
-    problem = False
+    problem = 0
     df =pd.read_csv(os.path.join(exp_name, 'successes.csv'))
     for index, row in df.iterrows():
         is_right = row['hl'] == compiler(row['out'])
         if not is_right:
-            problem = True
-            print 'success does not compile to result!!!'
+            problem += 1
+            print 'success does not compile to result: '
+            print po_util.parse(index)[1].c()
+            print row['out']
 
-    if not problem:
+    if problem == 0:
         print 'successes are legit'
 
 
 if __name__ == "__main__":
     load_compiler('x86Util.py')
-    exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_41_to_10000')
+    exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_42_to_100')
     check_successes(exp_name)
+    # hl = '8 4 4 7 X14 = 2 9 5 8 | 6 7 2 8 X12 - + 8 8 7 9 % X11 --X >= COND X1 X9 >= COND 9 2 6 3 X13 + X5 - X2 + X13 = TRUE IF TRUE IF X6 X13 = 4 5 3 5 X7 + 3 4 4 0 X1 - / X4 X4 9 0 2 1 X3 - * 7 5 8 2 X12 * X6 / + * <= COND X3 X-- X9 = TRUE X14 X11 = FALSE IF X1 5 4 8 5 * X4 - X10 ='
+    # print po_util.parse(hl)[1].c()
     exit(0)
-    hl = 'X6 = X0 ; while ( ( ( ( X10 % 8518 ) % ( X10 * X11 ) ) - ( ( X5 % X3 ) % ( 8175 - X5 ) ) ) == ( 3680 % ( ( X13 / ( X10 * 4025 ) ) % ( X1 - X9 ) ) ) ) { X7 = -- X1 - ( ( 9051 - ( X10 - X9 ) ) / X10 ) ; X6 = X8 ; } ;'
-    ll = 'movl X0 , %eax ; movl %eax , X6 ; jmp .L1 ; .L0 : ; movl X1 , %eax ; subl 1 , %eax ; movl %eax , X1 ; movl X1 , %ecx ; movl X10 , %edx ; movl X9 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl 9051 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl X10 , %esi ; idivl %esi ; subl %eax , %ecx ; movl %ecx , %eax ; movl %eax , X7 ; movl X8 , %eax ; movl %eax , X6 ; .L1 : ; movl X10 , %ecx ; movl 516323845 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 10 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 8518 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X10 , %ecx ; movl X11 , %edx ; imull %edx , %ecx ; idivl %ecx ; movl %edx , %ebx ; movl X5 , %eax ; movl X3 , %ecx ; idivl %ecx ; movl X5 , %eax ; movl 8175 , %ecx ; subl %eax , %ecx ; movl %edx , %eax ; idivl %ecx ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X13 , %eax ; movl X10 , %edx ; imull 4025 , %edx , %esi ; idivl %esi ; movl %eax , %esi ; movl X1 , %edx ; movl X9 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; movl %esi , %eax ; idivl %ebx ; movl %edx , %ebx ; movl 3680 , %eax ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; je .L0 ;'
+    hl = 'X14 = 8447 ; if ( ( ( 9686 - X12 ) % 8879 ) >= -- X11 ) { if ( X1 >= X9 ) { X13 = X2 + ( ( X13 + 9263 ) - X5 ) ; } ; X13 = X6 ; if ( ( ( X7 + 4535 ) / ( 3440 - X1 ) ) <= ( ( ( X4 * ( 9021 - X3 ) ) + ( ( X12 * 7582 ) / X6 ) ) * X4 ) ) { X9 = X3 -- ; } else { X11 = X14 ; } ; } ; X10 = ( 5485 * X1 ) - X4 ;'
+    ll = 'movl 8447 , X14 ; movl X12 , %eax ; movl 9686 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl 1981325155 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 12 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 8879 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X11 , %edx ; subl 1 , %edx ; movl %edx , X11 ; movl X11 , %edx ; cmpl %edx , %eax ; jl .L0 ; movl X1 , %edx ; movl X9 , %eax ; cmpl %eax , %edx ; jl .L0 ; movl X13 , %eax ; leal 9263 ( %eax ) , %edx ; movl X5 , %eax ; subl %eax , %edx ; movl X2 , %eax ; addl %edx , %eax ; movl %eax , X13 ; .L0 : ; movl X6 , %eax ; movl %eax , X13 ; movl X7 , %eax ; addl 4535 , %eax ; movl X1 , %edx ; movl 3440 , %ecx ; subl %edx , %ecx ; movl %ecx , %esi ; idivl %esi ; movl %eax , %ebx ; movl X3 , %eax ; movl 9021 , %edx ; subl %eax , %edx ; movl X4 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X12 , %eax ; imull 7582 , %eax , %eax ; movl X6 , %esi ; idivl %esi ; leal ( %ecx ,%eax ) , %edx ; movl X4 , %eax ; imull %edx , %eax ; cmpl %eax , %ebx ; jg .L1 ; movl X3 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X3 ; movl %eax , X9 ; jmp .L2 ; .L1 : ; movl X14 , %eax ; movl %eax , X11 ; .L2 : ; movl X1 , %eax ; imull 5485 , %eax , %edx ; movl X4 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X10 ;'
     comp = compiler(hl)
+    ll_list = ll.split(' ')
+    comp_list = comp.split(' ')
+    for i in range(ll_list.__len__()):
+        if not comp_list[i] == ll_list[i]:
+            print i
+            print comp_list[i]
+            print ll_list[i]
     print comp
     print comp == ll
     exit(0)
