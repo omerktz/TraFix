@@ -578,7 +578,7 @@ def calculate_hl_stats(hl, df):
     stats.append(normal_order_hl.count(ifs[1]))
     stats.append(normal_order_hl.count(ifs[0]))
     stats.append(normal_order_hl.count(loops[0]))
-    stats.append(calc_max_nested(normal_order_hl))
+    stats.append(calc_max_nested(normal_order_hl.split(' ')))
     return stats
 
 def writeMisMatches_hl(i, failed_dataset, h, hl):
@@ -608,7 +608,7 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
 
 def one_percentile(df, percentage):
     percentile = [str(percentage)]
-    for title in titles:
+    for title in titles[1:]:
         percentile.append(str(numpy.percentile(df[title], percentage)))
     return percentile
 

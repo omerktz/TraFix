@@ -1,6 +1,8 @@
+import os
 import re
 import postOrderUtil as po_util
 import compare_hl
+import pandas as pd
 
 numbers_pattern = '^(-|N)?\d+'
 vars_pattern = '^X\d+'
@@ -195,9 +197,30 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
 def from_tree_to_code(hl_tree):
     return ' ; '.join(map(lambda x: x.__str__(), hl_tree)).replace('  ', ' ').replace('} }', '} ; }')
 
+def check_successes(exp_name):
+    problem = False
+    df =pd.read_csv(os.path.join(exp_name, 'successes.csv'))
+    for index, row in df.iterrows():
+        is_right = row['hl'] == compiler(row['out'])
+        if not is_right:
+            problem = True
+            print 'success does not compile to result!!!'
+
+    if not problem:
+        print 'successes are legit'
+
 
 if __name__ == "__main__":
     load_compiler('x86Util.py')
+    exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_41_to_10000')
+    check_successes(exp_name)
+    exit(0)
+    hl = 'X6 = X0 ; while ( ( ( ( X10 % 8518 ) % ( X10 * X11 ) ) - ( ( X5 % X3 ) % ( 8175 - X5 ) ) ) == ( 3680 % ( ( X13 / ( X10 * 4025 ) ) % ( X1 - X9 ) ) ) ) { X7 = -- X1 - ( ( 9051 - ( X10 - X9 ) ) / X10 ) ; X6 = X8 ; } ;'
+    ll = 'movl X0 , %eax ; movl %eax , X6 ; jmp .L1 ; .L0 : ; movl X1 , %eax ; subl 1 , %eax ; movl %eax , X1 ; movl X1 , %ecx ; movl X10 , %edx ; movl X9 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl 9051 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl X10 , %esi ; idivl %esi ; subl %eax , %ecx ; movl %ecx , %eax ; movl %eax , X7 ; movl X8 , %eax ; movl %eax , X6 ; .L1 : ; movl X10 , %ecx ; movl 516323845 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 10 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 8518 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X10 , %ecx ; movl X11 , %edx ; imull %edx , %ecx ; idivl %ecx ; movl %edx , %ebx ; movl X5 , %eax ; movl X3 , %ecx ; idivl %ecx ; movl X5 , %eax ; movl 8175 , %ecx ; subl %eax , %ecx ; movl %edx , %eax ; idivl %ecx ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X13 , %eax ; movl X10 , %edx ; imull 4025 , %edx , %esi ; idivl %esi ; movl %eax , %esi ; movl X1 , %edx ; movl X9 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; movl %esi , %eax ; idivl %ebx ; movl %edx , %ebx ; movl 3680 , %eax ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; je .L0 ;'
+    comp = compiler(hl)
+    print comp
+    print comp == ll
+    exit(0)
     # hl = 'X8 7 4 * 6 0 X8 * * X8 == COND X9 9 2 | 8 6 X10 X3 X4 + - - % X1 % % X14 = X0 X4 = TRUE IF 3 3 X6 / X12 1 1 X2 / % X7 + X6 * % X11 = 4 4 X0 / 5 8 X2 X9 + - 4 4 % - X2 = X7 X1 X++ - X11 * X6 = '
     # hl = po_util.parse(hl)[1].c().strip()
     # print hl
