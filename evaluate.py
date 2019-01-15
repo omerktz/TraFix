@@ -190,8 +190,9 @@ def creat_and_save_sentences_from_failes(hl, out_file):
     lls_list = map(lambda x: compiler(parsePostOrder(x)[1].c()), hls_list)
     with open(out_file + '.corpus.hl', 'w') as fhl:
         with open(out_file + '.corpus.ll', 'w') as fll:
-            fhl.write(hls_list[i] + '\n')
-            fll.write(lls_list[i] + '\n')
+            for i in range(hl_list):
+                fhl.write(hls_list[i] + '\n')
+                fll.write(lls_list[i] + '\n')
 
 
 
