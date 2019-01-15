@@ -211,7 +211,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 		groups[int(n)] = [x[1] for x in g]
 	csv_path = open_stats_csvs(failed_dataset)
 	results = map(
-		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)), shallow_evaluation)
+		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset, shallow_evaluation), range(len(lls)))
 	df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:
