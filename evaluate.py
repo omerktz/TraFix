@@ -78,12 +78,18 @@ def write_stats(id, hl, succeeded, csv_path, df):
 	with open(csv_path, 'a') as f:
 		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl, df))
 
+def try_fix(cs, ll, lls, i, hl ,replacements, x, combine=False):
+	new_hl = fix_hl_by_ll.fix_hl(cs[x], ll, lls[x], combine)
+	if (new_hl is not None and compiler(new_hl) == ll):
+		print 'fixed!!! number: ' + str(i)
+		return (i, hl, ll, replacements, new_hl, 0)
+	return None
 
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	ll = combine_digits(ll)
-	# if(i > 100):
+	# if not (i == 287):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
@@ -102,19 +108,17 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 	print 'start my part, number: ' + str(i)
 	# print parsePostOrder(hl)[1].c()
-	fixed_hls = map(lambda x: fix_hl_by_ll.fix_hl(cs[x], ll, lls[x]), range(lls.__len__()))
-	# print fixed_hls
-	fixed_lls = map(lambda y: compiler(y), fixed_hls)
-	if ll in fixed_lls:
-		print 'fixed!!! number: ' + str(i)
-		return (i, hl, ll, replacements, fixed_hls[fixed_lls.index(ll)], 0)
-	else:
-		fixed_hls = map(lambda x: fix_hl_by_ll.fix_hl(cs[x], ll, lls[x], combine=True), range(lls.__len__()))
-		fixed_lls = map(lambda y: compiler(y), fixed_hls)
-		if ll in fixed_lls:
-			print 'fixed!!! second try number: ' + str(i)
-			return (i, hl, ll, replacements, fixed_hls[fixed_lls.index(ll)], 0)
+
+	for x in range(lls.__len__()):
+		answer = try_fix(cs, ll, lls, i, hl ,replacements, x, combine=False)
+		if (answer is not None):
+			return answer
+		else:
+			answer = try_fix(cs, ll, lls, i, hl, replacements, x, combine=True)
+			if (answer is not None):
+				return answer
 	print 'did not fix. number: ' + str(i)
+
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
 	if len(successful_comparisons) > 0:
