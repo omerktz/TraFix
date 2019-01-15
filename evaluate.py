@@ -14,7 +14,8 @@ import random
 import compare_hl as hl_util
 import pandas
 import fix_hl_by_ll
-
+conditions = ['==', '<', '>', '>=', '<=']
+opers = ['-', '+', '*', '/', '%']
 def parsePostOrder(po):
 	return po_util.parse(po)
 
@@ -85,7 +86,7 @@ def try_fix(cs, ll, lls, i, hl ,replacements, x, combine=False):
 		return (i, hl, ll, replacements, new_hl, 0)
 	return None
 
-def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
+def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shallow_evaluation=False):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	ll = combine_digits(ll)
@@ -102,6 +103,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	lls = map(lambda x: compiler(x), cs)
 	if not any(lls):
 		return (i,hl, ll, replacements, None, 3)  # does not compile
+	if shallow_evaluation:
+		return (i,hl, ll, replacements, None, 0)
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
 	ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
@@ -162,7 +165,37 @@ def open_stats_csvs(failed_dataset):
 	return failed_dataset + 'trees_stats.csv'
 
 
-def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None):
+def creat_and_save_sentences_from_failes(hl, out_file):
+    hls_list = []
+    hl_list = hl.split(' ')
+    hls_list.append(hl)
+    for i in range(hl_list):
+        if hl_list[i] in conditions:
+            for cond in conditions:
+                if not cond == hl_list[i]:
+                    tmp = hl_list[:]
+                    tmp[i] = cond
+                    hls_list.append(' '.join(tmp))
+        elif hl_list[i] in opers:
+            for oper in opers:
+                if not oper == hl_list[i]:
+                    tmp = hl_list[:]
+                    tmp[i] = oper
+                    hls_list.append(' '.join(tmp))
+        elif hl_list[i] == 'WHILE':
+            tmp = hl_list[:]
+            tmp[i] = 'IF'
+            hls_list.append(' '.join(tmp))
+
+    lls_list = map(lambda x: compiler(parsePostOrder(x)[1].c()), hls_list)
+    with open(out_file + '.corpus.hl', 'w') as fhl:
+        with open(out_file + '.corpus.ll', 'w') as fll:
+            fhl.write(hls_list[i] + '\n')
+            fll.write(lls_list[i] + '\n')
+
+
+
+def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, failed_dataset=None, shallow_evaluation=False):
 	# hl_util.analize_mistakes(failed_dataset, 431)
 	nsuccess = 0
 	nfail = 0
@@ -177,15 +210,19 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 		groups[int(n)] = [x[1] for x in g]
 	csv_path = open_stats_csvs(failed_dataset)
 	results = map(
-		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)))
+		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset), range(len(lls)), shallow_evaluation)
 	df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:
+			if shallow_evaluation:
+				continue
 			if fs:
 				fs.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
 			write_stats(str(x[0]), x[1], True, csv_path, None)
 			nsuccess += 1
 		else:
+			if shallow_evaluation:
+				creat_and_save_sentences_from_failes(x[1], failed_dataset)
 			if ff:
 				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
 			write_stats(str(x[0]), x[1], False, csv_path, df[df['sentence_id'] == x[0]])
@@ -198,21 +235,34 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	return (nsuccess, nfail)
 
 
-def main(f, k, compiler, force, config, failed_dataset=None):
+def do_evaluation(f, k, force, config, fsuccess, ffail, failed_dataset, shallow_evaluation=False):
+	with open(f + '.corpus.hl', 'r') as fhl:
+		with open(f + '.corpus.ll', 'r') as fll:
+			with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
+				with open(f + '.corpus.replacements', 'r') as freplacements:
+					if (shallow_evaluation):
+						fs = None
+						ff = None
+					else:
+						fs = csv.writer(fsuccess)
+						ff = csv.writer(ffail)
+					return evaluate(fhl, fll, fout, freplacements, force, config,
+										fs=fs, ff=ff, failed_dataset=failed_dataset, shallow_evaluation=shallow_evaluation)
+
+
+def main(f, k, compiler, force, config, failed_dataset=None, shallow_evaluation=False):
 	logging.info('Compiler provided by '+args.compiler)
 	load_compiler(compiler)
 	gc.set_instruction_class(hl2ll.Instruction)
+	if (shallow_evaluation):
+		do_evaluation(f, k, force, config, None, None, failed_dataset, True)
+		return
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
 			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'replacements', 'out'])
 			csv.writer(ffail).writerow(['line', 'hl', 'll', 'replacements'])
-			with open(f + '.corpus.hl', 'r') as fhl:
-				with open(f + '.corpus.ll', 'r') as fll:
-					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-						with open(f + '.corpus.replacements', 'r') as freplacements:
-							(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
-													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
-													 failed_dataset=failed_dataset)
+			(nsuccess, nfail) = do_evaluation(f, k, force, config, fsuccess, ffail, failed_dataset)
+
 	logging.info(str(nsuccess) + ' statements translated successfully')
 	logging.info(str(nfail) + ' statements failed to translate')
 
@@ -232,6 +282,7 @@ if __name__ == "__main__":
 						help="configuration file (default: \'%(default)s\')")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
+	parser.add_argument('--shallow_evaluation', type=bool, default=False, help="do shallow evaluation (default: \'%(default)s\')")
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
