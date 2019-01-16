@@ -14,8 +14,10 @@ import random
 import compare_hl as hl_util
 import pandas
 import fix_hl_by_ll
-conditions = ['==', '<', '>', '>=', '<=']
+conditions = ['==', '<', '>', '>=', '<=', '!=']
 opers = ['-', '+', '*', '/', '%']
+digits = map(lambda x: str(x), range(1,10))
+
 def parsePostOrder(po):
 	return po_util.parse(po)
 
@@ -165,34 +167,29 @@ def open_stats_csvs(failed_dataset):
 	return failed_dataset + 'trees_stats.csv'
 
 
-def creat_and_save_sentences_from_failes(hl, out_file):
-    hls_list = []
-    hl_list = hl.split(' ')
-    hls_list.append(hl)
-    for i in range(hl_list):
-        if hl_list[i] in conditions:
-            for cond in conditions:
-                if not cond == hl_list[i]:
-                    tmp = hl_list[:]
-                    tmp[i] = cond
-                    hls_list.append(' '.join(tmp))
-        elif hl_list[i] in opers:
-            for oper in opers:
-                if not oper == hl_list[i]:
-                    tmp = hl_list[:]
-                    tmp[i] = oper
-                    hls_list.append(' '.join(tmp))
-        elif hl_list[i] == 'WHILE':
-            tmp = hl_list[:]
-            tmp[i] = 'IF'
-            hls_list.append(' '.join(tmp))
+def create_and_save_sentences_from_failes(hl, out_file):
+	hls_list = []
+	hl_list = hl.split(' ')
+	hls_list.append(hl)
+	for j in range(150):
+		tmp = hl_list[:]
+		for i in range(hl_list.__len__()):
+			if hl_list[i] in conditions:
+				tmp[i] = conditions[random.randint(0, conditions.__len__() - 1)]
+			elif hl_list[i] in opers:
+				tmp[i] = opers[random.randint(0, opers.__len__() - 1)]
+			elif hl_list[i] in digits:
+				tmp[i] = str(random.randint(1, 9))
+			elif fix_hl_by_ll.is_var(hl_list[i]):
+				tmp[i] = 'X' + str(random.randint(1, 14))
+		hls_list.append(' '.join(tmp))
 
-    lls_list = map(lambda x: compiler(parsePostOrder(x)[1].c()), hls_list)
-    with open(out_file + '.corpus.hl', 'w') as fhl:
-        with open(out_file + '.corpus.ll', 'w') as fll:
-            for i in range(hl_list):
-                fhl.write(hls_list[i] + '\n')
-                fll.write(lls_list[i] + '\n')
+	lls_list = map(lambda x: compiler(parsePostOrder(x)[1].c()), hls_list)
+	with open(out_file + '.corpus.hl', 'a') as fhl:
+		with open(out_file + '.corpus.ll', 'a') as fll:
+			for i in range(hls_list.__len__()):
+				fhl.write(hls_list[i] + '\n')
+				fll.write(lls_list[i] + '\n')
 
 
 
@@ -223,7 +220,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 			nsuccess += 1
 		else:
 			if shallow_evaluation:
-				creat_and_save_sentences_from_failes(x[1], failed_dataset)
+				create_and_save_sentences_from_failes(x[1], failed_dataset)
 			if ff:
 				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
 			write_stats(str(x[0]), x[1], False, csv_path, df[df['sentence_id'] == x[0]])
@@ -232,6 +229,10 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
 				os.remove(f)
+
+	if shallow_evaluation:
+		return (nsuccess, nfail)
+
 	hl_util.analize_mistakes(failed_dataset, nfail)
 	return (nsuccess, nfail)
 
@@ -290,7 +291,7 @@ if __name__ == "__main__":
 	config = ConfigParser.ConfigParser()
 	config.read(args.c)
 
-	main(args.dataset, args.num_translations, args.compiler, args.force, config, args.failed_dataset)
+	main(args.dataset, args.num_translations, args.compiler, args.force, config, args.failed_dataset, args.shallow_evaluation)
 	if args.force:
 		for f in os.listdir('.'):
 			if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
