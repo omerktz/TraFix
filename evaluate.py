@@ -81,48 +81,52 @@ def write_stats(id, hl, succeeded, csv_path, df):
 	with open(csv_path, 'a') as f:
 		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl, df))
 
-def try_fix(cs, ll, lls, i, hl ,replacements, x, combine=False):
+def try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False):
 	new_hl = fix_hl_by_ll.fix_hl(cs[x], ll, lls[x], combine)
 	if (new_hl is not None and compiler(new_hl) == ll):
-		print 'fixed!!! number: ' + str(i)
+		reason = 'my fix' + (' combined' if combine else '')
+		csv.writer(f).writerow([str(i), 'true', reason])
 		return (i, hl, ll, replacements, new_hl, 0)
 	return None
 
-def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shallow_evaluation=False):
+def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shallow_evaluation=False, f=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	ll = combine_digits(ll)
 	# if not (i == 287):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
+		csv.writer(f).writerow([str(i), 'false', 'no translations'])
 		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
+		csv.writer(f).writerow([str(i), 'false', 'unparsable'])
 		return (i, hl, ll, replacements, None, 2)  # unparsable
 	cs = map(lambda x: x[1].c().strip() if x[0] else '', res)
 	# compare c code
 	lls = map(lambda x: compiler(x), cs)
 	if not any(lls):
+		csv.writer(f).writerow([str(i), 'false', 'does not compile'])
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	if shallow_evaluation:
 		return (i,hl, ll, replacements, None, 0)
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
 	ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
+		csv.writer(f).writerow([str(i), 'true', 'direct success'])
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
-	print 'start my part, number: ' + str(i)
+
 	# print parsePostOrder(hl)[1].c()
 
 	for x in range(lls.__len__()):
-		answer = try_fix(cs, ll, lls, i, hl ,replacements, x, combine=False)
+		answer = try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False)
 		if (answer is not None):
 			return answer
 		else:
-			answer = try_fix(cs, ll, lls, i, hl, replacements, x, combine=True)
+			answer = try_fix(cs, ll, lls, i, hl, replacements, x, f, combine=True)
 			if (answer is not None):
 				return answer
-	print 'did not fix. number: ' + str(i)
 
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
@@ -130,14 +134,14 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 		for j in successful_comparisons:
 			needed_replacements = graph_comparisons[j][1]
 			if all(map(lambda l: len(l) == 0, needed_replacements.values())):
-				print 'graph comperison fix. number: ' + str(i)
+				csv.writer(f).writerow([str(i), 'true', 'graph comperison'])
 				return (i, hl, ll, replacements, cs[j], 0)  # success
 			else:
 				logging.debug('Attempting to fix code for input '+str(i))
 				fixed_code = cf.fix_code(cs[j], ll, hl2ll, gc, lls[j], needed_replacements)
 				if fixed_code is not None:
 					logging.debug('Fix successful!')
-					print 'omers_fix. number: ' + str(i)
+					csv.writer(f).writerow([str(i), 'true', 'omers numbers'])
 					return (i, hl, ll, replacements, fixed_code, 0)  # success
 	if failed_dataset:
 		with open(failed_dataset + '.corpus.hl', 'a') as fhl:
@@ -151,6 +155,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
+
+	csv.writer(f).writerow([str(i), 'false', 'did not fix'])
 	return (i, hl, ll, replacements, None, 4)  # fail
 
 
@@ -163,6 +169,10 @@ def open_stats_csvs(failed_dataset):
 
 	with open(failed_dataset + 'understand_fails.csv', 'w') as f:
 		csv.writer(f).writerow(['sentence_id', 'origin_hl', 'models_h', 'mistakes', 'types', 'line_mistaken', 'depth_mistaken', 'worst_type'])
+
+
+	with open(failed_dataset + 'success_fail_reasons.csv', 'w') as f:
+		csv.writer(f).writerow(['sentence_id', 'did_succeeded', 'reason'])
 
 	return failed_dataset + 'trees_stats.csv'
 
@@ -207,8 +217,9 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
 	csv_path = open_stats_csvs(failed_dataset)
-	results = map(
-		lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset, shallow_evaluation), range(len(lls)))
+	with open(failed_dataset + 'success_fail_reasons.csv', 'a') as f:
+		results = map(
+			lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset, shallow_evaluation, f), range(len(lls)))
 	df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:

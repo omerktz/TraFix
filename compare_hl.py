@@ -38,7 +38,7 @@ types_with_victory = types + ['victory!!']
 none_oper_index = -100
 titles = ['percentile', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth', 'lines_num',
           'mistake_line', 'mistake_depth', 'ifs_num', 'else_num', 'loops_num', 'nested_depth']
-
+type_without_depth = ['while_num', 'else_num', 'if_num', 'lines', 'nodes_num']
 
 def find_oper_idex(h_list_line):
     open_brackets = 0
@@ -602,6 +602,11 @@ def writeMisMatches_hl(i, failed_dataset, h, hl):
             j += 1
 
     worst_type = get_worst_or_best_type(error_types)
+    if worst_type in type_without_depth:
+        first_depth_mistaken = 0
+        if worst_type == 'lines':
+            first_line_mistaken = 0
+
     with open(failed_dataset + 'understand_fails.csv', 'a') as f:
         csv.writer(f).writerow([str(i), to_write_in_csv_origin_hl, to_write_in_csv_models_h, str(compared_trees), str(error_types), str(first_line_mistaken), str(first_depth_mistaken), worst_type])
 
