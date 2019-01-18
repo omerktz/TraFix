@@ -176,9 +176,11 @@ def handle_minus_concatination(left_tree, right_tree):
         if (right_tree.get_value() == minus or right_tree.get_value() == plus):
             if(is_number(right_tree.get_left().get_value())):
                 left_tree.set_value(str(int(left_tree.get_value()) - int(right_tree.get_left().get_value())))
-                tree = Node(right_tree.get_value())
+                tree = Node(plus if right_tree.get_value() == minus else minus)
                 tree.set_left(left_tree)
                 tree.set_right(right_tree.get_right())
+                if(right_tree.get_left().get_left() is not None):
+                    tree.get_right().set_most_left_with_tree(right_tree.get_left().get_left())
                 return tree
 
 

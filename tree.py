@@ -43,6 +43,12 @@ class Node:
         else:
             self.right.delete_most_right()
 
+    def set_most_left_with_tree(self, tree):
+        if (self.left == None):
+            self.left = tree
+        else:
+            self.left.set_most_left_with_tree(tree)
+
     def set_most_left(self, value):
         if (self.left == None):
             self.left = Node(value)
