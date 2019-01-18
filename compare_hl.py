@@ -152,7 +152,7 @@ def handle_plus_concatination(left_tree, right_tree):
 
 
 def handle_minus_concatination(left_tree, right_tree):
-    if (right_tree.get_value().isdigit() and left_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value()) and is_number(left_tree.get_value())):
         return Node(str(int(left_tree.get_value()) - int(right_tree.get_value())))
 
     if (right_tree.get_value().isdigit()):
@@ -170,6 +170,19 @@ def handle_minus_concatination(left_tree, right_tree):
         tree = Node(plus)
         tree.set_left(left_tree)
         tree.set_right(right_tree.get_value()[1:])
+        return tree
+
+    elif (is_number(left_tree.get_value())):
+        if (right_tree.get_value() == minus or right_tree.get_value() == plus):
+            if(is_number(right_tree.get_left().get_value())):
+                left_tree.set_value(str(int(left_tree.get_value()) - int(right_tree.get_left().get_value())))
+                tree = Node(right_tree.get_value())
+                tree.set_left(left_tree)
+                tree.set_right(right_tree.get_right())
+                return tree
+
+
+
     # TODO: num - (x +- num) - changes a lot
 
     return None
