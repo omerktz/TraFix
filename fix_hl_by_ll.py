@@ -12,6 +12,8 @@ smaller = ['<', '<=']
 conditions = larger + smaller
 max_num = 10000000
 divs = ['/', '%']
+plus = '+'
+minus = '-'
 
 hl2ll = None
 def load_compiler(f):
@@ -241,6 +243,14 @@ def fix_div_in_hl(hl, ll_origin, ll_model, index):
                     return None
     return None
 
+def try_to_change_oper(hl, ll_origin, index, old_oper, new_oper):
+    list_hl = hl.split(' ')
+    for i in range(list_hl.__len__()):
+        if list_hl[i] in old_oper:
+            try_hl = create_and_check_hl(list_hl, i, ll_origin, index, new_oper)
+            if try_hl is not None:
+                return try_hl
+
 def is_close_numbers(num1, num2):
     return abs(num1 - num2) == 1
 
@@ -266,7 +276,6 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
     ll_origin_list = ll_origin.split(' ')
     ll_model_list = ll_model.split(' ')
     close_numbers = False
-
     for i in range(ll_origin_list.__len__()):
         if ll_model_list.__len__() == i:
             return None
@@ -284,6 +293,21 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
             fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
         elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
             fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
+        elif(ll_origin_list[i] == 'movl'):
+            if (ll_model_list[i] == 'addl'):
+                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
+            elif (ll_model_list[i] == 'subl'):
+                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
+            else:
+                return None
+
+        elif (ll_origin_list[i] == 'subl') \
+            and (ll_model_list[i] == 'movl'):
+                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
+
+        elif (ll_origin_list[i] == 'addl') \
+            and (ll_model_list[i] == 'movl'):
+                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
         else:
             return None
 
@@ -356,9 +380,9 @@ if __name__ == "__main__":
     # print comp
     # print comp == ll
     # exit(0)
-    hl = 'X1 ++X X1 * X9 --X != COND 5 5 X7 X10 * 4 4 X8 - % > COND X1 7 3 - 6 / X11 = WHILE TRUE 5 7 X7 - X12 = 1 5 | 4 2 X11 X2 + + - 4 2 X7 - + X10 + X8 = FALSE IF'
+    hl = '7 9 | 5 7 X4 % + X14 + 1 8 - X13 X4 - - X14 = X7 X5 X9 9 4 - / X5 5 0 - % X5 + + X11 / X5 = 4 1 X10 6 7 | 6 5 X2 X-- + - + 7 6 | 7 7 X10 - + % - 7 6 | 8 5 X10 + X4 7 4 / 7 0 * - % > COND X7 ++X X2 = TRUE IF 8 4 X13 X9 + % X10 ='
     hl = po_util.parse(hl)[1].c().strip()
-    hl_origin = 'X1 ++X X1 * X9 --X != COND 5 4 X7 X10 * 4 4 X8 - % >= COND X1 7 3 - 6 / X11 = WHILE TRUE 5 7 X7 - X12 = 3 7 | 6 5 X11 X2 + + - 4 2 X7 - + X10 + X8 = FALSE IF'
+    hl_origin = '7 9 | 5 7 X4 % + X14 + 1 8 - X13 X4 - - X14 = X5 X11 X9 9 4 - / X5 5 0 - % + X7 + X11 / X5 = 4 1 X10 4 4 X2 X-- 5 0 + - + 7 8 | 7 0 X10 - + % - 7 6 X10 8 5 + X4 7 4 / 7 0 * - % > COND X7 ++X X2 = TRUE IF 8 4 X13 X9 + % X10 ='
     hl_origin = po_util.parse(hl_origin)[1].c().strip()
     # print hl
     # print compiler(hl)
@@ -374,7 +398,7 @@ if __name__ == "__main__":
 
     print fixed_hl
     print compiler(fixed_hl) == ll_origin
-    # print hl
-    # print hl_origin
-    # print ll_model
-    # print ll_origin
+    print hl
+    print hl_origin
+    print ll_model
+    print ll_origin
