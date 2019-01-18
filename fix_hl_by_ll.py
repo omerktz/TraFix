@@ -65,7 +65,7 @@ def find_first_mis_match(ll_origin, ll_model):
     return -1
 
 
-def create_and_check_hl(list_hl, i, ll_origin, index, new_value, div=False):
+def create_and_check_hl(list_hl, i, ll_origin, index, new_value):
     try_hl = list_hl[:]
     try_hl[i] = new_value
     try_hl = ' '.join(try_hl)
@@ -74,9 +74,6 @@ def create_and_check_hl(list_hl, i, ll_origin, index, new_value, div=False):
         return None
     first_mis_match = find_first_mis_match(ll_origin, try_ll.split(' '))
     if (first_mis_match == -1 or first_mis_match > index):
-        if (div):
-            if (ll_origin[first_mis_match - 1] == 'sarl'):
-                return None
         return try_hl
     else:
         return None
@@ -130,18 +127,123 @@ def fix_cond_in_hl(hl, ll_origin, index):
 
     return None
 
+# def divsdivs(hl_list, origin_model_ll, mistake_index, new_value):
+#     divs = filter(lambda x: hl_list[x] == '/', range(len(hl_list)))
+#     numbers = map(lambda i: i + 1, divs)
+#     last_changed = 0
+#     for i in numbers:
+#         original_value = hl_list[i]
+#         if not is_number(original_value):
+#             continue
+#         if(hl_list[i] == '87'):
+#             hl_list[i] = '77'
+#         else:
+#             hl_list[i] = '87'
+#         new_model_ll = compiler(' '.join(hl_list)).split(' ')
+#
+#         if new_model_ll[mistake_index] != origin_model_ll[mistake_index]:
+#             # this is not the div that we are after
+#             hl_list[i] = original_value
+#             continue
+#
+#         original_int = int(original_value)
+#         new_values = set()
+#         replacement = replacements[relevant_replacements[0]][0]
+#         # the first replacement. const 0 - origin. const 1 - models.
+#         constant0 = int(replacement[0])
+#         constant1 = int(replacement[1])
+#         if len(relevant_replacements) == 1:
+#             # we changed the exp
+#             if (constant0 > 0) and (constant0 <= 32):
+#                 if (constant1 > 0) and (constant1 <= 32):
+#                     if constant0 - constant1 > 0:
+#                         new_values.add(original_int >> (constant0 - constant1))
+#                     else:
+#                         new_values.add(original_int << (constant1 - constant0))
+#             else:
+#                 new_values.add(original_int * constant0 / float(constant1))
+#                 new_values.add(original_int * (constant0 + (1 << 32)) / float(constant1 + (1 << 32)))
+#         elif len(replacements) == 2:
+#             power_replacement = map(lambda x: int(x), replacements[relevant_replacements[1]][0])
+#             if (power_replacement[0] > 0) and (power_replacement[0] <= 32) and (power_replacement[1] > 0) and (
+#                     power_replacement[1] <= 32):
+#                 try:
+#                     if original_int * constant0 >> (power_replacement[0] + 32) == 1:
+#                         new_values.add((1 << (32 + power_replacement[1])) / float(constant1))
+#                     elif original_int * (constant0 + (1 << 32)) >> (power_replacement[0] + 32) == 1:
+#                         new_values.add((1 << (32 + power_replacement[1])) / float(constant1 + (1 << 32)))
+#                     else:
+#                         # print "Unknown div to mul pattern"
+#                         # print map(lambda x: (x, replacements[x]), relevant_replacements)
+#                         pass
+#                 except OverflowError:
+#                     pass
+#         for new_value in new_values:
+#             new_value_str = str(int(round(new_value)))
+#             new_remaining_replacements = try_new_value(str(new_value_str), hl_list, i, ll, compiler, comparison)
+#             if new_remaining_replacements is None:
+#                 hl_list[i] = original_value
+#                 continue
+#             if len(new_remaining_replacements.keys()) == 0:
+#                 hl_list[i] = str(new_value_str)
+#                 return ' '.join(hl_list)
+#             if found_right_replacement(new_remaining_replacements, replacements, relevant_replacements):
+#                 remaining_replacements = new_remaining_replacements
+#                 break
+#             hl_list[i] = original_value
+#         last_changed = changed
+#     return None
 
-def fix_div_in_hl(hl, ll_origin, index):
+def find_exp(ll, index):
+    for i in range(index, ll.__len__()):
+        if ll[i] == 'sarl':
+            return int(ll[i+1])
+    return None
+
+
+def fix_div_in_hl(hl, ll_origin, ll_model, index):
     list_hl = hl.split(' ')
     for i in range(list_hl.__len__()):
         if list_hl[i] in divs:
             if is_number(list_hl[i+1]):
-                num = int(list_hl[i+1])
-                for j in range(num - 10, num + 10):
-                    try_hl = create_and_check_hl(list_hl, i + 1, ll_origin, index, str(j), div=True)
-                    if try_hl is not None:
-                        return try_hl
-
+                print 'lists hl'
+                print list_hl
+                print ' '.join(list_hl)
+                origin_value_hl = list_hl[i+1]
+                if(list_hl[i+1] == '87'):
+                    list_hl[i+1] = '77'
+                else:
+                    list_hl[i+1] = '87'
+                print list_hl
+                print ' '.join(list_hl)
+                temp_model_ll = compiler(' '.join(list_hl)).split(' ')
+                if temp_model_ll[index] == ll_model[index]:
+                    list_hl[i+1] = origin_value_hl
+                else:
+                    origin_value_hl = int(origin_value_hl)
+                    origin_exp = find_exp(ll_origin, index)
+                    origin_const = int(ll_origin[index])
+                    models_exp = find_exp(ll_model, index)
+                    models_const = int(ll_model[index])
+                    if (origin_exp == models_exp):
+                        replacement = str(int(round(origin_value_hl * models_const / float(origin_const))))
+                        try_hl = create_and_check_hl(list_hl, i + 1, ll_origin, index, replacement)
+                        if try_hl is not None:
+                            return try_hl
+                        replacement = str(int(round(origin_value_hl * (models_const + (1 << 32)) / float(origin_const + (1 << 32)))))
+                        try_hl = create_and_check_hl(list_hl, i + 1, ll_origin, index, replacement)
+                        if try_hl is not None:
+                            return try_hl
+                    else:
+                        replacement = str(int(round((1 << (32 + origin_exp)) / float(origin_const))))
+                        try_hl = create_and_check_hl(list_hl, i + 1, ll_origin, index, replacement)
+                        if try_hl is not None:
+                            return try_hl
+                        replacement = str(int(round((1 << (32 + origin_exp)) / float(origin_const + (1 << 32)))))
+                        try_hl = create_and_check_hl(list_hl, i + 1, ll_origin, index, replacement)
+                        if try_hl is not None:
+                            return try_hl
+                    return None
     return None
 
 def is_close_numbers(num1, num2):
@@ -154,6 +256,7 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
     # print hl
     # print ll_origin
     # print ll_model
+    # print combine
 
     load_compiler('x86Util.py')
     if (combine):
@@ -177,13 +280,13 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
         if(is_number(ll_origin_list[i]) and is_number(ll_model_list[i])):
             close_numbers = is_close_numbers(int(ll_origin_list[i]), int(ll_model_list[i]))
             if(is_devide_num_prob(int(ll_origin_list[i]), int(ll_model_list[i]))):
-                fixed_hl = fix_div_in_hl(hl, ll_origin_list, i)
+                fixed_hl = fix_div_in_hl(hl, ll_origin_list, ll_model_list, i)
             else:
                 fixed_hl = fix_number_in_hl(hl, ll_origin_list, ll_model_list[i], i)
-        elif (is_var(ll_origin_list[i]) and is_var(ll_model_list[i])):
-            fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
-        elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
-            fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
+        # elif (is_var(ll_origin_list[i]) and is_var(ll_model_list[i])):
+        #     fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
+        # elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
+        #     fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
         else:
             return None
 
@@ -231,12 +334,18 @@ def check_successes(exp_name):
 
 if __name__ == "__main__":
     load_compiler('x86Util.py')
+    # hl = 'X4 X2 = 7 7 | 2 8 X0 9 1 / * * X3 = X14 X11 = X11 7 6 X6 1 5 - + X6 % / 1 0 X0 X2 - 5 4 * X2 + % X4 X6 * X2 / 1 3 * % != COND 9 4 | 1 6 X14 / X6 6 9 % + == COND 1 6 X6 9 9 X5 + 4 1 | 2 5 X4 % * * + % X13 = WHILE WHILE'
+    # print po_util.parse(hl)[1].c()
+    # print compiler(po_util.parse(hl)[1].c())
+    # hl = 'X1 = X1 / 87'
+    # print compiler(hl)
+    # exit(0)
     # exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_44_to_100')
     # check_successes(exp_name)
-    hl = 'X8 X14 2 8 / * X2 = X5 7 5 X12 * % 0 6 | 3 9 X6 X9 / - - - X11 8 0 X7 / X1 - + == COND X10 1 4 % 0 4 - 9 4 + X2 3 7 X2 * + - X0 = X4 X1 X7 1 2 - 0 2 % / 5 6 + * X0 = X10 X14 = WHILE X6 ++X X2 - X5 --X + X4 --X < COND 4 | 5 6 X13 --X * * 7 9 / X4 ++X % X8 = WHILE X14 6 8 + X10 8 5 X3 5 1 | 9 1 X0 * / % - + >= COND X5 X9 != COND X13 X6 X4 + 9 3 / == COND 2 1 X3 = WHILE 3 1 X3 % X13 / 8 4 X6 + != COND X13 X7 / X5 = TRUE 9 2 X1 X7 --X X12 6 1 X13 % - % - * X13 = FALSE IF 0 9 X4 X14 / % X6 = WHILE TRUE IF'
-    print compiler(po_util.parse(hl)[1].c())
-    print (po_util.parse(hl)[1].c())
-    exit(0)
+    # hl = '2 7 X8 + 6 9 + X4 == COND 7 8 X3 = TRUE IF 3 2 X10 = X2 8 0 | 6 5 X2 % * / X6 X3 + / X3 - X1 = 9 3 | 5 2 X5 5 1 % % % 9 3 X7 - 5 0 + / X6 = X11 --X X13 - X12 ='
+    # print compiler(po_util.parse(hl)[1].c())
+    # print (po_util.parse(hl)[1].c())
+    # exit(0)
     # hl = 'while ( ( -- X0 - ( 66 % X6 ) ) == ( ( X5 -- * ( X0 / X5 ) ) * ( ( ( 30 + ( 35 / X12 ) ) + 28 ) + X12 ) ) ) { X3 = ( ( X14 / X8 ) % 33 ) + ( ( X10 / X1 ) / ( ( X10 - 27 ) + ( X3 % X10 ) ) ) ; X2 = X0 ; if ( ( ( X4 * X1 ) + 52 ) != ( ( X14 / ( 72 % -- X3 ) ) % ( ( 51 + X5 ) / X10 ++ ) ) ) { if ( ( ( 35 / X3 ) + 34 ) <= ( ( ( 64 * -- X14 ) - ( ( ( -- X10 + 27 ) - X12 ) - 60 ) ) / ( X1 / ( 60 - X13 ) ) ) ) { X7 = ( ( X9 % 12 ) % ( 39 % X6 ) ) / X1 ; } ; } ; } ; X6 = X10 / ( X1 % ( 12 * X7 ) ) ; X14 = 53 ; X5 = ( 21 / X14 ) * ( X8 / ( ( 91 * X14 ) - 40 ) ) ;'
     # ll = 'movl 8447 , X14 ; movl X12 , %eax ; movl 9686 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl 1981325155 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 12 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 8879 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X11 , %edx ; subl 1 , %edx ; movl %edx , X11 ; movl X11 , %edx ; cmpl %edx , %eax ; jl .L0 ; movl X1 , %edx ; movl X9 , %eax ; cmpl %eax , %edx ; jl .L0 ; movl X13 , %eax ; leal 9263 ( %eax ) , %edx ; movl X5 , %eax ; subl %eax , %edx ; movl X2 , %eax ; addl %edx , %eax ; movl %eax , X13 ; .L0 : ; movl X6 , %eax ; movl %eax , X13 ; movl X7 , %eax ; addl 4535 , %eax ; movl X1 , %edx ; movl 3440 , %ecx ; subl %edx , %ecx ; movl %ecx , %esi ; idivl %esi ; movl %eax , %ebx ; movl X3 , %eax ; movl 9021 , %edx ; subl %eax , %edx ; movl X4 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X12 , %eax ; imull 7582 , %eax , %eax ; movl X6 , %esi ; idivl %esi ; leal ( %ecx ,%eax ) , %edx ; movl X4 , %eax ; imull %edx , %eax ; cmpl %eax , %ebx ; jg .L1 ; movl X3 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X3 ; movl %eax , X9 ; jmp .L2 ; .L1 : ; movl X14 , %eax ; movl %eax , X11 ; .L2 : ; movl X1 , %eax ; imull 5485 , %eax , %edx ; movl X4 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X10 ;'
     # comp = compiler(hl)
@@ -250,15 +359,21 @@ if __name__ == "__main__":
     # print comp
     # print comp == ll
     # exit(0)
-    hl = 'X0 --X 6 6 X6 % - X5 X-- X0 X5 / * X12 5 5 | 3 5 X12 / + + * == COND X14 X8 / 3 3 % X10 X1 / X10 2 2 + X3 X10 % + / + X3 = X0 X2 = 2 5 X4 X1 * + X14 7 7 X3 --X % / 5 5 X5 + X10 X++ / % != COND 3 5 X3 / 3 4 + X14 --X 6 4 * 2 4 X10 --X + X12 - 6 - - X1 6 X13 - / / <= COND X9 1 2 % 3 3 X6 % % X1 / X7 = TRUE IF TRUE IF WHILE X10 X1 1 2 X7 * % / X6 = 5 5 X14 = 2 0 X14 / X8 1 5 | 9 1 X14 * - / * X5 ='
-    hl = po_util.parse(hl)[1].c().strip()
+    # hl = '7 4 X2 X10 - % 2 9 | 1 0 X4 X-- - / - X1 X11 7 9 + / X8 % X6 X9 % * == COND 4 9 | 5 5 X10 % % 2 7 X14 X5 - 5 2 X0 - 5 2 % / * < COND 5 1 X2 = WHILE TRUE IF'
+    # hl = po_util.parse(hl)[1].c().strip()
     # print hl
+    # print compiler(hl)
+    # print
+    # exit(0)
+    hl = 'X1 = X1 / 77'
     # hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
     # hl = from_tree_to_code(hl_tree)
     # hl = 'while ( ( X9 / ( ( 88 * X3 ) - X1 ) ) <= ( ( ( X10 % 95 ) - X5 ) - X7 ) ) { while ( X3 ++ < ( ( ( ( 69 / X9 ) % X13 ) + 33 ) % X6 ) ) { if ( ( ( ( X0 + 44 ) / ( 78 % X9 ) ) % 80 ) <= ( ( ( X7 / X13 ) % 55 ) - ( ( 24 - X2 ) % X8 ) ) ) { while ( X3 ++ < ( ( ( ( 39 / X9 ) % X13 ) + 33 ) % X6 ) ) { X3 = 77 / X3 ; } ; } else { X1 = ( X11 / 55 ) + X7 ; } ; } ; } ;'
-    ll_origin = 'jmp .L1 ; .L0 : ; movl X14 , %eax ; movl X8 , %edi ; idivl %edi ; movl %eax , %ebx ; movl 1041204193 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 3 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; sall 5 , %eax ; addl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X10 , %eax ; movl X1 , %esi ; idivl %esi ; movl %eax , %edi ; movl X10 , %eax ; leal -27 ( %eax ) , %esi ; movl X3 , %eax ; movl X10 , %ebx ; idivl %ebx ; movl %edx , %eax ; addl %eax , %esi ; movl %edi , %eax ; idivl %esi ; addl %ecx , %eax ; movl %eax , X3 ; movl X0 , %eax ; movl %eax , X2 ; movl X4 , %edx ; movl X1 , %eax ; imull %edx , %eax ; leal 52 ( %eax ) , %esi ; movl X14 , %ecx ; movl X3 , %eax ; subl 1 , %eax ; movl %eax , X3 ; movl X3 , %ebx ; movl 72 , %eax ; idivl %ebx ; movl %edx , %edi ; movl %ecx , %eax ; idivl %edi ; movl %eax , %ebx ; movl X5 , %eax ; leal 51 ( %eax ) , %ecx ; movl X10 , %edi ; leal 1 ( %edi ) , %eax ; movl %eax , X10 ; movl %ecx , %eax ; idivl %edi ; movl %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %eax ; cmpl %eax , %esi ; je .L1 ; movl X3 , %edi ; movl 35 , %eax ; idivl %edi ; leal 34 ( %eax ) , %ebx ; movl X14 , %eax ; subl 1 , %eax ; movl %eax , X14 ; movl X14 , %eax ; sall 6 , %eax ; movl %eax , %edx ; movl X10 , %eax ; subl 1 , %eax ; movl %eax , X10 ; movl X10 , %eax ; leal 27 ( %eax ) , %ecx ; movl X12 , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl 60 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X1 , %eax ; movl X13 , %edx ; movl 60 , %esi ; subl %edx , %esi ; idivl %esi ; movl %eax , %edi ; movl %ecx , %eax ; idivl %edi ; cmpl %eax , %ebx ; jg .L1 ; movl X9 , %ebx ; movl 715827883 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 1 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; addl %eax , %eax ; addl %ecx , %eax ; sall 2 , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X6 , %ebx ; movl 39 , %eax ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl X1 , %esi ; idivl %esi ; movl %eax , X7 ; .L1 : ; movl X0 , %eax ; subl 1 , %eax ; movl %eax , X0 ; movl X0 , %ecx ; movl X6 , %ebx ; movl 66 , %eax ; idivl %ebx ; movl %edx , %eax ; movl %ecx , %ebx ; subl %eax , %ebx ; movl X5 , %ecx ; leal -1 ( %ecx ) , %eax ; movl %eax , X5 ; movl X0 , %eax ; movl X5 , %edi ; idivl %edi ; imull %eax , %ecx ; movl X12 , %edi ; movl 35 , %eax ; idivl %edi ; leal 58 ( %eax ) , %edx ; movl X12 , %eax ; addl %edx , %eax ; imull %ecx , %eax ; cmpl %eax , %ebx ; je .L0 ; movl X10 , %ecx ; movl X1 , %ebx ; movl X7 , %edx ; movl %edx , %eax ; addl %eax , %eax ; addl %edx , %eax ; sall 2 , %eax ; movl %eax , %esi ; movl %ebx , %eax ; idivl %esi ; movl %edx , %edi ; movl %ecx , %eax ; idivl %edi ; movl %eax , X6 ; movl 53 , X14 ; movl X14 , %esi ; movl 21 , %eax ; idivl %esi ; movl %eax , %ecx ; movl X8 , %eax ; movl X14 , %edx ; imull 91 , %edx , %edx ; leal -40 ( %edx ) , %edi ; idivl %edi ; imull %ecx , %eax ; movl %eax , X5 ;'
-    ll_model = 'jmp .L1 ; .L0 : ; movl X14 , %eax ; movl X8 , %edi ; idivl %edi ; movl %eax , %ebx ; movl 1041204193 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 3 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; sall 5 , %eax ; addl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X10 , %eax ; movl X1 , %esi ; idivl %esi ; movl %eax , %edi ; movl X10 , %eax ; leal 22 ( %eax ) , %esi ; movl X3 , %eax ; movl X10 , %ebx ; idivl %ebx ; movl %edx , %eax ; addl %eax , %esi ; movl %edi , %eax ; idivl %esi ; addl %ecx , %eax ; movl %eax , X3 ; movl X0 , %eax ; movl %eax , X2 ; movl X4 , %edx ; movl X1 , %eax ; imull %edx , %eax ; leal 25 ( %eax ) , %esi ; movl X14 , %ecx ; movl X3 , %eax ; subl 1 , %eax ; movl %eax , X3 ; movl X3 , %ebx ; movl 77 , %eax ; idivl %ebx ; movl %edx , %edi ; movl %ecx , %eax ; idivl %edi ; movl %eax , %ebx ; movl X5 , %eax ; leal 55 ( %eax ) , %ecx ; movl X10 , %edi ; leal 1 ( %edi ) , %eax ; movl %eax , X10 ; movl %ecx , %eax ; idivl %edi ; movl %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %eax ; cmpl %eax , %esi ; je .L1 ; movl X3 , %edi ; movl 35 , %eax ; idivl %edi ; leal 34 ( %eax ) , %ebx ; movl X14 , %eax ; subl 1 , %eax ; movl %eax , X14 ; movl X14 , %eax ; sall 6 , %eax ; movl %eax , %edx ; movl X10 , %eax ; subl 1 , %eax ; movl %eax , X10 ; movl X10 , %eax ; leal 24 ( %eax ) , %ecx ; movl X12 , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl 6 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X1 , %eax ; movl X13 , %edx ; movl 6 , %esi ; subl %edx , %esi ; idivl %esi ; movl %eax , %edi ; movl %ecx , %eax ; idivl %edi ; cmpl %eax , %ebx ; jg .L1 ; movl X9 , %ebx ; movl 715827883 , %edx ; movl %ebx , %eax ; imull %edx ; sarl 1 , %edx ; movl %ebx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl %ecx , %eax ; addl %eax , %eax ; addl %ecx , %eax ; sall 2 , %eax ; subl %eax , %ebx ; movl %ebx , %ecx ; movl X6 , %ebx ; movl 33 , %eax ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl X1 , %esi ; idivl %esi ; movl %eax , X7 ; .L1 : ; movl X0 , %eax ; subl 1 , %eax ; movl %eax , X0 ; movl X0 , %ecx ; movl X6 , %ebx ; movl 66 , %eax ; idivl %ebx ; movl %edx , %eax ; movl %ecx , %ebx ; subl %eax , %ebx ; movl X5 , %ecx ; leal -1 ( %ecx ) , %eax ; movl %eax , X5 ; movl X0 , %eax ; movl X5 , %edi ; idivl %edi ; imull %eax , %ecx ; movl X12 , %edi ; movl 35 , %eax ; idivl %edi ; leal 55 ( %eax ) , %edx ; movl X12 , %eax ; addl %edx , %eax ; imull %ecx , %eax ; cmpl %eax , %ebx ; je .L0 ; movl X10 , %ecx ; movl X1 , %ebx ; movl X7 , %edx ; movl %edx , %eax ; addl %eax , %eax ; addl %edx , %eax ; sall 2 , %eax ; movl %eax , %esi ; movl %ebx , %eax ; idivl %esi ; movl %edx , %edi ; movl %ecx , %eax ; idivl %edi ; movl %eax , X6 ; movl 55 , X14 ; movl X14 , %esi ; movl 20 , %eax ; idivl %esi ; movl %eax , %ecx ; movl X8 , %eax ; movl X14 , %edx ; imull -91 , %edx , %edx ; leal 15 ( %edx ) , %edi ; idivl %edi ; imull %ecx , %eax ; movl %eax , X5 ;'
-    fixed_hl = fix_hl(hl, ll_origin, ll_model, True)
+    ll_origin = 'movl X1 , %ecx ; movl 789879043 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X1 ;'
+    ll_model = compiler(hl) #'jmp .L2 ; .L0 : ; movl X9 , %ecx ; movl 48 , %eax ; idivl %ecx ; movl %edx , %ecx ; movl X6 , %edi ; movl 71 , %eax ; idivl %edi ; movl %eax , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl X0 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X8 , %edi ; leal 1 ( %edi ) , %eax ; movl %eax , X8 ; movl %ecx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %ebx ; movl X14 , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 5 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; leal 0 ( ,%edx ,4 ) , %eax ; movl %eax , %edx ; movl %edx , %eax ; sall 4 , %eax ; subl %edx , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl 57 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 3 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; sall 4 , %edx ; subl %eax , %edx ; movl %ecx , %eax ; subl %edx , %eax ; cmpl %eax , %ebx ; jne .L3 ; jmp .L2 ; .L1 : ; movl X9 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X9 ; movl %eax , X0 ; .L2 : ; movl X13 , %esi ; movl X14 , %ebx ; movl X1 , %ecx ; movl 1616928865 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 5 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %edi ; subl %eax , %edi ; imull 85 , %edi , %eax ; subl %eax , %ecx ; movl %ecx , %edi ; movl %ebx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %eax ; subl %eax , %esi ; movl %esi , %eax ; cmpl 69 , %eax ; je .L1 ; jmp .L2 ; .L3 : ; movl X4 , %eax ; movl 72 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X12 ; .L2 : ; movl X9 , %edx ; movl X7 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X3 , %esi ; movl 42 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X11 , %eax ; movl 85 , %edx ; subl %eax , %edx ; movl %edx , %eax ; imull 57 , %eax , %esi ; movl %ebx , %eax ; idivl %esi ; movl %eax , %edx ; movl X11 , %eax ; addl %edx , %eax ; leal ( %ecx ,%eax ) , %edx ; movl X10 , %eax ; cmpl %eax , %edx ; je .L0 ;'
+    fixed_hl = fix_hl(hl, ll_origin, ll_model, False)
     # print hl
     print fixed_hl
     print compiler(fixed_hl) == ll_origin
+    print ll_model
+    print ll_origin

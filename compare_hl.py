@@ -196,7 +196,7 @@ def handle_mult_concatination(left_tree, right_tree):
 def handle_div_concatination(left_tree, right_tree):
     if (right_tree.get_value().isdigit() and left_tree.get_value() == div and left_tree.get_right().get_value().isdigit()):
         tree = left_tree
-        tree.set_right(Node(str(int(left_tree.get_right().get_value()) * int(right_tree.get_value()))))
+        tree.get_right().set_value(str(int(left_tree.get_right().get_value()) * int(right_tree.get_value())))
         return tree
 
     else:
@@ -716,15 +716,15 @@ def get_cut_index_branch(h_list):
     return index
 
 if __name__ == "__main__":
-    h_sentence = 'while ( ( X4 / ( -- X6 * X5 -- ) ) >= ( 67 * ( 81 % ( X13 - X5 ) ) ) ) { X7 = X11 ; } ; X6 = ++ X0 % 84 ; X4 = 19 - ( ( X0 / 80 ) * ( X2 + X12 ) ) ; while ( ( ( ( X13 / ( 90 - X8 ) ) * X12 ) / X9 ) == ( ( 32 - ( X3 / X10 ) ) - X6 ) ) { X3 = 100 / X7 ; } ; if ( ( ( 90 % ( X9 * X4 ) ) - ( ++ X4 * X14 ) ) < ( ( X9 % -- X6 ) / ( X3 - X10 ) ) ) { while ( X3 -- <= ( X5 - ( X13 + X6 ) ) ) { X5 = X2 + ( X12 - -- X4 ) ; if ( X4 == 5 ) { X4 = 5 } ; } ;  } ; else { X14 = 91 ; X8 = ( X5 / 11 ) - X8 ; }'
-    print calc_max_nested(h_sentence.split(' '))
+    # h_sentence = 'while ( ( X4 / ( -- X6 * X5 -- ) ) >= ( 67 * ( 81 % ( X13 - X5 ) ) ) ) { X7 = X11 ; } ; X6 = ++ X0 % 84 ; X4 = 19 - ( ( X0 / 80 ) * ( X2 + X12 ) ) ; while ( ( ( ( X13 / ( 90 - X8 ) ) * X12 ) / X9 ) == ( ( 32 - ( X3 / X10 ) ) - X6 ) ) { X3 = 100 / X7 ; } ; if ( ( ( 90 % ( X9 * X4 ) ) - ( ++ X4 * X14 ) ) < ( ( X9 % -- X6 ) / ( X3 - X10 ) ) ) { while ( X3 -- <= ( X5 - ( X13 + X6 ) ) ) { X5 = X2 + ( X12 - -- X4 ) ; if ( X4 == 5 ) { X4 = 5 } ; } ;  } ; else { X14 = 91 ; X8 = ( X5 / 11 ) - X8 ; }'
+    # print calc_max_nested(h_sentence.split(' '))
 
     # h_sentence = '( X1 + 5 ) - 6 ;'
     # h_tree = from_list_to_tree(h_sentence.split(' '))
     # print h_tree[0]
-    exit (0)
-    h_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
-    hl_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
+    # exit (0)
+    # h_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
+    # hl_post_order = '96 X11 0 - + 33 / 86 / X0 % X13 36 + X6 * 29 / % X13 ='
     # h_post_order = '18 X7 ='
     # hl_post_order = '18 X7 ='
     # h_post_order_list = h_post_order.split(' ')
@@ -747,8 +747,9 @@ if __name__ == "__main__":
     # hl_sentence = postOrderUtil.parse('X5 X++ X8 ++X X10 --X / > COND X3 N5 + X7 X++ X1 * - X14 = TRUE IF X5 X-- 2 + N3 N8 X4 67 / X3 / % / - X13 = X5 X++ X12 = N2 X14 --X >= COND X5 X-- X5 / X14 X12 * X0 X4 - X4 56 / / / * X11 = X8 --X X11 ++X X13 X-- / % X2 = WHILE N18 X3 / X7 / N10 + N12 X11 --X + + X11 =')[1].c()
 
 
-
+    h_sentence = 'X5 = ( ( ( 77 - X1 ) % 84 ) - 44 ) % ( 76 - ( ( X6 / 73 ) / 65 ) ) ;'
     h_tree = from_list_to_tree(h_sentence.split(' '))
+    print h_tree[0].__str__()
     hl_tree = from_list_to_tree(hl_sentence.split(' '))
     print h_tree[0]
     print hl_tree[0]
