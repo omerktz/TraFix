@@ -293,21 +293,23 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
             fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
         elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
             fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
-        elif(ll_origin_list[i] == 'movl'):
-            if (ll_model_list[i] == 'addl'):
-                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
-            elif (ll_model_list[i] == 'subl'):
-                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
-            else:
-                return None
 
-        elif (ll_origin_list[i] == 'subl') \
-            and (ll_model_list[i] == 'movl'):
-                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
+        # elif(ll_origin_list[i] == 'movl'):
+        #     if (ll_model_list[i] == 'addl'):
+        #         fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
+        #     elif (ll_model_list[i] == 'subl'):
+        #         fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
+        #     else:
+        #         return None
+        #
+        # elif (ll_origin_list[i] == 'subl') \
+        #     and (ll_model_list[i] == 'movl'):
+        #         fixed_hl = try_to_change_oper(hl, ll_origin_list, i, plus, minus)
+        #
+        # elif (ll_origin_list[i] == 'addl') \
+        #     and (ll_model_list[i] == 'movl'):
+        #         fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
 
-        elif (ll_origin_list[i] == 'addl') \
-            and (ll_model_list[i] == 'movl'):
-                fixed_hl = try_to_change_oper(hl, ll_origin_list, i, minus, plus)
         else:
             return None
 
