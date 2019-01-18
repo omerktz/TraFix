@@ -206,16 +206,11 @@ def fix_div_in_hl(hl, ll_origin, ll_model, index):
     for i in range(list_hl.__len__()):
         if list_hl[i] in divs:
             if is_number(list_hl[i+1]):
-                print 'lists hl'
-                print list_hl
-                print ' '.join(list_hl)
                 origin_value_hl = list_hl[i+1]
                 if(list_hl[i+1] == '87'):
                     list_hl[i+1] = '77'
                 else:
                     list_hl[i+1] = '87'
-                print list_hl
-                print ' '.join(list_hl)
                 temp_model_ll = compiler(' '.join(list_hl)).split(' ')
                 if temp_model_ll[index] == ll_model[index]:
                     list_hl[i+1] = origin_value_hl
