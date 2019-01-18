@@ -277,10 +277,10 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
                 fixed_hl = fix_div_in_hl(hl, ll_origin_list, ll_model_list, i)
             else:
                 fixed_hl = fix_number_in_hl(hl, ll_origin_list, ll_model_list[i], i)
-        # elif (is_var(ll_origin_list[i]) and is_var(ll_model_list[i])):
-        #     fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
-        # elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
-        #     fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
+        elif (is_var(ll_origin_list[i]) and is_var(ll_model_list[i])):
+            fixed_hl = fix_var_in_hl(hl, ll_origin_list, ll_model_list[i], i)
+        elif (ll_origin_list[i] in jumps and ll_model_list[i] in jumps):
+            fixed_hl = fix_cond_in_hl(hl, ll_origin_list, i)
         else:
             return None
 
