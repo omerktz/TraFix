@@ -65,18 +65,6 @@ def apply_number_replacements_wrapper(ll, replacements, config):
 			code[i] = str(random.randint(min_value, max_value))
 	return ' '.join(code)
 
-numbers_pattern = '(-\d*|\d+)' #'(@@\d*|\d+)'
-two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
-regexp = re.compile(two_numbers_pattern)
-
-def combine_digits(code):
-	while (regexp.search(code) is not None):
-		to_search = regexp.search(code).group()
-		add = '' if to_search[0].isdigit() else ' '
-		code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
-	return code.replace(' | ', ' ')#.replace('@@', '-')
-
-
 def write_stats(id, hl, succeeded, csv_path, df):
 	with open(csv_path, 'a') as f:
 		csv.writer(f).writerow([id, str(succeeded)] + hl_util.calculate_hl_stats(hl, df))
@@ -92,7 +80,7 @@ def try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False):
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shallow_evaluation=False, f=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
-	ll = combine_digits(ll)
+	ll = po_util.combine_digits(ll)
 	# if not (i == 287):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:

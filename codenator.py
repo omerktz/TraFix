@@ -9,7 +9,13 @@ import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 from abstract_numerals import *
 import numpy.random as npr
+import postOrderUtil
 
+
+numbers_pattern = '^(-|N)?\d+'
+two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
+regexp = re.compile(two_numbers_pattern)
+negative_num_sign = '@@'
 
 hl2ll = None
 def load_compiler(f):
@@ -374,15 +380,13 @@ def compiler(s):
 def preprocess_hl(s):
 	return s.po()
 
-numbers_pattern = '^(-|N)?\d+'
-two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
-regexp = re.compile(two_numbers_pattern)
-# negative_num_sign = '@@'
 
 def split_numbers(x):
 	temp = re.match(numbers_pattern, x)
 	if  (temp is not None and temp.group() == x):
-		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))#.replace('-', negative_num_sign)
+		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
+		if postOrderUtil.use_negative:
+			to_return.replace('-', negative_num_sign)
 		return to_return[1:] if to_return.startswith(' ') else to_return
 	else:
 		return x

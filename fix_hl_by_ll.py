@@ -382,9 +382,9 @@ if __name__ == "__main__":
     # print comp
     # print comp == ll
     # exit(0)
-    hl = '7 9 | 5 7 X4 % + X14 + 1 8 - X13 X4 - - X14 = X7 X5 X9 9 4 - / X5 5 0 - % X5 + + X11 / X5 = 4 1 X10 6 7 | 6 5 X2 X-- + - + 7 6 | 7 7 X10 - + % - 7 6 | 8 5 X10 + X4 7 4 / 7 0 * - % > COND X7 ++X X2 = TRUE IF 8 4 X13 X9 + % X10 ='
+    hl = '2 2 X14 * X5 = 2 2 X4 X6 / 9 9 - == COND 2 4 X14 = 6 9 X7 X3 X++ * + X9 9 9 X11 / + + X6 = TRUE 9 2 X2 - X9 / X10 = FALSE IF 4 7 X12 = X6 X10 ='
     hl = po_util.parse(hl)[1].c().strip()
-    hl_origin = '7 9 | 5 7 X4 % + X14 + 1 8 - X13 X4 - - X14 = X5 X11 X9 9 4 - / X5 5 0 - % + X7 + X11 / X5 = 4 1 X10 4 4 X2 X-- 5 0 + - + 7 8 | 7 0 X10 - + % - 7 6 X10 8 5 + X4 7 4 / 7 0 * - % > COND X7 ++X X2 = TRUE IF 8 4 X13 X9 + % X10 ='
+    hl_origin = 'X14 2 2 * X5 = X4 X6 / 6 8 - 4 4 == COND 2 4 X14 = X3 X++ X7 * 6 9 + X9 9 9 X11 / + + X6 = TRUE 3 5 X2 5 7 - - X9 / X10 = FALSE IF 4 7 X12 = X6 X10 ='
     hl_origin = po_util.parse(hl_origin)[1].c().strip()
     # print hl
     # print compiler(hl)
