@@ -62,10 +62,10 @@ class Node:
             self.right.set_most_right(value)
 
     def get_most_right(self):
-        if (self.right == None):
+        if (self.right is None):
             return self.value
         else:
-            self.right.get_most_right()
+            return self.right.get_most_right()
 
     def get_branch_number(self, branch):
         right_number = self.right.get_branch_number(branch) if self.right is not None else 0
@@ -90,7 +90,9 @@ class Node:
                         + (' ' + special_bracket_close if add_special_end else '')
 
         elif (self.value == line_separator) \
-            and (self.left is None or self.left.value in have_conditions):
+            and ((self.left is None or self.left.value in have_conditions)
+                     or (self.left.get_most_right() == special_bracket_close and self.right.value == 'else')):
+
             right_side = ' ' + self.right.__str__() if (self.right != None) else ''
             left_side = self.left.__str__() if (self.left != None) else ''
             return left_side + right_side
