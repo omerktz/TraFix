@@ -263,8 +263,7 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
     ll_origin_list = ll_origin.split(' ')
     ll_model_list = ll_model.split(' ')
     close_numbers = False
-    # if not (ll_origin.__len__() == ll_model.__len__()):
-    #     return None
+
     for i in range(ll_origin_list.__len__()):
         if ll_model_list.__len__() == i:
             return None
@@ -302,7 +301,7 @@ def fix_hl(hl, ll_origin, ll_model, combine=False):
 
 
 def from_tree_to_code(hl_tree):
-    return ' ; '.join(map(lambda x: x.__str__(), hl_tree)).replace('  ', ' ').replace('} }', '} ; }')
+    return ' ; '.join(map(lambda x: x.__str__(), hl_tree)).replace('  ', ' ').replace('} }', '} ; }').replace('} ; else', '} else')
 
 def check_successes(exp_name):
     problem = 0
@@ -360,15 +359,15 @@ if __name__ == "__main__":
     # print compiler(hl)
     # print
     # exit(0)
-    hl = 'X1 = X1 / 77'
+    hl = 'if ( ( ( ( 12 + X12 ) * ( 29 + X3 ) ) + X14 -- ) >= ( ( ( ( 25 - X13 ) % 28 ) % ( X7 / X6 ) ) / 28 ) ) { while ( ( ( 17 - X4 ) * X11 ) != ( 96 % X5 ) ) { X0 = ++ X8 % X8 ; } ; } else { while ( ( 48 * X8 -- ) == 48 ) { X6 = ( 51 * X12 ) - X14 ; } ; } ; X14 = ( 92 - ( ( X9 + X12 ) + X13 ) ) - ( 40 * ( 20 + X13 ) ) ; X11 = ( 30 * X14 ) % ( 31 % X10 ) ;'
     # hl_tree = compare_hl.from_list_to_tree(hl.split(' '))
     # hl = from_tree_to_code(hl_tree)
     # hl = 'while ( ( X9 / ( ( 88 * X3 ) - X1 ) ) <= ( ( ( X10 % 95 ) - X5 ) - X7 ) ) { while ( X3 ++ < ( ( ( ( 69 / X9 ) % X13 ) + 33 ) % X6 ) ) { if ( ( ( ( X0 + 44 ) / ( 78 % X9 ) ) % 80 ) <= ( ( ( X7 / X13 ) % 55 ) - ( ( 24 - X2 ) % X8 ) ) ) { while ( X3 ++ < ( ( ( ( 39 / X9 ) % X13 ) + 33 ) % X6 ) ) { X3 = 77 / X3 ; } ; } else { X1 = ( X11 / 55 ) + X7 ; } ; } ; } ;'
-    ll_origin = 'movl X1 , %ecx ; movl 789879043 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X1 ;'
+    ll_origin = 'movl X12 , %eax ; leal 12 ( %eax ) , %edx ; movl X3 , %eax ; addl 29 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X14 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X14 ; leal ( %ecx ,%eax ) , %esi ; movl X13 , %eax ; movl 25 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -1840700269 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 4 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; movl %ebx , %edx ; leal 0 ( ,%edx ,4 ) , %eax ; movl %eax , %edx ; leal 0 ( ,%edx ,8 ) , %eax ; subl %edx , %eax ; movl %ecx , %ebx ; subl %eax , %ebx ; movl X7 , %eax ; movl X6 , %ecx ; idivl %ecx ; movl %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; cmpl %eax , %esi ; jl .L3 ; jmp .L1 ; .L0 : ; movl X8 , %eax ; addl 1 , %eax ; movl %eax , X8 ; movl X8 , %eax ; movl X8 , %ecx ; idivl %ecx ; movl %edx , %eax ; movl %eax , X0 ; .L1 : ; movl X4 , %eax ; movl 17 , %edx ; subl %eax , %edx ; movl X11 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X5 , %ebx ; movl 96 , %eax ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; jne .L0 ; jmp .L0 ; .L2 : ; movl X12 , %eax ; imull 51 , %eax , %edx ; movl X14 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X6 ; .L3 : ; movl X8 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X8 ; imull 468 , %eax , %eax ; cmpl 48 , %eax ; je .L2 ; .L0 : ; movl X9 , %edx ; movl X12 , %eax ; addl %eax , %edx ; movl X13 , %eax ; addl %edx , %eax ; movl 92 , %edx ; subl %eax , %edx ; movl X13 , %eax ; addl 20 , %eax ; imull -40 , %eax , %eax ; addl %edx , %eax ; movl %eax , X14 ; movl X14 , %eax ; addl %eax , %eax ; movl %eax , %edx ; sall 4 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl X10 , %ebx ; movl 31 , %eax ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl %eax , X11 ;'
     ll_model = compiler(hl) #'jmp .L2 ; .L0 : ; movl X9 , %ecx ; movl 48 , %eax ; idivl %ecx ; movl %edx , %ecx ; movl X6 , %edi ; movl 71 , %eax ; idivl %edi ; movl %eax , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl X0 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X8 , %edi ; leal 1 ( %edi ) , %eax ; movl %eax , X8 ; movl %ecx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %ebx ; movl X14 , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 5 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; leal 0 ( ,%edx ,4 ) , %eax ; movl %eax , %edx ; movl %edx , %eax ; sall 4 , %eax ; subl %edx , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl 57 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 3 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; sall 4 , %edx ; subl %eax , %edx ; movl %ecx , %eax ; subl %edx , %eax ; cmpl %eax , %ebx ; jne .L3 ; jmp .L2 ; .L1 : ; movl X9 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X9 ; movl %eax , X0 ; .L2 : ; movl X13 , %esi ; movl X14 , %ebx ; movl X1 , %ecx ; movl 1616928865 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 5 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %edi ; subl %eax , %edi ; imull 85 , %edi , %eax ; subl %eax , %ecx ; movl %ecx , %edi ; movl %ebx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %eax ; subl %eax , %esi ; movl %esi , %eax ; cmpl 69 , %eax ; je .L1 ; jmp .L2 ; .L3 : ; movl X4 , %eax ; movl 72 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X12 ; .L2 : ; movl X9 , %edx ; movl X7 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X3 , %esi ; movl 42 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X11 , %eax ; movl 85 , %edx ; subl %eax , %edx ; movl %edx , %eax ; imull 57 , %eax , %esi ; movl %ebx , %eax ; idivl %esi ; movl %eax , %edx ; movl X11 , %eax ; addl %edx , %eax ; leal ( %ecx ,%eax ) , %edx ; movl X10 , %eax ; cmpl %eax , %edx ; je .L0 ;'
-    fixed_hl = fix_hl(hl, ll_origin, ll_model, False)
+    fixed_hl = fix_hl(hl, ll_origin, ll_model, True)
     # print hl
     print fixed_hl
     print compiler(fixed_hl) == ll_origin
-    print ll_model
-    print ll_origin
+    # print ll_model
+    # print ll_origin
