@@ -169,7 +169,7 @@ def handle_minus_concatination(left_tree, right_tree):
     elif (is_number(right_tree.get_value()) and right_tree.get_value()[0] == minus):
         tree = Node(plus)
         tree.set_left(left_tree)
-        tree.set_right(right_tree.get_value()[1:])
+        tree.set_right(Node(right_tree.get_value()[1:]))
         return tree
 
     elif (is_number(left_tree.get_value())):

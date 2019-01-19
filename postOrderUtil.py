@@ -1,5 +1,5 @@
 import re
-use_negative = False
+use_negative = True
 numbers_pattern = '(@@\d*|\d+)' if use_negative else '\d+'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
@@ -273,4 +273,4 @@ def parse(code):
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
 
 if __name__ == "__main__":
-    print parse('8 1 X8 X11 * X10 / % 5 7 >= COND 4 8 X1 <= COND 8 7 X6 = TRUE X9 X13 1 3 % * X0 = FALSE IF WHILE')[1].c()
+    print parse('X9 --X X4 / 8 1 - X4 / X4 X-- X14 X-- @@ 3 7 - % < COND X6 X0 % X1 @@ 4 3 * / X4 X10 @@ 2 0 - + * X10 = WHILE')[1].c()

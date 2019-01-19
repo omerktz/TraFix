@@ -386,7 +386,7 @@ def split_numbers(x):
 	if  (temp is not None and temp.group() == x):
 		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
 		if postOrderUtil.use_negative:
-			to_return.replace('-', negative_num_sign)
+			to_return = to_return.replace('-', negative_num_sign)
 		return to_return[1:] if to_return.startswith(' ') else to_return
 	else:
 		return x
@@ -394,7 +394,7 @@ def split_numbers(x):
 def from_numbers_to_digits(line):
 	while (regexp.search(line) is not None):
 		to_search = regexp.search(line).group()
-		add = 0 if to_search[0].isdigit() else 2
+		add = 2 if to_search[0] == ' ' else 0
 		line = line.replace(to_search, to_search.replace(' ', ' | ')[add:])
 	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
 
