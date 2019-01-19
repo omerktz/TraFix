@@ -60,18 +60,18 @@ def find_oper_idex(h_list_line):
     return first_whick_oper_index
 
 
-def is_left_digit(tree):
-    return tree.get_left().value.isdigit()
+def is_left_number(tree):
+    return is_number(tree.get_left().value)
 
-def is_right_digit(tree):
-    return tree.get_right().value.isdigit()
+def is_right_number(tree):
+    return is_number(tree.get_right().value)
 
 
 def concat_digits_plus_plus(tree, value):
-    if (is_left_digit(tree)):
+    if (is_left_number(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) + int(value)))
         return tree
-    if (is_right_digit(tree)):
+    if (is_right_number(tree)):
         tree.get_right().set_value(str(int(tree.get_right().get_value()) + int(value)))
         return tree
     return None
@@ -87,48 +87,48 @@ def without_double_minus(tree, value):
 
 
 def concat_digits_plus_minus(tree, value):
-    if (is_left_digit(tree)):
+    if (is_left_number(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) + int(value)))
         return tree
-    if (is_right_digit(tree)):
+    if (is_right_number(tree)):
         return without_double_minus(tree, value)
 
     return None
 
 def concat_digits_minus_plus(tree, value):
-    if (is_left_digit(tree)):
+    if (is_left_number(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) - int(value)))
         return tree
-    if (is_right_digit(tree)):
+    if (is_right_number(tree)):
         return without_double_minus(tree, value)
 
     return None
 
 def concat_digits_minus_minus(tree, value):
-    if (is_left_digit(tree)):
+    if (is_left_number(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) - int(value)))
         return tree
-    if (is_right_digit(tree)):
+    if (is_right_number(tree)):
         tree.get_right().set_value(str(int(tree.get_right().get_value()) + int(value)))
         return tree
     return None
 
 
 def concat_digits_mult(tree, value):
-    if (is_left_digit(tree)):
+    if (is_left_number(tree)):
         tree.get_left().set_value(str(int(tree.get_left().get_value()) * int(value)))
         return tree
-    if (is_right_digit(tree)):
+    if (is_right_number(tree)):
         tree.get_right().set_value(str(int(tree.get_right().get_value()) * int(value)))
         return tree
     return None
 
 
 def handle_plus_concatination(left_tree, right_tree):
-    if (right_tree.get_value().isdigit() and left_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value()) and is_number(left_tree.get_value())):
         return Node(str(int(right_tree.get_value()) + int(left_tree.get_value())))
 
-    if (right_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value())):
         if (left_tree.get_value() == plus):
             tree = concat_digits_plus_plus(left_tree, right_tree.get_value())
             if (tree is not None):
@@ -138,7 +138,7 @@ def handle_plus_concatination(left_tree, right_tree):
             if (tree is not None):
                 return tree
 
-    elif (left_tree.get_value().isdigit()):
+    elif (is_number(left_tree.get_value())):
         if (right_tree.get_value() == plus):
             tree = concat_digits_plus_plus(right_tree, left_tree.get_value())
             if (tree is not None):
@@ -155,7 +155,7 @@ def handle_minus_concatination(left_tree, right_tree):
     if (is_number(right_tree.get_value()) and is_number(left_tree.get_value())):
         return Node(str(int(left_tree.get_value()) - int(right_tree.get_value())))
 
-    if (right_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value())):
         if (left_tree.get_value() == plus):
             tree = concat_digits_minus_plus(left_tree, right_tree.get_value())
             if (tree is not None):
@@ -183,23 +183,21 @@ def handle_minus_concatination(left_tree, right_tree):
                     tree.get_right().set_most_left_with_tree(right_tree.get_left().get_left())
                 return tree
 
-
-
     # TODO: num - (x +- num) - changes a lot
 
     return None
 
 def handle_mult_concatination(left_tree, right_tree):
-    if (right_tree.get_value().isdigit() and left_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value()) and is_number(left_tree.get_value())):
         return Node(str(int(left_tree.get_value()) * int(right_tree.get_value())))
 
-    if (right_tree.get_value().isdigit()):
+    if (is_number(right_tree.get_value())):
         if (left_tree.get_value() == mult):
             tree = concat_digits_mult(left_tree, right_tree.get_value())
             if (tree is not None):
                 return tree
 
-    elif (left_tree.get_value().isdigit()):
+    elif (is_number(left_tree.get_value())):
         if (right_tree.get_value() == mult):
             tree = concat_digits_mult(right_tree, left_tree.get_value())
             if (tree is not None):
@@ -209,7 +207,7 @@ def handle_mult_concatination(left_tree, right_tree):
 
 
 def handle_div_concatination(left_tree, right_tree):
-    if (right_tree.get_value().isdigit() and left_tree.get_value() == div and left_tree.get_right().get_value().isdigit()):
+    if (is_number(right_tree.get_value()) and left_tree.get_value() == div and is_number(left_tree.get_right().get_value())):
         tree = left_tree
         tree.get_right().set_value(str(int(left_tree.get_right().get_value()) * int(right_tree.get_value())))
         return tree
