@@ -1,5 +1,5 @@
 import re
-use_negative = True
+use_negative = False
 numbers_pattern = '(@@\d*|\d+)' if use_negative else '\d+'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
 regexp = re.compile(two_numbers_pattern)
