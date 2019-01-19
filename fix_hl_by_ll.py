@@ -214,7 +214,7 @@ def fix_div_in_hl(hl, ll_origin, ll_model, index):
                 else:
                     list_hl[i+1] = '87'
                 temp_model_ll = compiler(' '.join(list_hl)).split(' ')
-                if temp_model_ll[index] == ll_model[index]:
+                if temp_model_ll.__len__() <= index or temp_model_ll[index] == ll_model[index]:
                     list_hl[i+1] = origin_value_hl
                 else:
                     origin_value_hl = int(origin_value_hl)
