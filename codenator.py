@@ -9,13 +9,7 @@ import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 from abstract_numerals import *
 import numpy.random as npr
-import postOrderUtil
-
-
-numbers_pattern = '^(-|N)?\d+'
-two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
-regexp = re.compile(two_numbers_pattern)
-negative_num_sign = '@@'
+import evaluate
 
 hl2ll = None
 def load_compiler(f):
@@ -381,24 +375,6 @@ def preprocess_hl(s):
 	return s.po()
 
 
-def split_numbers(x):
-	temp = re.match(numbers_pattern, x)
-	if  (temp is not None and temp.group() == x):
-		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
-		if postOrderUtil.use_negative:
-			to_return = to_return.replace('-', negative_num_sign)
-		return to_return[1:] if to_return.startswith(' ') else to_return
-	else:
-		return x
-
-def from_numbers_to_digits(line):
-	while (regexp.search(line) is not None):
-		to_search = regexp.search(line).group()
-		add = 2 if to_search[0] == ' ' else 0
-		line = line.replace(to_search, to_search.replace(' ', ' | ')[add:])
-	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
-
-
 def generate_statements():
 	limit = args.n
 	out_file = args.o
@@ -454,8 +430,8 @@ def generate_statements():
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
 		hl_line = apply_number_replacements(hl_line, replacements)
-		hl_line = from_numbers_to_digits(hl_line.strip())
-		ll_line = from_numbers_to_digits(ll_line.strip())
+		hl_line = evaluate.from_numbers_to_digits(hl_line.strip())
+		ll_line = evaluate.from_numbers_to_digits(ll_line.strip())
 
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)

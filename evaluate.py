@@ -14,10 +14,30 @@ import random
 import compare_hl as hl_util
 import pandas
 import fix_hl_by_ll
-import codenator
 conditions = ['==', '<', '>', '>=', '<=', '!=']
 opers = ['-', '+', '*', '/', '%']
 digits = map(lambda x: str(x), range(1,10))
+numbers_pattern = '^(-|N)?\d+'
+two_numbers_pattern = '( |^)' + numbers_pattern[1:] + ' ' + numbers_pattern[1:]
+regexp = re.compile(two_numbers_pattern)
+negative_num_sign = '@@'
+
+def split_numbers(x):
+	temp = re.match(numbers_pattern, x)
+	if  (temp is not None and temp.group() == x):
+		to_return = ''.join(map(lambda dig: ' ' + dig if dig.isdigit() else dig, x))
+		if po_util.use_negative:
+			to_return = to_return.replace('-', negative_num_sign)
+		return to_return[1:] if to_return.startswith(' ') else to_return
+	else:
+		return x
+
+def from_numbers_to_digits(line):
+	while (regexp.search(line) is not None):
+		to_search = regexp.search(line).group()
+		add = 2 if to_search[0] == ' ' else 0
+		line = line.replace(to_search, to_search.replace(' ', ' | ')[add:])
+	return ' '.join(map(lambda x: split_numbers(x), line.split(' ')))
 
 def parsePostOrder(po):
 	return po_util.parse(po)
@@ -142,7 +162,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
 							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
-							fll.write(codenator.split_numbers(l) + '\n')
+							fll.write(from_numbers_to_digits(l) + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
 
 	csv.writer(f).writerow([str(i), 'false', 'did not fix'])
