@@ -14,6 +14,7 @@ import random
 import compare_hl as hl_util
 import pandas
 import fix_hl_by_ll
+import codenator
 conditions = ['==', '<', '>', '>=', '<=', '!=']
 opers = ['-', '+', '*', '/', '%']
 digits = map(lambda x: str(x), range(1,10))
@@ -141,7 +142,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 							h = apply_number_replacements(out[j], replaces)
 							fhl.write(h + '\n')
 							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
-							fll.write(l + '\n')
+							fll.write(codenator.split_numbers(l) + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')
 
 	csv.writer(f).writerow([str(i), 'false', 'did not fix'])
