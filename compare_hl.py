@@ -675,10 +675,15 @@ def analize_mistakes(failed_dataset, fails_num):
         w.writerow(titles)
         w.writerow(['all sentences'])
         w.writerows(calculate_all_percentiles(df))
-        w.writerow(['only failed'])
-        w.writerows(calculate_all_percentiles(df[(df.is_successful == False)]))
-        w.writerow(['only success'])
-        w.writerows(calculate_all_percentiles(df[(df.is_successful == True)]))
+
+        df_to_use = df[(df.is_successful == False)]
+        if not df_to_use.empty:
+            w.writerow(['only failed'])
+            w.writerows(calculate_all_percentiles(df_to_use))
+        df_to_use = df[(df.is_successful == True)]
+        if not df_to_use.empty:
+            w.writerow(['only success'])
+            w.writerows(calculate_all_percentiles(df_to_use))
 
 def find_first_difference(h_post_order_list, hl_post_order_list):
     to_return = []
