@@ -379,25 +379,27 @@ def check_successes(exp_name):
             print compiler(row['out'])
             print
             print index
+            print
 
     if problem == 0:
         print 'successes are legit'
-
+    else:
+        print 'had %d problems' %problem
 
 if __name__ == "__main__":
     load_compiler('x86Util.py')
     # hl = 'X4 X2 = 7 7 | 2 8 X0 9 1 / * * X3 = X14 X11 = X11 7 6 X6 1 5 - + X6 % / 1 0 X0 X2 - 5 4 * X2 + % X4 X6 * X2 / 1 3 * % != COND 9 4 | 1 6 X14 / X6 6 9 % + == COND 1 6 X6 9 9 X5 + 4 1 | 2 5 X4 % * * + % X13 = WHILE WHILE'
     # print po_util.parse(hl)[1].c()
     # print compiler(po_util.parse(hl)[1].c())
-    hl = 'X8 = -- X1 ; X7 = ( ( -160 - X13 ) ) % ( X13 * -11 ) ; X9 = X10 ; X2 = 63 * ( ( 3 - X1 ) ) ; X5 = -74'
-    print compiler(hl)
-    exit(0)
-    # exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_44_to_100')
-    # check_successes(exp_name)
+    # hl = 'X10 = ( X0 / ( X13 + -43 ) ) * ( ( X9 / -78 ) % 7 )'
+    # print compiler(hl)
+    # exit(0)
+    exp_name = os.path.join('/mnt/c/python_technion/Codenator', 'tf_49_negative')
+    check_successes(exp_name)
     # hl = '2 7 X8 + 6 9 + X4 == COND 7 8 X3 = TRUE IF 3 2 X10 = X2 8 0 | 6 5 X2 % * / X6 X3 + / X3 - X1 = 9 3 | 5 2 X5 5 1 % % % 9 3 X7 - 5 0 + / X6 = X11 --X X13 - X12 ='
     # print compiler(po_util.parse(hl)[1].c())
     # print (po_util.parse(hl)[1].c())
-    # exit(0)
+    exit(0)
     # hl = 'while ( ( -- X0 - ( 66 % X6 ) ) == ( ( X5 -- * ( X0 / X5 ) ) * ( ( ( 30 + ( 35 / X12 ) ) + 28 ) + X12 ) ) ) { X3 = ( ( X14 / X8 ) % 33 ) + ( ( X10 / X1 ) / ( ( X10 - 27 ) + ( X3 % X10 ) ) ) ; X2 = X0 ; if ( ( ( X4 * X1 ) + 52 ) != ( ( X14 / ( 72 % -- X3 ) ) % ( ( 51 + X5 ) / X10 ++ ) ) ) { if ( ( ( 35 / X3 ) + 34 ) <= ( ( ( 64 * -- X14 ) - ( ( ( -- X10 + 27 ) - X12 ) - 60 ) ) / ( X1 / ( 60 - X13 ) ) ) ) { X7 = ( ( X9 % 12 ) % ( 39 % X6 ) ) / X1 ; } ; } ; } ; X6 = X10 / ( X1 % ( 12 * X7 ) ) ; X14 = 53 ; X5 = ( 21 / X14 ) * ( X8 / ( ( 91 * X14 ) - 40 ) ) ;'
     # ll = 'movl 8447 , X14 ; movl X12 , %eax ; movl 9686 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl 1981325155 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 12 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 8879 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl X11 , %edx ; subl 1 , %edx ; movl %edx , X11 ; movl X11 , %edx ; cmpl %edx , %eax ; jl .L0 ; movl X1 , %edx ; movl X9 , %eax ; cmpl %eax , %edx ; jl .L0 ; movl X13 , %eax ; leal 9263 ( %eax ) , %edx ; movl X5 , %eax ; subl %eax , %edx ; movl X2 , %eax ; addl %edx , %eax ; movl %eax , X13 ; .L0 : ; movl X6 , %eax ; movl %eax , X13 ; movl X7 , %eax ; addl 4535 , %eax ; movl X1 , %edx ; movl 3440 , %ecx ; subl %edx , %ecx ; movl %ecx , %esi ; idivl %esi ; movl %eax , %ebx ; movl X3 , %eax ; movl 9021 , %edx ; subl %eax , %edx ; movl X4 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X12 , %eax ; imull 7582 , %eax , %eax ; movl X6 , %esi ; idivl %esi ; leal ( %ecx ,%eax ) , %edx ; movl X4 , %eax ; imull %edx , %eax ; cmpl %eax , %ebx ; jg .L1 ; movl X3 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X3 ; movl %eax , X9 ; jmp .L2 ; .L1 : ; movl X14 , %eax ; movl %eax , X11 ; .L2 : ; movl X1 , %eax ; imull 5485 , %eax , %edx ; movl X4 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X10 ;'
     # comp = compiler(hl)
@@ -412,9 +414,9 @@ if __name__ == "__main__":
     # print comp == ll
     # exit(0)
     hl = '1 9 X12 --X + X6 = X11 X9 X11 X13 2 2 * / + + 7 6 X2 / X12 X10 3 3 % - - / X8 ='
-    hl = po_util.parse(hl)[1].c().strip()
+    hl = 'X11 = ( 48 - X10 -- ) % -87 ; X6 = ( -51 * ( ( -106 + X6 ) ) ) / ( -94 - ( -53 / -- X13 ) ) ; X12 = -- X5' #po_util.parse(hl)[1].c().strip()
     hl_origin = 'X12 --X 1 9 + X6 = X11 X13 1 2 * / X9 + X3 + 7 6 X2 / X12 X10 3 3 % - - / X8 ='
-    hl_origin = po_util.parse(hl_origin)[1].c().strip()
+    hl_origin = 'X11 = ( 48 - X10 -- ) % -87 ; X6 = ( -51 * ( ( X6 + 107 ) ) ) / ( -94 - ( -53 / -- X13 ) ) ; X12 = -- X5' #po_util.parse(hl_origin)[1].c().strip()
     # print hl
     # print compiler(hl)
     # print
@@ -425,7 +427,7 @@ if __name__ == "__main__":
     # hl = 'while ( ( X9 / ( ( 88 * X3 ) - X1 ) ) <= ( ( ( X10 % 95 ) - X5 ) - X7 ) ) { while ( X3 ++ < ( ( ( ( 69 / X9 ) % X13 ) + 33 ) % X6 ) ) { if ( ( ( ( X0 + 44 ) / ( 78 % X9 ) ) % 80 ) <= ( ( ( X7 / X13 ) % 55 ) - ( ( 24 - X2 ) % X8 ) ) ) { while ( X3 ++ < ( ( ( ( 39 / X9 ) % X13 ) + 33 ) % X6 ) ) { X3 = 77 / X3 ; } ; } else { X1 = ( X11 / 55 ) + X7 ; } ; } ; } ;'
     ll_origin = compiler(hl_origin)#'movl X12 , %eax ; leal 12 ( %eax ) , %edx ; movl X3 , %eax ; addl 29 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X14 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X14 ; leal ( %ecx ,%eax ) , %esi ; movl X13 , %eax ; movl 25 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -1840700269 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 4 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %ebx ; subl %eax , %ebx ; movl %ebx , %edx ; leal 0 ( ,%edx ,4 ) , %eax ; movl %eax , %edx ; leal 0 ( ,%edx ,8 ) , %eax ; subl %edx , %eax ; movl %ecx , %ebx ; subl %eax , %ebx ; movl X7 , %eax ; movl X6 , %ecx ; idivl %ecx ; movl %eax , %ecx ; movl %ebx , %eax ; idivl %ecx ; movl %edx , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; cmpl %eax , %esi ; jl .L3 ; jmp .L1 ; .L0 : ; movl X8 , %eax ; addl 1 , %eax ; movl %eax , X8 ; movl X8 , %eax ; movl X8 , %ecx ; idivl %ecx ; movl %edx , %eax ; movl %eax , X0 ; .L1 : ; movl X4 , %eax ; movl 17 , %edx ; subl %eax , %edx ; movl X11 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X5 , %ebx ; movl 96 , %eax ; idivl %ebx ; movl %edx , %eax ; cmpl %eax , %ecx ; jne .L0 ; jmp .L0 ; .L2 : ; movl X12 , %eax ; imull 51 , %eax , %edx ; movl X14 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X6 ; .L3 : ; movl X8 , %eax ; leal -1 ( %eax ) , %edx ; movl %edx , X8 ; imull 468 , %eax , %eax ; cmpl 48 , %eax ; je .L2 ; .L0 : ; movl X9 , %edx ; movl X12 , %eax ; addl %eax , %edx ; movl X13 , %eax ; addl %edx , %eax ; movl 92 , %edx ; subl %eax , %edx ; movl X13 , %eax ; addl 20 , %eax ; imull -40 , %eax , %eax ; addl %edx , %eax ; movl %eax , X14 ; movl X14 , %eax ; addl %eax , %eax ; movl %eax , %edx ; sall 4 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl X10 , %ebx ; movl 31 , %eax ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %edx , %eax ; movl %eax , X11 ;'
     ll_model = compiler(hl) #'jmp .L2 ; .L0 : ; movl X9 , %ecx ; movl 48 , %eax ; idivl %ecx ; movl %edx , %ecx ; movl X6 , %edi ; movl 71 , %eax ; idivl %edi ; movl %eax , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl X0 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X8 , %edi ; leal 1 ( %edi ) , %eax ; movl %eax , X8 ; movl %ecx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %ebx ; movl X14 , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 5 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; leal 0 ( ,%edx ,4 ) , %eax ; movl %eax , %edx ; movl %edx , %eax ; sall 4 , %eax ; subl %edx , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; movl 57 , %edx ; movl %edx , %ecx ; subl %eax , %ecx ; movl -2004318071 , %edx ; movl %ecx , %eax ; imull %edx ; leal ( %edx ,%ecx ) , %eax ; sarl 3 , %eax ; movl %eax , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , %edx ; sall 4 , %edx ; subl %eax , %edx ; movl %ecx , %eax ; subl %edx , %eax ; cmpl %eax , %ebx ; jne .L3 ; jmp .L2 ; .L1 : ; movl X9 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X9 ; movl %eax , X0 ; .L2 : ; movl X13 , %esi ; movl X14 , %ebx ; movl X1 , %ecx ; movl 1616928865 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 5 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %edi ; subl %eax , %edi ; imull 85 , %edi , %eax ; subl %eax , %ecx ; movl %ecx , %edi ; movl %ebx , %eax ; idivl %edi ; movl %edx , %ecx ; movl %ecx , %eax ; subl %eax , %esi ; movl %esi , %eax ; cmpl 69 , %eax ; je .L1 ; jmp .L2 ; .L3 : ; movl X4 , %eax ; movl 72 , %edx ; subl %eax , %edx ; movl %edx , %eax ; movl %eax , X12 ; .L2 : ; movl X9 , %edx ; movl X7 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl X3 , %esi ; movl 42 , %eax ; idivl %esi ; movl %eax , %ebx ; movl X11 , %eax ; movl 85 , %edx ; subl %eax , %edx ; movl %edx , %eax ; imull 57 , %eax , %esi ; movl %ebx , %eax ; idivl %esi ; movl %eax , %edx ; movl X11 , %eax ; addl %edx , %eax ; leal ( %ecx ,%eax ) , %edx ; movl X10 , %eax ; cmpl %eax , %edx ; je .L0 ;'
-    fixed_hl = fix_hl(hl, ll_origin, ll_model, True)
+    fixed_hl = fix_hl(hl, ll_origin, ll_model, False)
 
     print fixed_hl
     print compiler(fixed_hl) == ll_origin

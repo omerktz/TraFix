@@ -252,8 +252,9 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 
 	if shallow_evaluation:
 		return (nsuccess, nfail)
-
-	hl_util.analize_mistakes(failed_dataset, nfail)
+	if nfail > 0:
+		hl_util.analize_mistakes(failed_dataset, nfail)
+	hl_util.analyze_trees_stats(failed_dataset)
 	return (nsuccess, nfail)
 
 

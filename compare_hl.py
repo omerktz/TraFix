@@ -654,9 +654,9 @@ def analize_mistakes(failed_dataset, fails_num):
             times_dict[type]['times'] = 1
         else:
             times_dict[type]['times'] += 1
-    if(ids.__len__() < fails_num):
-        times_dict['compile_err'] = {}
-        times_dict['compile_err']['times'] = fails_num - ids.__len__()
+
+    times_dict['compile_err'] = {}
+    times_dict['compile_err']['times'] = fails_num - ids.__len__()
 
     for type in times_dict.keys():
         times_dict[type]['percentage'] = float(times_dict[type]['times']) / float(fails_num)
@@ -667,6 +667,25 @@ def analize_mistakes(failed_dataset, fails_num):
         w.writerow(map(lambda x: x['times'], times_dict.values()))
         w.writerow(map(lambda x: x['percentage'], times_dict.values()))
 
+    # create Tree's CSV
+    data_path = failed_dataset + 'trees_stats.csv'
+    df = pd.read_csv(data_path)
+    with open(failed_dataset + 'analyzed_tree_stats.csv', 'wb') as f:
+        w = csv.writer(f)
+        w.writerow(titles)
+        w.writerow(['all sentences'])
+        w.writerows(calculate_all_percentiles(df))
+
+        df_to_use = df[(df.is_successful == False)]
+        if not df_to_use.empty:
+            w.writerow(['only failed'])
+            w.writerows(calculate_all_percentiles(df_to_use))
+        df_to_use = df[(df.is_successful == True)]
+        if not df_to_use.empty:
+            w.writerow(['only success'])
+            w.writerows(calculate_all_percentiles(df_to_use))
+
+def analyze_trees_stats(failed_dataset):
     # create Tree's CSV
     data_path = failed_dataset + 'trees_stats.csv'
     df = pd.read_csv(data_path)
@@ -733,10 +752,26 @@ def get_cut_index_branch(h_list):
 
     return index
 
+def create_train_tress_stats(failed_dataset, source):
+    with open(failed_dataset + 'trees_stats.csv', 'w') as f:
+        csv.writer(f).writerow(
+            ['sentence_id', 'is_successful', 'total_nodes_num', 'total_depth', 'largest_nodes_num', 'largest_depth',
+             'lines_num', 'mistake_line',
+             'mistake_depth', 'ifs_num', 'else_num', 'loops_num', 'nested_depth'])
+        with open(source, 'r') as fhl:
+            lines = fhl.readlines()
+            map(lambda x: csv.writer(f).writerow([x, 'TRUE'] + calculate_hl_stats(lines[x], df=None)), range(lines.__len__()))
+    analyze_trees_stats(failed_dataset)
+
+
 if __name__ == "__main__":
     # h_sentence = 'while ( ( X4 / ( -- X6 * X5 -- ) ) >= ( 67 * ( 81 % ( X13 - X5 ) ) ) ) { X7 = X11 ; } ; X6 = ++ X0 % 84 ; X4 = 19 - ( ( X0 / 80 ) * ( X2 + X12 ) ) ; while ( ( ( ( X13 / ( 90 - X8 ) ) * X12 ) / X9 ) == ( ( 32 - ( X3 / X10 ) ) - X6 ) ) { X3 = 100 / X7 ; } ; if ( ( ( 90 % ( X9 * X4 ) ) - ( ++ X4 * X14 ) ) < ( ( X9 % -- X6 ) / ( X3 - X10 ) ) ) { while ( X3 -- <= ( X5 - ( X13 + X6 ) ) ) { X5 = X2 + ( X12 - -- X4 ) ; if ( X4 == 5 ) { X4 = 5 } ; } ;  } ; else { X14 = 91 ; X8 = ( X5 / 11 ) - X8 ; }'
     # print calc_max_nested(h_sentence.split(' '))
+    for i in range(5):
+        print 'start: %d' %i
+        create_train_tress_stats('check_stats/output%d/train_' %i, 'check_stats/output%i/datasets/train0.corpus.hl' %i)
 
+    exit(0)
     # h_sentence = '( X1 + 5 ) - 6 ;'
     # h_tree = from_list_to_tree(h_sentence.split(' '))
     # print h_tree[0]
