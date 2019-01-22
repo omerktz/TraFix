@@ -101,7 +101,7 @@ def try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False):
 def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shallow_evaluation=False, f=None):
 	# if hl in out:
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
-	ll = po_util.combine_digits(ll)
+	ll = po_util.combine_digits(ll, is_hl=False)
 	# if not (i == 287):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:

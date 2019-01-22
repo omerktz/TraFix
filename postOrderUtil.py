@@ -1,9 +1,11 @@
 import re
 use_negative = False
 numbers_pattern = '(@@\d*|\d+)' if use_negative else '\d+'
+numbers_pattern_ll = '(@@\d*|\d+)' if use_negative else '(-\d*|\d+)'
 two_numbers_pattern = '( |^)' + numbers_pattern + ' ' + numbers_pattern
+two_numbers_pattern_ll = '( |^)' + numbers_pattern_ll + ' ' + numbers_pattern_ll
 regexp = re.compile(two_numbers_pattern)
-
+ll_regexp = re.compile(two_numbers_pattern_ll)
 class Num:
     type = 'NUM'
     @staticmethod
@@ -251,15 +253,16 @@ postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,Fals
 
 
 
-def combine_digits(code):
-    while (regexp.search(code) is not None):
-        to_search = regexp.search(code).group()
+def combine_digits(code, is_hl=True):
+    numbers_regex = regexp if is_hl else ll_regexp
+    while (numbers_regex.search(code) is not None):
+        to_search = numbers_regex.search(code).group()
         add = '' if to_search[0].isdigit() else ' '
         code = code.replace(to_search, add + to_search.replace(' ', ''), 1)
     return code.replace(' | ', ' ').replace('@@', '-') if use_negative else code.replace(' | ', ' ')
 
 def parse(code):
-    code = combine_digits(code)
+    code = combine_digits(code, is_hl=True)
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:
