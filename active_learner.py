@@ -13,6 +13,30 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 # 4) translates test dataset
 # until enough entries from the test dataset have been successfully translated
 ###
+def apply_shallow_evaluation(self, i):
+    os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
+                                                              os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' %(i-1)),
+                                                              self.compiler))
+
+    os.system('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_tfNmt,
+                                                                               os.path.join(self.datasets_path,
+                                                                                            'train%d' % (i-1)),
+                                                                               os.path.join(self.datasets_path,
+                                                                                            'validate%d' % (i-1)),
+                                                                               os.path.join(self.datasets_path,
+                                                                                            'for_shallow_evaluation_%d' % (i-1)),
+                                                                               os.path.join(self.datasets_path,
+                                                                                            'vocabs%d' % (i-1)),
+                                                                                os.path.join(self.models_path,
+                                                                                            'model%d' % (i-1), ''),
+                                                                               self.tf_nmt_config,
+                                                                               self.num_translations))
+
+    os.system('python {0} {1} {2} {3} -d {4} -v --shallow_evaluation=True'.format(self.evaluate,
+                                                                              os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' % (i - 1)), self.num_translations,
+                                                                              self.compiler, os.path.join(self.datasets_path, 'failed%d' % ( i - 1))))
+
+
 class ActiveLearner:
 	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
 				 tf_nmt_config='configs/tf_nmt.config', patience=10, num_translations=5, success_percentage=0.95,
@@ -193,12 +217,7 @@ class ActiveLearner:
 																  os.path.join(self.datasets_path, 'train%d' % (i-1)),
 																  self.compiler))
 		if self.use_shallow_evaluation:
-			with open(os.path.join(self.outputs_path, 'shallow_evaluate%d' % (i-1)), 'w', 0) as f:
-				Popen('python {0} {1} {2} {3} -d {4} -v --shallow_evaluation=True'.format(self.evaluate,
-																os.path.join(self.datasets_path, 'test%d' % (i-1)),
-																self.num_translations, self.compiler,
-																os.path.join(self.datasets_path, 'failed%d' % (i-1))).split(' '),
-					  stdout=f, stderr=f, bufsize=0).wait()
+			apply_shallow_evaluation(i)
 		for ext in ['ll', 'hl', 'replacements']:
 			os.system(
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
