@@ -195,10 +195,11 @@ class ActiveLearner:
 																  self.compiler))
 		if self.use_shallow_evaluation:
 			self.apply_shallow_evaluation(i)
-		for ext in ['ll', 'hl', 'replacements']:
-			os.system(
-				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
-															  os.path.join(self.datasets_path, 'train%d' % i), ext))
+		else:
+			for ext in ['ll', 'hl', 'replacements']:
+				os.system(
+					'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
+																  os.path.join(self.datasets_path, 'train%d' % i), ext))
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
@@ -311,7 +312,6 @@ class ActiveLearner:
 		os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
 																  os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' %(i-1)),
 																  self.compiler))
-
 		os.system('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_tfNmt,
 																				   os.path.join(self.datasets_path,
 																								'train%d' % (i-1)),
@@ -325,11 +325,13 @@ class ActiveLearner:
 																								'model%d' % (i-1), ''),
 																				   self.tf_nmt_config,
 																				   self.num_translations))
-
 		os.system('python {0} {1} {2} {3} -d {4} -v --shallow_evaluation=True'.format(self.evaluate,
 																				  os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' % (i - 1)), self.num_translations,
-																				  self.compiler, os.path.join(self.datasets_path, 'failed%d' % ( i - 1))))
-
+																				  self.compiler, os.path.join(self.datasets_path, 'shallow_evaluation_generated_examples_%d' % ( i - 1))))
+		for ext in ['ll', 'hl', 'replacements']:
+			os.system(
+				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'shallow_evaluation_generated_examples_%d' % (i - 1)),
+															  os.path.join(self.datasets_path, 'train%d' % i), ext))
 
 if __name__ == "__main__":
 	import argparse
