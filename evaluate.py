@@ -105,18 +105,21 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 	# if not (i == 287):
 	# 	return (i, hl, ll, replacements, None, 1)
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
-		csv.writer(f).writerow([str(i), 'false', 'no translations'])
+		if not shallow_evaluation:
+			csv.writer(f).writerow([str(i), 'false', 'no translations'])
 		return (i, hl, ll, replacements, None, 1)  # no translations
 	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
-		csv.writer(f).writerow([str(i), 'false', 'unparsable'])
+		if not shallow_evaluation:
+			csv.writer(f).writerow([str(i), 'false', 'unparsable'])
 		return (i, hl, ll, replacements, None, 2)  # unparsable
 	cs = map(lambda x: x[1].c().strip() if x[0] else '', res)
 	# compare c code
 	lls = map(lambda x: compiler(x), cs)
 	if not any(lls):
-		csv.writer(f).writerow([str(i), 'false', 'does not compile'])
+		if not shallow_evaluation:
+			csv.writer(f).writerow([str(i), 'false', 'does not compile'])
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	if shallow_evaluation:
 		return (i,hl, ll, replacements, None, 0)
@@ -190,7 +193,7 @@ def create_and_save_sentences_from_failes(hl, out_file, writing_type):
 	hls_list = []
 	hl_list = hl.split(' ')
 	hls_list.append(hl)
-	for j in range(150):
+	for j in range(200):
 		tmp = hl_list[:]
 		for i in range(hl_list.__len__()):
 			if hl_list[i] in conditions:
@@ -225,11 +228,13 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 	groups = {}
 	for (n, g) in itertools.groupby(outs, lambda x: x[0]):
 		groups[int(n)] = [x[1] for x in g]
-	csv_path = open_stats_csvs(failed_dataset)
+	if not shallow_evaluation:
+		csv_path = open_stats_csvs(failed_dataset)
 	with open(failed_dataset + 'success_fail_reasons.csv', 'a') as f:
 		results = map(
 			lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset, shallow_evaluation, f), range(len(lls)))
-	df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
+	if not shallow_evaluation:
+	    df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:
 			if shallow_evaluation:
