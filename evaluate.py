@@ -203,7 +203,7 @@ def create_and_save_sentences_from_failes(hl, out_file):
 				tmp[i] = 'X' + str(random.randint(1, 14))
 		hls_list.append(' '.join(tmp))
 
-	lls_list = map(lambda x: compiler(parsePostOrder(x)[1].c()), hls_list)
+	lls_list = map(lambda x: from_numbers_to_digits(compiler(parsePostOrder(x)[1].c())), hls_list)
 	with open(out_file + '.corpus.hl', 'a') as fhl:
 		with open(out_file + '.corpus.ll', 'a') as fll:
 			for i in range(hls_list.__len__()):
