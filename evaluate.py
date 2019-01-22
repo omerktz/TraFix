@@ -203,7 +203,7 @@ def create_and_save_sentences_from_failes(hl, out_file, writing_type):
 			elif hl_list[i] in digits:
 				tmp[i] = str(random.randint(1, 9))
 			elif fix_hl_by_ll.is_var(hl_list[i]):
-				tmp[i] = 'X' + str(random.randint(1, 14))
+				tmp[i] = 'X' + str(random.randint(0, 14))
 		hls_list.append(' '.join(tmp))
 
 	lls_list = map(lambda x: from_numbers_to_digits(compiler(parsePostOrder(x)[1].c())), hls_list)
