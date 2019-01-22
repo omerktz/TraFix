@@ -209,9 +209,11 @@ def create_and_save_sentences_from_failes(hl, out_file, writing_type):
 	lls_list = map(lambda x: from_numbers_to_digits(compiler(parsePostOrder(x)[1].c())), hls_list)
 	with open(out_file + '.corpus.hl', writing_type) as fhl:
 		with open(out_file + '.corpus.ll', writing_type) as fll:
-			for i in range(hls_list.__len__()):
-				fhl.write(hls_list[i] + '\n')
-				fll.write(lls_list[i] + '\n')
+			with open(out_file + '.corpus.replacements', writing_type) as replaces:
+				for i in range(hls_list.__len__()):
+					fhl.write(hls_list[i] + '\n')
+					fll.write(lls_list[i] + '\n')
+					replaces.write('{}' + '\n')
 
 
 
@@ -234,7 +236,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 		results = map(
 			lambda i: evaluateProg(i, hls[i], lls[i], groups[i] if i in groups.keys() else [], replacements[i], config, failed_dataset, shallow_evaluation, f), range(len(lls)))
 	if not shallow_evaluation:
-	    df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
+		df = pandas.read_csv(failed_dataset + 'understand_fails.csv')
 	for x in results:
 		if x[5] == 0:
 			if shallow_evaluation:
