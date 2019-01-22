@@ -16,7 +16,8 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 class ActiveLearner:
 	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
 				 tf_nmt_config='configs/tf_nmt.config', patience=10, num_translations=5, success_percentage=0.95,
-				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
+				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None,
+				 max_iterations=None, use_shallow_evaluation=False):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
@@ -35,6 +36,7 @@ class ActiveLearner:
 		self.codenator = 'codenator.py'
 		self.api_tfNmt = 'api_tfNmt.py'
 		self.evaluate = 'evaluate.py'
+		self.use_shallow_evaluation = use_shallow_evaluation
 		# set work paths
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
 		self.models_path = os.path.join(self.output_dir, 'models')
@@ -190,6 +192,13 @@ class ActiveLearner:
 																  os.path.join(self.datasets_path, 'test0'),
 																  os.path.join(self.datasets_path, 'train%d' % (i-1)),
 																  self.compiler))
+		if self.use_shallow_evaluation:
+			with open(os.path.join(self.outputs_path, 'shallow_evaluate%d' % (i-1)), 'w', 0) as f:
+				Popen('python {0} {1} {2} {3} -d {4} -v --shallow_evaluation=True'.format(self.evaluate,
+																os.path.join(self.datasets_path, 'test%d' % (i-1)),
+																self.num_translations, self.compiler,
+																os.path.join(self.datasets_path, 'failed%d' % (i-1))).split(' '),
+					  stdout=f, stderr=f, bufsize=0).wait()
 		for ext in ['ll', 'hl', 'replacements']:
 			os.system(
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
@@ -335,6 +344,8 @@ if __name__ == "__main__":
 	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
+	parser.add_argument('--use_shallow_evaluation', type=bool, default=False, help='use shallow evaluation to make more "hard" samples')
+
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
@@ -342,5 +353,6 @@ if __name__ == "__main__":
 				  codenator_config=args.codenator_config, tf_nmt_config=args.tf_nmt_config, patience=args.patience,
 				  num_translations=args.num_translations, success_percentage=args.percentage,
 				  validation_size=args.validation_size, train_size_initial=args.train_size_initial,
-				  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations).\
+				  train_size_increment=args.train_size_increment, initial_model=args.initial_model,
+				  max_iterations=args.max_iterations, use_shallow_evaluation = args.use_shallow_evaluation).\
 		run(cleanup=args.cleanup)
