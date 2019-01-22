@@ -186,7 +186,7 @@ def open_stats_csvs(failed_dataset):
 	return failed_dataset + 'trees_stats.csv'
 
 
-def create_and_save_sentences_from_failes(hl, out_file):
+def create_and_save_sentences_from_failes(hl, out_file, writing_type):
 	hls_list = []
 	hl_list = hl.split(' ')
 	hls_list.append(hl)
@@ -204,8 +204,8 @@ def create_and_save_sentences_from_failes(hl, out_file):
 		hls_list.append(' '.join(tmp))
 
 	lls_list = map(lambda x: from_numbers_to_digits(compiler(parsePostOrder(x)[1].c())), hls_list)
-	with open(out_file + '.corpus.hl', 'a') as fhl:
-		with open(out_file + '.corpus.ll', 'a') as fll:
+	with open(out_file + '.corpus.hl', writing_type) as fhl:
+		with open(out_file + '.corpus.ll', writing_type) as fll:
 			for i in range(hls_list.__len__()):
 				fhl.write(hls_list[i] + '\n')
 				fll.write(lls_list[i] + '\n')
@@ -240,10 +240,11 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 			nsuccess += 1
 		else:
 			if shallow_evaluation:
-				create_and_save_sentences_from_failes(x[1], failed_dataset)
-			if ff:
-				ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
-			write_stats(str(x[0]), x[1], False, csv_path, df[df['sentence_id'] == x[0]])
+				create_and_save_sentences_from_failes(x[1], failed_dataset, 'a' if nfail > 0 else 'w')
+			else:
+				if ff:
+					ff.writerow([str(x[0]), x[1], x[2], json.dumps(x[3]), x[4]])
+				write_stats(str(x[0]), x[1], False, csv_path, df[df['sentence_id'] == x[0]])
 			nfail += 1
 	if force:
 		for f in os.listdir('.'):
