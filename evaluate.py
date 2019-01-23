@@ -193,7 +193,7 @@ def create_and_save_sentences_from_failes(hl, out_file, writing_type):
 	hls_list = []
 	hl_list = hl.split(' ')
 	hls_list.append(hl)
-	for j in range(200):
+	for j in range(150):
 		tmp = hl_list[:]
 		for i in range(hl_list.__len__()):
 			if hl_list[i] in conditions:
