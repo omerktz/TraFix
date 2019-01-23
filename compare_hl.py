@@ -767,9 +767,9 @@ def create_train_tress_stats(failed_dataset, source):
 if __name__ == "__main__":
     # h_sentence = 'while ( ( X4 / ( -- X6 * X5 -- ) ) >= ( 67 * ( 81 % ( X13 - X5 ) ) ) ) { X7 = X11 ; } ; X6 = ++ X0 % 84 ; X4 = 19 - ( ( X0 / 80 ) * ( X2 + X12 ) ) ; while ( ( ( ( X13 / ( 90 - X8 ) ) * X12 ) / X9 ) == ( ( 32 - ( X3 / X10 ) ) - X6 ) ) { X3 = 100 / X7 ; } ; if ( ( ( 90 % ( X9 * X4 ) ) - ( ++ X4 * X14 ) ) < ( ( X9 % -- X6 ) / ( X3 - X10 ) ) ) { while ( X3 -- <= ( X5 - ( X13 + X6 ) ) ) { X5 = X2 + ( X12 - -- X4 ) ; if ( X4 == 5 ) { X4 = 5 } ; } ;  } ; else { X14 = 91 ; X8 = ( X5 / 11 ) - X8 ; }'
     # print calc_max_nested(h_sentence.split(' '))
-    for i in range(5):
-        print 'start: %d' %i
-        create_train_tress_stats('check_stats/output%d/train_' %i, 'check_stats/output%i/datasets/train0.corpus.hl' %i)
+    # for i in range(5):
+    #     print 'start: %d' %i
+    create_train_tress_stats('54_shallow_evaluation/train_' , '54_shallow_evaluation/datasets/train0.corpus.hl')
 
     exit(0)
     # h_sentence = '( X1 + 5 ) - 6 ;'
