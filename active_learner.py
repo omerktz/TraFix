@@ -160,7 +160,7 @@ class ActiveLearner:
 																				   os.path.join(self.datasets_path,
 																								'vocabs%d' % i),
 																				   data_set_size,
-                                                                                  i == 0,
+                                                                                  i,
 																				   model_path,
 																				   self.tf_nmt_config, (
 																						   ' -p %s' % os.path.join(

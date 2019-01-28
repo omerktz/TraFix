@@ -16,7 +16,7 @@ def main(args):
 	model_path = os.path.abspath(args['model_path'])
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.tf_nmt')) if args['previous'] is not None else ''
 	num_train_steps = 10000000
-	if args['first_iteration']:
+	if args['iteration_num'] == 0:
 		learning_rate = config.getfloat('TensorFlow', 'learning_rate_first_iteration')
 		max_gradient_norm = config.getint('TensorFlow', 'max_gradient_norm_first_iteration')
 	else:
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--seed', type=int, help="random seed")
 	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
 	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
-	parser.add_argument('-f', '--first_iteration', type=bool, default=True, help="is it the first iteration - affects learning rate and max_grad_norm")
+	parser.add_argument('-f', '--iteration_num', type=int, default=0, help="is it the first iteration - affects learning rate and max_grad_norm")
 	args = parser.parse_args()
 
 	if (args.train and args.translate) or not (args.train or args.translate):
