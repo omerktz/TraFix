@@ -549,6 +549,8 @@ def load_model(model, ckpt_path, session, name):
     utils.print_out("%s" % str(e))
 
   session.run(tf.tables_initializer())
+  initial_global_step = model.global_step.assign(0)
+  session.run(initial_global_step)
   utils.print_out(
       "  loaded %s model parameters from %s, time %.2fs" %
       (name, ckpt_path, time.time() - start_time))

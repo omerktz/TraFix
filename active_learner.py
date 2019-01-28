@@ -150,7 +150,7 @@ class ActiveLearner:
 			logging.info('Training model (iteration {0})'.format(i))
 			data_set_size = self.train_size_initial + i * self.train_size_increment
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} {3} {4} -x {5} -m {6} -c {7} --train{8}'.format(self.api_tfNmt,
+				Popen('python {0} {1} {2} {3} {4} -x {5} -f {6} -m {7} -c {8} --train{9}'.format(self.api_tfNmt,
 																				   os.path.join(self.datasets_path,
 																								'train%d.corpus' % i),
 																				   os.path.join(self.datasets_path,
@@ -160,6 +160,7 @@ class ActiveLearner:
 																				   os.path.join(self.datasets_path,
 																								'vocabs%d' % i),
 																				   data_set_size,
+                                                                                  i == 0,
 																				   model_path,
 																				   self.tf_nmt_config, (
 																						   ' -p %s' % os.path.join(

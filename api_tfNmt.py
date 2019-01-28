@@ -15,13 +15,18 @@ def main(args):
 	vocabs = os.path.abspath(args['vocabs'])
 	model_path = os.path.abspath(args['model_path'])
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.tf_nmt')) if args['previous'] is not None else ''
-	num_train_steps = 10000000 #config.getint('TensorFlow', 'batch_size') * config.getint('TensorFlow', 'epochs')
+	num_train_steps = 10000000
+	if args['first_iteration']:
+		learning_rate = config.getfloat('TensorFlow', 'learning_rate_first_iteration')
+		max_gradient_norm = config.getint('TensorFlow', 'max_gradient_norm_first_iteration')
+	else:
+		learning_rate = config.getfloat('TensorFlow', 'learning_rate')
+		max_gradient_norm = config.getint('TensorFlow', 'max_gradient_norm')
 	# valid_steps = int(math.floor(args['data_set_size'] / config.getint('TensorFlow', 'batch_size'))) if args[
 	# 																								 'data_set_size'] is not None else 300
-
 	train_command = (
 				'python -m ' + train_py + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} --num_train_steps={4} --steps_per_stats={5} --num_layers={6} --num_units={7} --metrics={8} --src=ll --tgt=hl --attention=luong --batch_size={9} --max_gradient_norm={10} --optimizer={11} --encoder_type=bi --num_keep_ckpts={12} --learning_rate={13} --steps_per_valid={14} --patience={15} --src_max_len={16} --tgt_max_len={17}'.format(
-				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), config.getint('TensorFlow', 'max_gradient_norm'), config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), config.getfloat('TensorFlow', 'learning_rate'), config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'patience'), config.getint('TensorFlow', 'max_len'), config.getint('TensorFlow', 'max_pred')))
+				vocabs, train_dataset, validation_dataset, model_path, num_train_steps, config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'lstm_layers'), config.getint('TensorFlow', 'rnn_size'), 'bleu', config.getint('TensorFlow', 'batch_size'), max_gradient_norm, config.get('TensorFlow', 'optimizer'), config.getint('TensorFlow', 'models_to_save'), learning_rate, config.getint('TensorFlow', 'eval_after'), config.getint('TensorFlow', 'patience'), config.getint('TensorFlow', 'max_len'), config.getint('TensorFlow', 'max_pred')))
 
 	train_command = train_command.strip()
 
@@ -78,6 +83,7 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--seed', type=int, help="random seed")
 	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
 	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
+	parser.add_argument('-f', '--first_iteration', type=bool, default=True, help="is it the first iteration - affects learning rate and max_grad_norm")
 	args = parser.parse_args()
 
 	if (args.train and args.translate) or not (args.train or args.translate):
