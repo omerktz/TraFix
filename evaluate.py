@@ -52,8 +52,8 @@ def compiler(hl):
 
 
 def apply_number_replacements_wrapper(ll, replacements, config):
-	min_value = max(config.getint('Number', 'MinValue'), config.getint('Number', 'MinAbstractedValue'))
-	max_value = min(config.getint('Number', 'MaxValue'), config.getint('Number', 'MaxAbstractedValue'))
+	min_value = max(config.getint('Number', 'MinValue'), config.getint('NumberAbstraction', 'MinAbstractedValue'))
+	max_value = min(config.getint('Number', 'MaxValue'), config.getint('NumberAbstraction', 'MaxAbstractedValue'))
 	code = apply_number_replacements(ll, replacements).split(' ')
 	for i in range(len(code)):
 		if re.match('^N[0-9]+$', code[i]):
@@ -66,7 +66,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	# 	return (i, hl, ll, replacements, hl, 0)  # success
 	if len(filter(lambda x: len(x) > 0, out)) == 0:
 		return (i, hl, ll, replacements, None, 1)  # no translations
-	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
+	if config.getboolean('Number', 'Abstract'):
+		out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
 		return (i, hl, ll, replacements, None, 2)  # unparsable
@@ -76,7 +77,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 	if not any(lls):
 		return (i,hl, ll, replacements, None, 3)  # does not compile
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
-	ll = apply_number_replacements_wrapper(ll, replacements, config)
+	if config.getboolean('Number', 'Abstract'):
+		ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
@@ -98,8 +100,12 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 				with open(failed_dataset + '.corpus.replacements', 'a') as freplacements:
 					for j in range(len(out)):
 						if len(out[j]) > 0 and len(lls[j]) > 0:
-							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
-							h = apply_number_replacements(out[j], replaces)
+							if config.getboolean('Number', 'Abstract'):
+								(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
+								h = apply_number_replacements(out[j], replaces)
+							else:
+								(l, replaces) = lls[j], {}
+								h = out[j]
 							fhl.write(h + '\n')
 							fll.write(l + '\n')
 							freplacements.write(json.dumps(reverse_mapping(replaces)) + '\n')

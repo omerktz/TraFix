@@ -16,9 +16,9 @@ import generate_vocabularies as vocabs_utils
 # until enough entries from the test dataset have been successfully translated
 ###
 class ActiveLearner:
-	def __init__(self, input, output_dir, compiler, experiment=False, codenator_config='configs/codenator.config',
-				 dynmt_config='configs/dynmt.config', patience=10, num_translations=5, success_percentage=0.95,
-				 validation_size=1000, train_size_initial=10000, train_size_increment=10000, initial_model=None, max_iterations=None):
+	def __init__(self, input, output_dir, compiler, experiment, codenator_config, dynmt_config, patience,
+				 num_translations, success_percentage, validation_size, train_size_initial, train_size_increment,
+				 initial_model, train_set_drop, max_iterations):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
@@ -31,6 +31,7 @@ class ActiveLearner:
 		self.validation_size = validation_size
 		self.train_size_initial = train_size_initial
 		self.train_size_increment = train_size_increment
+		self.train_set_drop = train_set_drop
 		self.initial_model = initial_model
 		self.max_iterations = max_iterations
 		# set external scripts paths
@@ -167,12 +168,12 @@ class ActiveLearner:
 	def update_datasets(self, i):
 
 		logging.info('Updating training dataset (iteration {0})'.format(i))
-		os.system('python {0} {6} -o {1} -c {2} -n {3} -e {4} -a {5} -v'.format(self.codenator,
+		os.system('python {0} {6} -o {1} -c {2} -n {3} -e {4} -a {5} -r {7} -v'.format(self.codenator,
 																  os.path.join(self.datasets_path, 'train%d' % i),
 																  self.codenator_config, self.train_size_increment,
 																  os.path.join(self.datasets_path, 'test0'),
 																  os.path.join(self.datasets_path, 'train%d' % (i-1)),
-																  self.compiler))
+																  self.compiler, self.train_set_drop))
 		for ext in ['ll', 'hl', 'replacements']:
 			os.system(
 				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
@@ -305,10 +306,12 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=50000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
+	parser.add_argument('-x', '--train-set-drop', type=int, default=50, choices=range(0, 101),
+						help="Percentage of training dataset to drop at each round (default: %(default)s, value should be between 0 and 100)")
 	parser.add_argument('-m', '--initial-model', type=str,
 						help="trained model to to use as basis for current active learner")
 	parser.add_argument('-w', '--patience', type=int, default=10,
@@ -324,6 +327,6 @@ if __name__ == "__main__":
 	ActiveLearner(input=args.input, output_dir=args.output, compiler=args.compiler, experiment=args.experiment,
 				  codenator_config=args.codenator_config, dynmt_config=args.dynmt_config, patience=args.patience,
 				  num_translations=args.num_translations, success_percentage=args.percentage,
-				  validation_size=args.validation_size, train_size_initial=args.train_size_initial,
+				  validation_size=args.validation_size, train_size_initial=args.train_size_initial, train_set_drop=args.train_set_drop,
 				  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations).\
 		run(cleanup=args.cleanup)

@@ -2,15 +2,15 @@ import numpy.random as npr
 
 
 def generate_number_replacements(line, config, hl2ll):
-	min_abstracted_number = config.getint("Number", "MinAbstractedValue")
-	max_abstracted_number = config.getint("Number", "MaxAbstractedValue")
-	max_constants = config.getint("Number", "NumbersPerStatement")
+	min_abstracted_number = config.getint("NumberAbstraction", "MinAbstractedValue")
+	max_abstracted_number = config.getint("NumberAbstraction", "MaxAbstractedValue")
+	max_constants = config.getint("NumberAbstraction", "NumbersPerStatement")
 	replacements = {}
 	parts = line.strip().split(" ")
 	for i in range(len(parts)):
 		if hl2ll.is_number(parts[i]):
 			number = hl2ll.get_number(parts[i])
-			if (int(number) >= min_abstracted_number) and (int(number) <= max_abstracted_number):
+			if (abs(int(number)) >= min_abstracted_number) and (abs(int(number)) <= max_abstracted_number):
 				if number in replacements.keys():
 					constant = replacements[number]
 				else:

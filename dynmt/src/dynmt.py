@@ -146,7 +146,8 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 			old_input_vocabulary = []
 			with open('{}.vocabs.in'.format(prev_model), 'r') as fin:
 				for line in fin:
-					old_input_vocabulary.append(line.strip())
+					if line.strip() not in [';', ',']:
+						old_input_vocabulary.append(line.strip())
 			old_output_vocabulary = []
 			with open('{}.vocabs.out'.format(prev_model), 'r') as fin:
 				for line in fin:

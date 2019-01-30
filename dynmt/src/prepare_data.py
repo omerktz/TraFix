@@ -43,7 +43,7 @@ def load_parallel_data(input_seqs_path, output_seqs_path, max_seq_len = None):
                 input_seq = input_file_lines[i]
                 output_seq = output_file_lines[i]
 
-                input_tokens = input_seq.split()
+                input_tokens = filter(lambda c: c not in [';', ','], input_seq.split())
                 output_tokens = output_seq.split()
 
                 amount += 1
@@ -88,7 +88,7 @@ def load_vocabularies(input_seqs_path, output_seqs_path):
             output_file_lines = output_file.readlines()
             # split sequences by spaces
             for i in xrange(len(input_file_lines)):
-                input_vocab += input_file_lines[i].strip().split()
+                input_vocab += filter(lambda c: c not in [';', ','], input_file_lines[i].strip().split())
             for i in xrange(len(output_file_lines)):
                 output_vocab += output_file_lines[i].strip().split()
     return list(set(input_vocab)), list(set(output_vocab))
