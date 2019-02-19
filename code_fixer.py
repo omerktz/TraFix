@@ -50,6 +50,10 @@ def try_new_value(new_value, hl_parts, i, ll, compiler, comparison):
 	return remaining_replacements
 
 def fix_code(hl, ll, compiler, comparison, original_compiled, replacements):
+	actual_replacements = dict(filter(lambda x: len(x[1]) > 0, list(replacements.iteritems())))
+	if any(map(lambda k: k not in actual_replacements.keys(), filter(lambda y: y[0] in map(lambda x: x[0], actual_replacements.keys()), replacements.keys()))):
+		return None
+	replacements = actual_replacements
 	if any(map(lambda y: len(list(y[1])) > 1, itertools.groupby(replacements.keys(), key=lambda x: x[0]))):
 		return None
 	if any(map(lambda y: len(y) > 1, replacements.values())):
