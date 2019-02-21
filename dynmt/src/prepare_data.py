@@ -1,9 +1,26 @@
 import codecs
 import spacy
 from collections import Counter
+import re
+
+def split_numbers_to_digits(tokens):
+    new_tokens = []
+    for i in range(len(tokens)):
+        token = tokens[i]
+        if re.match('^\-?[0-9]+$', token):
+            digits = list(token)
+            if digits[0] == '-':
+                digits = ['-N'] + digits[1:]
+            if i+1 < len(tokens):
+                if re.match('^\-?[0-9]+$', tokens[i+1]):
+                    digits += ['|']
+            new_tokens += digits
+        else:
+            new_tokens += [token]
+    return new_tokens
 
 # preprocess the parallel data, return tokenized sequences and vocabularies
-def load_parallel_data(input_seqs_path, output_seqs_path, max_seq_len = None):
+def load_parallel_data(input_seqs_path, output_seqs_path, split_numbers, max_seq_len=None):
 
     # print 'loading preprocessing model...'
     # nlp = spacy.load('en')
@@ -45,6 +62,10 @@ def load_parallel_data(input_seqs_path, output_seqs_path, max_seq_len = None):
 
                 input_tokens = filter(lambda c: c not in [';', ','], input_seq.split())
                 output_tokens = output_seq.split()
+
+                if split_numbers:
+                    input_tokens = split_numbers_to_digits(input_tokens)
+                    output_tokens = split_numbers_to_digits(output_tokens)
 
                 amount += 1
                 input_seq_len = len(input_tokens)

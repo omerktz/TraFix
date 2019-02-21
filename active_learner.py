@@ -1,6 +1,5 @@
 import os
 from subprocess import Popen, check_output
-import random
 import csv
 import logging
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
@@ -42,6 +41,11 @@ class ActiveLearner:
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
 		self.models_path = os.path.join(self.output_dir, 'models')
 		self.outputs_path = os.path.join(self.output_dir, 'outputs')
+		# load needed config value
+		import ConfigParser
+		config = ConfigParser.ConfigParser()
+		config.read(self.dynmt_config)
+		self.split_numbers_to_digits = config.getboolean('DyNmt', 'split_numbers_to_digits')
 		# initialize
 		self.initialize_datasets(experiment)
 
@@ -113,7 +117,8 @@ class ActiveLearner:
 		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 									  os.path.join(self.datasets_path, 'train0'),
 									  os.path.join(self.datasets_path, 'validate0')],
-									 os.path.join(self.datasets_path, 'vocabs0'))
+									 os.path.join(self.datasets_path, 'vocabs0'),
+									 self.split_numbers_to_digits)
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -190,7 +195,8 @@ class ActiveLearner:
 		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
 									  os.path.join(self.datasets_path, 'train%d' % i),
 									  os.path.join(self.datasets_path, 'validate%d' % i)],
-									 os.path.join(self.datasets_path, 'vocabs%d' % i))
+									 os.path.join(self.datasets_path, 'vocabs%d' % i),
+									 self.split_numbers_to_digits)
 
 
 	# return True if successfully translated *enough* entries

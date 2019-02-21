@@ -1,3 +1,25 @@
+import re
+
+def merge_digits_to_numbers(line):
+	tokens = line.split(' ')
+	new_tokens = []
+	number = ''
+	for i in range(len(tokens)):
+		token = tokens[i]
+		if token == '-N':
+			number = '-'
+		elif token in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+			number += token
+		else:
+			if len(number) > 0:
+				new_tokens += [number]
+				number = ''
+			if token != '|':
+				new_tokens += [token]
+	if len(number) > 0:
+		new_tokens += [number]
+	return ' '.join(new_tokens)
+
 def main(args):
 	import os
 	import ConfigParser
@@ -10,15 +32,16 @@ def main(args):
 	vocabs = os.path.abspath(args['vocabs'])
 	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
+	split_numbers_to_digits = config.getboolean('DyNmt', 'split_numbers_to_digits')
 	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
 								  '--max-patience={8} --beam-size={9} --max-pred={10} --max-len={11} --min-epochs={12} ' \
-								  '--lstm-layers={13} --models-to-save={14}{15}{16}{17}{18}{19}' \
+								  '--lstm-layers={13} --split-numbers={14} --models-to-save={15}{16}{17}{18}{19}{20}' \
 		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
 				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
 				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
 				config.getint('DyNmt', 'max_pred'), config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'min_epochs'),
-				config.getint('DyNmt', 'lstm_layers'), config.getint('DyNmt', 'models_to_save'),
+				config.getint('DyNmt', 'lstm_layers'), split_numbers_to_digits, config.getint('DyNmt', 'models_to_save'),
 				' --eval' if args['translate'] else '', ' --override' if args['override'] else '',
 				(' --seed=%d' % args['seed']) if args['seed'] else '', previous, ' &> /dev/null' if args['silent'] else '')
 	command = command.strip()
@@ -40,7 +63,10 @@ def main(args):
 					if re.match('^[0-9]+/[0-9]+$', line):
 						current = line[:line.find('/')]
 					if re.match('^[0-9]+\-best\: ', line):
-						f.write(current + ' ||| ' + line[line.find(':') + 1:].strip() + ' ||| \n')
+						translation = line[line.find(':') + 1:].strip()
+						if split_numbers_to_digits:
+							translation = merge_digits_to_numbers(translation)
+						f.write(current + ' ||| ' + translation + ' ||| \n')
 	if args['cleanup']:
 		import glob
 		files = filter(os.path.isfile, glob.glob(model + '*[0-9].*txt'))
