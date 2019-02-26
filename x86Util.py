@@ -30,7 +30,7 @@ def compiler(s, check_success=False):
 	lines = lines[start+2:]
 	x86lines = []
 	for line in lines:
-		line = line.strip().replace(',', ' ,').replace('(', ' ( ').replace(')', ' ) ')
+		line = line.strip().replace(',', ' , ').replace('(', ' ( ').replace(')', ' ) ')
 		line = re.sub('[ \t]+', ' ', line)
 		if line.startswith(';'):
 			line = line[1:].strip()

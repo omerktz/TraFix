@@ -8,8 +8,8 @@ Usage:
   [--reg=REGULARIZATION] [--batch-size=BATCH] [--beam-size=BEAM] [--learning=LEARNING] [--plot] [--override] [--eval]
   [--ensemble=ENSEMBLE] [--eval-after=EVALAFTER] [--max-len=MAXLEN] [--last-state] [--max-pred=MAXPRED] [--compact]
   [--grad-clip=GRADCLIP] [--max-patience=MAXPATIENCE] [--models-to-save=SAVE] [--max] [--diverse] [--seed=SEED]
-  [--previous-model=PREV] TRAIN_INPUTS_PATH TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH TEST_INPUTS_PATH
-  TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
+  [--previous-model=PREV] [--split-numbers=SPLIT] TRAIN_INPUTS_PATH TRAIN_OUTPUTS_PATH DEV_INPUTS_PATH DEV_OUTPUTS_PATH
+  TEST_INPUTS_PATH TEST_OUTPUTS_PATH RESULTS_PATH VOCAB_INPUT_PATH VOCAB_OUTPUT_PATH
 
 Arguments:
   TRAIN_INPUTS_PATH    train inputs path
@@ -54,6 +54,7 @@ Options:
   --diverse                     symmetric diverse loss
   --seed=SEED                   initial random seed
   --previous-model=PREV			previous model to use as baseline
+  --split-numbers=SPLIT			whether or not the model should split numbers to digits
 """
 
 import numpy as np
@@ -93,7 +94,7 @@ from matplotlib import pyplot as plt
 
 def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_path, test_inputs_path, test_outputs_path,
 		 results_file_path, vocab_input_path, vocab_output_path, input_dim, hidden_dim, epochs, layers, optimization,
-		 plot, override, eval_only, ensemble, batch_size, eval_after, min_epochs, max_len, previous_model):
+		 plot, override, eval_only, ensemble, batch_size, eval_after, min_epochs, max_len, previous_model, split_numbers):
 	# write model config file (.modelinfo)
 	common.write_model_config_file(arguments, train_inputs_path, train_outputs_path, dev_inputs_path,
 								   dev_outputs_path, test_inputs_path, test_outputs_path, results_file_path,
@@ -110,13 +111,13 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	if not eval_only:
 		# load train and dev data
 		train_inputs, train_outputs = \
-			prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, max_len)
+			prepare_data.load_parallel_data(train_inputs_path, train_outputs_path, split_numbers, max_len)
 		dev_inputs, dev_outputs = \
-			prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, max_len)
+			prepare_data.load_parallel_data(dev_inputs_path, dev_outputs_path, split_numbers, max_len)
 	else:
 		# load test data
 		test_inputs, test_outputs = \
-			prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, max_len)
+			prepare_data.load_parallel_data(test_inputs_path, test_outputs_path, split_numbers, max_len)
 
 	# add unk symbols to vocabularies
 	input_vocabulary.append(common.UNK)
@@ -146,7 +147,8 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 			old_input_vocabulary = []
 			with open('{}.vocabs.in'.format(prev_model), 'r') as fin:
 				for line in fin:
-					old_input_vocabulary.append(line.strip())
+					if line.strip() not in [';', ',']:
+						old_input_vocabulary.append(line.strip())
 			old_output_vocabulary = []
 			with open('{}.vocabs.out'.format(prev_model), 'r') as fin:
 				for line in fin:
@@ -860,4 +862,5 @@ if __name__ == '__main__':
 		 int(arguments['--lstm-layers']), arguments['--optimization'], bool(arguments['--plot']),
 		 bool(arguments['--override']), bool(arguments['--eval']), arguments['--ensemble'],
 		 int(arguments['--batch-size']), int(arguments['--eval-after']), int(arguments['--min-epochs']),
-		 int(arguments['--max-len']) if arguments['--max-len'] else None, arguments['--previous-model'])
+		 int(arguments['--max-len']) if arguments['--max-len'] else None, arguments['--previous-model'],
+		 bool(arguments['--split-numbers']))

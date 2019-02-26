@@ -78,8 +78,8 @@ def compiler(hl):
 
 
 def apply_number_replacements_wrapper(ll, replacements, config):
-	min_value = max(config.getint('Number', 'MinValue'), config.getint('Number', 'MinAbstractedValue'))
-	max_value = min(config.getint('Number', 'MaxValue'), config.getint('Number', 'MaxAbstractedValue'))
+	min_value = max(config.getint('Number', 'MinValue'), config.getint('NumberAbstraction', 'MinAbstractedValue'))
+	max_value = min(config.getint('Number', 'MaxValue'), config.getint('NumberAbstraction', 'MaxAbstractedValue'))
 	code = apply_number_replacements(ll, replacements).split(' ')
 	for i in range(len(code)):
 		if re.match('^N[0-9]+$', code[i]):
@@ -108,7 +108,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 		if not shallow_evaluation:
 			csv.writer(f).writerow([str(i), 'false', 'no translations'])
 		return (i, hl, ll, replacements, None, 1)  # no translations
-	out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
+	if config.getboolean('Number', 'Abstract'):
+		out = map(lambda x: apply_number_replacements_wrapper(x, replacements, config), out)
 	res = map(parsePostOrder, out)
 	if all(map(lambda x: not x[0], res)):
 		if not shallow_evaluation:
@@ -124,7 +125,8 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 	if shallow_evaluation:
 		return (i,hl, ll, replacements, None, 0)
 	lls = map(lambda l: re.sub('[ \t]+', ' ', l.strip()) if l is not None else '', lls)
-	ll = apply_number_replacements_wrapper(ll, replacements, config)
+	if config.getboolean('Number', 'Abstract'):
+		ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		csv.writer(f).writerow([str(i), 'true', 'direct success'])
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
@@ -161,8 +163,12 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 				with open(failed_dataset + '.corpus.replacements', 'a') as freplacements:
 					for j in range(len(out)):
 						if len(out[j]) > 0 and len(lls[j]) > 0:
-							(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
-							h = apply_number_replacements(out[j], replaces)
+							if config.getboolean('Number', 'Abstract'):
+								(l, replaces) = generate_number_replacements(lls[j], config, hl2ll)
+								h = apply_number_replacements(out[j], replaces)
+							else:
+								(l, replaces) = lls[j], {}
+								h = out[j]
 							fhl.write(h + '\n')
 							hl_util.writeMisMatches_hl(i, failed_dataset, h, apply_number_replacements(hl, replacements))
 							fll.write(from_numbers_to_digits(l) + '\n')
