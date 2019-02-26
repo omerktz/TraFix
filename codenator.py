@@ -9,7 +9,7 @@ import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 from abstract_numerals import *
 import numpy.random as npr
-import evaluate
+
 
 hl2ll = None
 def load_compiler(f):
@@ -33,6 +33,8 @@ parser.add_argument('-e', '--exclude', dest='e', type=str,
 					help="dataset to exclude from current generation")
 parser.add_argument('-a', '--append', dest='a', type=str,
 					help="initial dataset to extend")
+parser.add_argument('-r', '--retain', dest='r', type=int, choices=range(0, 101),
+					help="percentate of initial dataset to retain (value should be between 0 and 100)")
 parser.add_argument('-t', '--truncate', dest='t', type=int,
 					help="truncate resulting dataset")
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
@@ -295,7 +297,6 @@ class Branch:
 
 
 class Loop:
-
 	def __init__(self, nesting_level=0):
 		def body_generator():
 			return Statements(
@@ -402,6 +403,11 @@ def generate_statements():
 						replacements_lines = map(lambda x: x.strip(), freplacements.readlines())
 			assert len(hl_lines) == len(ll_lines)
 			assert len(hl_lines) == len(replacements_lines)
+			if args.r is not None:
+				chosen_indexes = npr.choice(range(len(hl_lines)), len(hl_lines)*(100-args.r)/100)
+				hl_lines = map(lambda i: hl_lines[i], chosen_indexes)
+				ll_lines = map(lambda i: ll_lines[i], chosen_indexes)
+				replacements_lines = map(lambda i: replacements_lines[i], chosen_indexes)
 			for i in xrange(len(hl_lines)):
 				if hl_lines[i] not in exclude:
 					corpus_hl.append(hl_lines[i])
@@ -428,11 +434,13 @@ def generate_statements():
 				pass
 		exclude.add(hl_line)
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
-		(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
-		hl_line = apply_number_replacements(hl_line, replacements)
-		hl_line = evaluate.from_numbers_to_digits(hl_line.strip())
-		ll_line = evaluate.from_numbers_to_digits(ll_line.strip())
-
+		if config.getboolean('Number', 'Abstract'):
+			(ll_line, replacements) = generate_number_replacements(ll_line, config, hl2ll)
+			hl_line = apply_number_replacements(hl_line, replacements)
+		else:
+			replacements = {}
+		hl_line = hl_line.strip()
+		ll_line = ll_line.strip()
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)
 			corpus_hl.append(hl_line)
