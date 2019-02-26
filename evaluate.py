@@ -132,15 +132,15 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None, shal
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
 
 	# print parsePostOrder(hl)[1].c()
-
-	for x in range(lls.__len__()):
-		answer = try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False)
-		if (answer is not None):
-			return answer
-		else:
-			answer = try_fix(cs, ll, lls, i, hl, replacements, x, f, combine=True)
-			if (answer is not None):
-				return answer
+    # fix without graph - commented out
+	# for x in range(lls.__len__()):
+	# 	answer = try_fix(cs, ll, lls, i, hl ,replacements, x, f, combine=False)
+	# 	if (answer is not None):
+	# 		return answer
+	# 	else:
+	# 		answer = try_fix(cs, ll, lls, i, hl, replacements, x, f, combine=True)
+	# 		if (answer is not None):
+	# 			return answer
 
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))

@@ -9,7 +9,7 @@ import json
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
 from abstract_numerals import *
 import numpy.random as npr
-
+import evaluate
 
 hl2ll = None
 def load_compiler(f):
@@ -439,8 +439,9 @@ def generate_statements():
 			hl_line = apply_number_replacements(hl_line, replacements)
 		else:
 			replacements = {}
-		hl_line = hl_line.strip()
-		ll_line = ll_line.strip()
+		hl_line = evaluate.from_numbers_to_digits(hl_line.strip())
+		ll_line = evaluate.from_numbers_to_digits(ll_line.strip())
+
 		if (len(hl_line) > 0) and (len(ll_line) > 0):
 			corpus_ll.append(ll_line)
 			corpus_hl.append(hl_line)

@@ -3,7 +3,6 @@ from subprocess import Popen, check_output
 import csv
 import logging
 from utils.colored_logger_with_timestamp import init_colorful_root_logger
-import generate_vocabularies as vocabs_utils
 
 
 ###
@@ -14,16 +13,17 @@ import generate_vocabularies as vocabs_utils
 # 4) translates test dataset
 # until enough entries from the test dataset have been successfully translated
 ###
+
 class ActiveLearner:
-	def __init__(self, input, output_dir, compiler, experiment, codenator_config, dynmt_config, patience,
+	def __init__(self, input, output_dir, compiler, experiment, codenator_config, tf_nmt_config, patience,
 				 num_translations, success_percentage, validation_size, train_size_initial, train_size_increment,
-				 initial_model, train_set_drop, max_iterations):
+				 initial_model, train_set_drop, max_iterations, use_shallow_evaluation):
 		# store parameters
 		self.input = input
 		self.output_dir = output_dir
 		self.compiler = compiler
 		self.codenator_config = codenator_config
-		self.dynmt_config = dynmt_config
+		self.tf_nmt_config = tf_nmt_config
 		self.patience = patience
 		self.num_translations = num_translations
 		self.success_percentage = success_percentage
@@ -35,17 +35,13 @@ class ActiveLearner:
 		self.max_iterations = max_iterations
 		# set external scripts paths
 		self.codenator = 'codenator.py'
-		self.api_dynmt = 'api_dynmt.py'
+		self.api_tfNmt = 'api_tfNmt.py'
 		self.evaluate = 'evaluate.py'
+		self.use_shallow_evaluation = use_shallow_evaluation
 		# set work paths
 		self.datasets_path = os.path.join(self.output_dir, 'datasets')
 		self.models_path = os.path.join(self.output_dir, 'models')
 		self.outputs_path = os.path.join(self.output_dir, 'outputs')
-		# load needed config value
-		import ConfigParser
-		config = ConfigParser.ConfigParser()
-		config.read(self.dynmt_config)
-		self.split_numbers_to_digits = config.getboolean('DyNmt', 'split_numbers_to_digits')
 		# initialize
 		self.initialize_datasets(experiment)
 
@@ -62,10 +58,10 @@ class ActiveLearner:
 		os.system('cp {0} {1}'.format(self.codenator_config,
 									  os.path.join(self.output_dir, os.path.basename(self.codenator_config))))
 		os.system(
-			'cp {0} {1}'.format(self.dynmt_config, os.path.join(self.output_dir, os.path.basename(self.dynmt_config))))
+			'cp {0} {1}'.format(self.tf_nmt_config, os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))))
 		# update config paths
 		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
-		self.dynmt_config = os.path.join(self.output_dir, os.path.basename(self.dynmt_config))
+		self.tf_nmt_config = os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))
 		# create work directories
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
@@ -114,11 +110,12 @@ class ActiveLearner:
 															   0 if self.initial_model else self.validation_size,
 															   os.path.join(self.datasets_path, 'test0'),
 																   self.compiler))
-		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-									  os.path.join(self.datasets_path, 'train0'),
-									  os.path.join(self.datasets_path, 'validate0')],
-									 os.path.join(self.datasets_path, 'vocabs0'),
-									 self.split_numbers_to_digits)
+
+		logging.info('saving vocab')
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
+			os.path.join(self.datasets_path, 'vocabs0.ll'), os.path.join(self.datasets_path, 'train0.corpus.ll')))
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(
+			os.path.join(self.datasets_path, 'vocabs0.hl'), os.path.join(self.datasets_path, 'train0.corpus.hl')))
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -133,20 +130,34 @@ class ActiveLearner:
 			os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.out',
 										  os.path.join(self.models_path, 'model0.ll-po.dynmt.vocabs.out')))
 		else:
+			model_path = os.path.join(self.models_path, 'model%d' %i, '')
+			os.system('mkdir ' + model_path)
+			if(i > 0):
+				# move the start model to the new dir and update vocabulary
+				old_model_path = os.path.join(self.models_path, 'model%d' %(i-1), '')
+				old_vocab_path = os.path.join(self.datasets_path, 'vocabs%d' % (i-1))
+				new_vocab_path = os.path.join(self.datasets_path, 'vocabs%d' % i)
+				logging.info('copying old model dir to new old and updating vocab: {0} new : {1}'.format(old_model_path, model_path))
+				# update the vocabulary of new model
+				os.system('python -m nmt.scripts.update_vocab --model_dir {0} --output_dir {1} --src_vocab {2} --tgt_vocab {3} --new_src_vocab {4} --new_tgt_vocab {5} --mode replace'.format(
+					old_model_path, model_path, old_vocab_path + '.ll', old_vocab_path + '.hl', new_vocab_path + '.ll', new_vocab_path + '.hl'))
+
 			logging.info('Training model (iteration {0})'.format(i))
+			data_set_size = self.train_size_initial + i * self.train_size_increment
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
-				Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --train{7}'.format(self.api_dynmt,
+				Popen('python {0} {1} {2} {3} {4} -x {5} -f {6} -m {7} -c {8} --train{9}'.format(self.api_tfNmt,
 																				   os.path.join(self.datasets_path,
-																								'train%d' % i),
+																								'train%d.corpus' % i),
 																				   os.path.join(self.datasets_path,
-																								'validate%d' % i),
+																								'validate%d.corpus' % i),
 																				   os.path.join(self.datasets_path,
 																								'test%d' % i),
 																				   os.path.join(self.datasets_path,
 																								'vocabs%d' % i),
-																				   os.path.join(self.models_path,
-																								'model%d' % i),
-																				   self.dynmt_config, (
+																				   data_set_size,
+                                                                                  i,
+																				   model_path,
+																				   self.tf_nmt_config, (
 																						   ' -p %s' % os.path.join(
 																					   self.models_path,
 																					   'model%d' % previous)) if (
@@ -154,7 +165,7 @@ class ActiveLearner:
 		# translate
 		logging.info('Translating dataset (iteration {0})'.format(i))
 		with open(os.path.join(self.outputs_path, 'translate%d' % i), 'w', 0) as f:
-			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_dynmt,
+			Popen('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_tfNmt,
 																					   os.path.join(self.datasets_path,
 																									'train%d' % i),
 																					   os.path.join(self.datasets_path,
@@ -163,9 +174,8 @@ class ActiveLearner:
 																									'test%d' % i),
 																					   os.path.join(self.datasets_path,
 																									'vocabs%d' % i),
-																					   os.path.join(self.models_path,
-																									'model%d' % i),
-																					   self.dynmt_config,
+																					   model_path,
+																					   self.tf_nmt_config,
 																					   self.num_translations).split(
 				' '), stdout=f, stderr=f, bufsize=0).wait()
 
@@ -179,10 +189,13 @@ class ActiveLearner:
 																  os.path.join(self.datasets_path, 'test0'),
 																  os.path.join(self.datasets_path, 'train%d' % (i-1)),
 																  self.compiler, self.train_set_drop))
-		for ext in ['ll', 'hl', 'replacements']:
-			os.system(
-				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
-															  os.path.join(self.datasets_path, 'train%d' % i), ext))
+		if self.use_shallow_evaluation:
+			self.apply_shallow_evaluation(i)
+		else:
+			for ext in ['ll', 'hl', 'replacements']:
+				os.system(
+					'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'failed%d' % (i - 1)),
+																  os.path.join(self.datasets_path, 'train%d' % i), ext))
 
 		logging.info('Updating validation dataset (iteration {0})'.format(i))
 		os.system(
@@ -192,11 +205,9 @@ class ActiveLearner:
 															os.path.join(self.datasets_path, 'test0'),
 															os.path.join(self.datasets_path, 'validate%d' % (i - 1)),
 															self.validation_size, self.compiler))
-		vocabs_utils.generate_vocabs([os.path.join(self.datasets_path, 'test0'),
-									  os.path.join(self.datasets_path, 'train%d' % i),
-									  os.path.join(self.datasets_path, 'validate%d' % i)],
-									 os.path.join(self.datasets_path, 'vocabs%d' % i),
-									 self.split_numbers_to_digits)
+
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(os.path.join(self.datasets_path, 'vocabs%d.ll' % i), os.path.join(self.datasets_path, 'train%d.corpus.ll' % i )))
+		os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1}'.format(os.path.join(self.datasets_path, 'vocabs%d.hl' % i), os.path.join(self.datasets_path, 'train%d.corpus.hl' % i)))
 
 
 	# return True if successfully translated *enough* entries
@@ -292,6 +303,30 @@ class ActiveLearner:
 				if f.startswith('tmp') and (f.endswith('.c') or f.endswith('ll')):
 					os.remove(f)
 
+	def apply_shallow_evaluation(self, i):
+		os.system('python {0} {4} -n {1} -c {2} -o {3} -v'.format(self.codenator, 2000, self.codenator_config,
+																  os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' %(i-1)),
+																  self.compiler))
+		os.system('python {0} {1} {2} {3} {4} -m {5} -c {6} --translate -n {7}'.format(self.api_tfNmt,
+																				   os.path.join(self.datasets_path,
+																								'train%d' % (i-1)),
+																				   os.path.join(self.datasets_path,
+																								'validate%d' % (i-1)),
+																				   os.path.join(self.datasets_path,
+																								'for_shallow_evaluation_%d' % (i-1)),
+																				   os.path.join(self.datasets_path,
+																								'vocabs%d' % (i-1)),
+																					os.path.join(self.models_path,
+																								'model%d' % (i-1), ''),
+																				   self.tf_nmt_config,
+																				   self.num_translations))
+		os.system('python {0} {1} {2} {3} -d {4} -v --shallow_evaluation=True'.format(self.evaluate,
+																				  os.path.join(self.datasets_path, 'for_shallow_evaluation_%d' % (i - 1)), self.num_translations,
+																				  self.compiler, os.path.join(self.datasets_path, 'shallow_evaluation_generated_examples_%d' % ( i - 1))))
+		for ext in ['ll', 'hl', 'replacements']:
+			os.system(
+				'cat {0}.corpus.{2} >> {1}.corpus.{2}'.format(os.path.join(self.datasets_path, 'shallow_evaluation_generated_examples_%d' % (i - 1)),
+															  os.path.join(self.datasets_path, 'train%d' % i), ext))
 
 if __name__ == "__main__":
 	import argparse
@@ -304,8 +339,8 @@ if __name__ == "__main__":
 						help='Generate own test input and run as experiment')
 	parser.add_argument('-c', '--codenator_config', type=str, default='configs/codenator.config',
 						help="Codenator configuration file (default: \'%(default)s\')")
-	parser.add_argument('-d', '--dynmt-config', type=str, default='configs/dynmt.config',
-						help="Dynmt configuration file (default: \'%(default)s\')")
+	parser.add_argument('-d', '--tf_nmt_config', type=str, default='configs/tf_nmt.config',
+						help="tf_nmt configuration file (default: \'%(default)s\')")
 	parser.add_argument('-k', '--num-translations', type=int, default=5,
 						help="Number of translations per entry (default: %(default)s)")
 	parser.add_argument('-p', '--percentage', type=float, default=0.95,
@@ -327,12 +362,14 @@ if __name__ == "__main__":
 	parser.add_argument('--cleanup', action='store_const', const=True, help='Cleanup any remaining temporary files')
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
+	parser.add_argument('--use_shallow_evaluation', type=bool, default=False, help='use shallow evaluation to make more "hard" samples')
+
 	args = parser.parse_args()
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 
 	ActiveLearner(input=args.input, output_dir=args.output, compiler=args.compiler, experiment=args.experiment,
-				  codenator_config=args.codenator_config, dynmt_config=args.dynmt_config, patience=args.patience,
+				  codenator_config=args.codenator_config, tf_nmt_config=args.tf_nmt_config, patience=args.patience,
 				  num_translations=args.num_translations, success_percentage=args.percentage,
 				  validation_size=args.validation_size, train_size_initial=args.train_size_initial, train_set_drop=args.train_set_drop,
-				  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations).\
+				  train_size_increment=args.train_size_increment, initial_model=args.initial_model, max_iterations=args.max_iterations, use_shallow_evaluation = args.use_shallow_evaluation).\
 		run(cleanup=args.cleanup)

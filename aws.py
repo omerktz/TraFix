@@ -61,6 +61,7 @@ class AWShandler:
 
 	def get_client(self):
 		dns = self._ec2client.describe_instances(InstanceIds=[self._instance.id])['Reservations'][0]['Instances'][0]['PublicDnsName']
+		self.log_info('dns: ' + dns)
 		self.log_info('Connecting to instance')
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
@@ -87,7 +88,7 @@ class AWShandler:
 	def exec_instance(self):
 		self.log_info('Executing experiment')
 		activate_gpu_workspace = 'source activate tensorflow_p27; '
-		self.exec_command('cd {0}; {3}./runExperiment.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler, activate_gpu_workspace if self._gpu else ''))
+		self.exec_command('cd {0}; {3}./runExperiment_forConfigs.sh output{1} log{1} {2}'.format(self._main_dir, self._index, self._compiler, activate_gpu_workspace if self._gpu else ''))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
