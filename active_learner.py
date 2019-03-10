@@ -45,7 +45,8 @@ class ActiveLearner:
 		import ConfigParser
 		config = ConfigParser.ConfigParser()
 		config.read(self.dynmt_config)
-		self.split_numbers_to_digits = config.getboolean('DyNmt', 'split_numbers_to_digits')
+		self.split_ll_numbers_to_digits = config.getboolean('DyNmt', 'split_ll_numbers_to_digits')
+		self.split_hl_numbers_to_digits = config.getboolean('DyNmt', 'split_hl_numbers_to_digits')
 		# initialize
 		self.initialize_datasets(experiment)
 
@@ -118,7 +119,7 @@ class ActiveLearner:
 									  os.path.join(self.datasets_path, 'train0'),
 									  os.path.join(self.datasets_path, 'validate0')],
 									 os.path.join(self.datasets_path, 'vocabs0'),
-									 self.split_numbers_to_digits)
+									 self.split_ll_numbers_to_digits, self.split_hl_numbers_to_digits)
 
 
 	# train model until no more progress is made on validation set and translate test set
@@ -196,7 +197,7 @@ class ActiveLearner:
 									  os.path.join(self.datasets_path, 'train%d' % i),
 									  os.path.join(self.datasets_path, 'validate%d' % i)],
 									 os.path.join(self.datasets_path, 'vocabs%d' % i),
-									 self.split_numbers_to_digits)
+									 self.split_ll_numbers_to_digits, self.split_hl_numbers_to_digits)
 
 
 	# return True if successfully translated *enough* entries
