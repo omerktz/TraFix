@@ -1,7 +1,10 @@
 import re
 import itertools
+import tempfile
 
 # overriden with Instruction class from compiler api
+from distutils.command.install import install
+
 Instruction = None
 def set_instruction_class(instruction_class):
 	global Instruction
@@ -137,6 +140,30 @@ class Graph:
 		for i in sorted(self.instructions.keys()):
 			print i, self.instructions[i].code
 
+	def print_graph(self):
+		try:
+			import graphviz
+		except:
+			print 'Error: graphviz package not installed'
+			return
+		g = graphviz.Digraph('PDG', format='png')
+		for i in self.instructions.keys():
+			instruction = self.instructions[i]
+			if (len(self.cdg[i]) > 0) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (len(self.rddg[i]) > 0):
+				if isinstance(instruction, VarInstruction):
+					g.node('n_'+str(i), label=instruction.code[4:], shape='box')
+				else:
+					g.node('n_' + str(i), label=instruction.code, shape='circle')
+		for i in self.ddg.keys():
+			for x in self.ddg[i]:
+				for j in x:
+					g.edge('n_'+str(j), 'n_'+str(i))
+		for i in self.cdg.keys():
+			for x in self.cdg[i]:
+				for j in x:
+					g.edge('n_'+str(j), 'n_'+str(i), shape='dashed')
+		#print g.source
+		g.view(tempfile.mktemp('.gv'))
 
 def compare_graphs(graph1, graph2):
 	if graph1.bad_graph or graph2.bad_graph:
