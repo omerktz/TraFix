@@ -250,7 +250,7 @@ def compare_graphs(graph1, graph2):
 			func = itertools.product
 		else:
 			func = zip
-		for (x,y) in func(ddg1, ddg2):
+		for (x,y) in list(func(ddg1, ddg2)):
 			if len(x) == len(y):
 				dependency_pairs.update(list(itertools.product(x, y)))
 		return len(set(map(lambda x: x[0], dependency_pairs))), dependency_pairs
