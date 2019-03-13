@@ -147,12 +147,15 @@ class Graph:
 			print 'Error: graphviz package not installed'
 			return
 		g = graphviz.Digraph('PDG', format='png')
+		g.attr(rankdir='LR', size='16!,10!')
 		for i in self.instructions.keys():
 			instruction = self.instructions[i]
-			if (len(self.cdg[i]) > 0) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (len(self.rddg[i]) > 0):
-				if isinstance(instruction, VarInstruction):
+			if isinstance(instruction, VarInstruction):
+				if (len(self.cdg[i]) > 0) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (
+						len(self.rddg[i]) > 0):
 					g.node('n_'+str(i), label=instruction.code[4:], shape='box')
-				else:
+			else:
+				if instruction.code not in ['__entry__', '__exit__']:
 					g.node('n_' + str(i), label=instruction.code, shape='circle')
 		for i in self.ddg.keys():
 			for x in self.ddg[i]:
