@@ -78,7 +78,7 @@ class Graph:
 		# build ddg
 		ddg_init = dict([(i, set()) for i in self.instructions])
 		ddg_gen = dict(map(lambda i: (i, [(d, i) for d in self.instructions[i].defines]), self.instructions))
-		ddg_kill = dict(map(lambda i: (i, itertools.product(self.instructions[i].defines, self.instructions.keys())), self.instructions))
+		ddg_kill = dict(map(lambda i: (i, list(itertools.product(self.instructions[i].defines, self.instructions.keys()))), self.instructions))
 		self.reaching_definitions = self.get_fixed_point(ddg_init, ddg_gen, ddg_kill, set.union, self.parents, self.childs)
 		self.ddg = dict(map(lambda i: (i, map(lambda u: map(lambda y: y[1], filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
 		self.rddg = dict([(i, set()) for i in self.instructions])
@@ -306,3 +306,4 @@ if __name__ == "__main__":
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
 	args = parser.parse_args()
 	set_instruction_class(load_external(args.compiler).Instruction)
+	Graph('movl X13 , %edx ; movl X0 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl 68 , %eax ; idivl %ecx ; movl %eax , X3 ;').print_graph()

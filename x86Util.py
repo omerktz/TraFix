@@ -172,8 +172,8 @@ class Instruction:
 			self.defines += ['FLAGS']
 			self.is_symmetric = True
 		elif self.op == 'idivl':
-			self.uses = [code, '%eax', '%edx', 'FLAGS']
-			self.defines = ['%eax', '%edx']
+			self.uses = [code, '%eax', '%edx']
+			self.defines = ['%eax', '%edx', 'FLAGS']
 		elif self.op in ['negl', 'notl']:
 			self.uses = [code]
 			self.defines = [code, 'FLAGS']
