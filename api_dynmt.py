@@ -24,7 +24,7 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
-	dynmt = os.path.abspath('dynmt/src/dynmt.py')
+	dynmt = os.path.abspath('dynmt/dynmt.py')
 	config.read(args['config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
