@@ -405,7 +405,7 @@ def parse(code, simplify=False):
             tokens = tokens[1:]
     while Statement.check(None, stack):
         Statement.handle(None,stack,simplify)
-    return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0])
+    return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)
 
 if __name__ == "__main__":
     print parse('2 X0 * 15 < COND X11 14 X5 X10 * - - 3 / X5 = TRUE IF X7 X10 = X10 X7 + 1 19 X2  - + + X1 18 X2 % / * 4 / X9 =')[1].c()
