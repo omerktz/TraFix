@@ -514,8 +514,6 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 
 		# go through batches
 		for i, batch_start_index in enumerate(train_order, start=1):
-			total_batches += 1
-
 			# get batch examples
 			batch_inputs = [x[0] for x in train_data[batch_start_index:batch_start_index + batch_size]]
 			batch_outputs = [x[1] for x in train_data[batch_start_index:batch_start_index + batch_size]]
@@ -533,8 +531,17 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 			loss = compute_batch_loss(encoder, decoder, batch_inputs, batch_outputs, y2int)
 
 			# forward pass
-			total_loss += loss.scalar_value()
-			loss.backward()
+			try:
+				total_loss += loss.scalar_value()
+				loss.backward()
+			except RuntimeError as e:
+				# sometimes the above two instructions fail due to memory allocation failure.
+				# I was unable to find a fix for these failures.
+				# perhaps we can just "skip" the failures.
+				print 'WARNING: Encountered RuntimeError ('+str(e)+')'
+				continue
+
+			total_batches += 1
 
 			# update parameters
 			trainer.update()
