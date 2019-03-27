@@ -185,7 +185,7 @@ class Instruction:
 			self.uses = parts[:]
 			self.defines = [parts[1]] + ['FLAGS']
 		elif self.op == 'leal':
-			parts = filter(lambda y:len(y) > 0, map(lambda x: x.strip(), re.sub('  ', ' ', re.sub('[\(\)]', '', code)).split(',')))
+			parts = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), re.sub('  ', ' ', re.sub('[\(\)]', '', code)).split(',')))
 			self.defines = [parts[-1]]
 			self.uses = parts[:-1]
 			self.uses.reverse()
