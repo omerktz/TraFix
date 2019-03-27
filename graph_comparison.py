@@ -140,14 +140,14 @@ class Graph:
 		for i in sorted(self.instructions.keys()):
 			print i, self.instructions[i].code
 
-	def print_graph(self):
+	def print_graph(self, save_source=False, save_png=False, view=False, name='PDG'):
 		try:
 			import graphviz
 		except:
 			print 'Error: graphviz package not installed'
 			return
-		g = graphviz.Digraph('PDG', format='png')
-		g.attr(rankdir='LR', size='16!,10!')
+		g = graphviz.Digraph(name, format='png')
+		g.attr(rankdir='LR')
 		for i in self.instructions.keys():
 			instruction = self.instructions[i]
 			if isinstance(instruction, VarInstruction):
@@ -165,8 +165,12 @@ class Graph:
 			for x in self.cdg[i]:
 				for j in x:
 					g.edge('n_'+str(j), 'n_'+str(i), shape='dashed')
-		#print g.source
-		g.view(tempfile.mktemp('.gv'))
+		if save_source:
+			g.save(name)
+		if save_png:
+			g.render(name)
+		if view:
+			g.view(tempfile.mktemp('.gv'))
 
 def compare_graphs(graph1, graph2):
 	if graph1.bad_graph or graph2.bad_graph:
@@ -306,4 +310,4 @@ if __name__ == "__main__":
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
 	args = parser.parse_args()
 	set_instruction_class(load_external(args.compiler).Instruction)
-	Graph('movl X13 , %edx ; movl X0 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl 68 , %eax ; idivl %ecx ; movl %eax , X3 ;').print_graph()
+	Graph('movl X13 , %edx ; movl X0 , %eax ; movl %edx , %ecx ; imull %eax , %ecx ; movl 68 , %eax ; idivl %ecx ; movl %eax , X3 ;').print_graph(True, True, True)
