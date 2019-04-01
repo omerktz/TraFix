@@ -118,8 +118,7 @@ class Graph:
 			r_branches = tmp_cdg[r]
 			if len(r_branches) > 0:
 				self.cdg[r] = filter(lambda b: all(map(lambda x: b not in tmp_cdg[x], r_branches)), r_branches)[0]
-				for b in r_branches:
-						self.rcdg[b].add(r)
+				self.rcdg[self.cdg[r]].add(r)
 
 	def get_all_ops(self):
 		return set(filter(lambda x: len(x) > 0, map(lambda s: s.op, self.instructions.values())))
