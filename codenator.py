@@ -33,7 +33,7 @@ parser.add_argument('-e', '--exclude', dest='e', type=str,
 					help="dataset to exclude from current generation")
 parser.add_argument('-a', '--append', dest='a', type=str,
 					help="initial dataset to extend")
-parser.add_argument('-r', '--retain', dest='r', type=int, choices=range(0, 101),
+parser.add_argument('-r', '--retain', dest='r', type=int,
 					help="percentate of initial dataset to retain (value should be between 0 and 100)")
 parser.add_argument('-t', '--truncate', dest='t', type=int,
 					help="truncate resulting dataset")
@@ -133,13 +133,13 @@ class BinaryOp(Op):
 		self._op1 = get_expr(nesting_level+1)
 		while isinstance(self._op1, Number) and \
 				(((self._op1._num == 0) and (self._act != '-')) or \
-				 ((self._op1._num == 1) and (self._act == '*'))):
+				 ((self._op1._num == 1) and (self._act in ['*', '%']))):
 			self._op1 = get_expr(nesting_level + 1)
 		self._op2 = get_expr(nesting_level+1)
 		while (self._op2 == self._op1) or \
 				(isinstance(self._op1, Number) and isinstance(self._op2, Number)) or \
 				(isinstance(self._op2, Number) and ((self._op2._num == 0) or \
-													((self._op2._num == 1) and (self._act in ['*', '/'])))):
+													((self._op2._num == 1) and (self._act in ['*', '/', '%'])))):
 			self._op2 = get_expr(nesting_level+1)
 
 	def __str__(self):
@@ -338,7 +338,7 @@ class Statements:
 	_max_statements = config.getint('Statements', 'MaxStatements')
 	_statements_weights = ast.literal_eval(config.get('Statements', 'Weights'))
 
-	def __init__(self, types=[Assignment, Branch, Loop], nesting_level=0, max_statements=_max_statements):
+	def __init__(self, types=filter(lambda x: x is not None, [Assignment, Branch, Loop, UnaryOp if config.getboolean('UnaryOp', 'AllowAsStatement') else None]), nesting_level=0, max_statements=_max_statements):
 		statements_limit = min(max_statements, Statements._max_statements)
 		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(statements_limit))
 		num_statements = choose_by_weight(range(1, statements_limit + 1), weights)

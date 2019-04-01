@@ -381,7 +381,7 @@ class Statement:
         current = stack.pop()
         other = None
         if len(stack) > 0:
-            if stack[-1].type in ['STATEMENT']:
+            if stack[-1].type in ['STATEMENT'] or isinstance(stack[-1], UniOp):
                 other = stack.pop()
         stack.append(Statement(current, other))
         return False
@@ -389,7 +389,10 @@ class Statement:
         self.inner = inner
         self.other = other
     def c(self):
-        return (self.other.c() if self.other else '')+self.inner.c()+' ; '
+        other_c = self.other.c() if self.other else ''
+        if isinstance(self.other, UniOp):
+            other_c += ' ; '
+        return other_c+self.inner.c()+' ; '
     def __str__(self):
         return self.c()
 
@@ -400,9 +403,13 @@ def parse(code, simplify=False):
     while len(tokens) > 0:
         matches = filter(lambda t: t.check(tokens[0],stack), postOrderTypes)
         if len(matches) == 0:
-            return (False, None)
-        if matches[0].handle(tokens[0],stack,simplify):
+            if not isinstance(stack[-1], UniOp):
+                return (False, None)
+            Statement.handle(None, stack, simplify)
+        elif matches[0].handle(tokens[0],stack,simplify):
             tokens = tokens[1:]
+    if isinstance(stack[-1], UniOp):
+        Statement.handle(None, stack, simplify)
     while Statement.check(None, stack):
         Statement.handle(None,stack,simplify)
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)
