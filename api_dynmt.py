@@ -24,7 +24,7 @@ def main(args):
 	import os
 	import ConfigParser
 	config = ConfigParser.ConfigParser()
-	dynmt = os.path.abspath('dynmt/src/dynmt.py')
+	dynmt = os.path.abspath('dynmt/dynmt.py')
 	config.read(args['config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
@@ -32,18 +32,21 @@ def main(args):
 	vocabs = os.path.abspath(args['vocabs'])
 	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
 	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
-	split_numbers_to_digits = config.getboolean('DyNmt', 'split_numbers_to_digits')
+	split_in_numbers_to_digits = config.getboolean('DyNmt', 'split_ll_numbers_to_digits')
+	split_out_numbers_to_digits = config.getboolean('DyNmt', 'split_hl_numbers_to_digits')
 	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
-								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} --batch-size={6} --eval-after={7} ' \
-								  '--max-patience={8} --beam-size={9} --max-pred={10} --max-len={11} --min-epochs={12} ' \
-								  '--lstm-layers={13} --split-numbers={14} --models-to-save={15}{16}{17}{18}{19}{20}' \
+								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} ' \
+								  '--batch-size={6} --eval-after={7} --max-patience={8} --beam-size={9} --max-pred={10} ' \
+								  '--max-len={11} --min-epochs={12} --lstm-layers={13} --split-numbers-in={14} ' \
+								  '--split-numbers-out={15} --models-to-save={16}{17}{18}{19}{20}{21}' \
 		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
 				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
 				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
 				config.getint('DyNmt', 'max_pred'), config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'min_epochs'),
-				config.getint('DyNmt', 'lstm_layers'), split_numbers_to_digits, config.getint('DyNmt', 'models_to_save'),
-				' --eval' if args['translate'] else '', ' --override' if args['override'] else '',
-				(' --seed=%d' % args['seed']) if args['seed'] else '', previous, ' &> /dev/null' if args['silent'] else '')
+				config.getint('DyNmt', 'lstm_layers'), split_in_numbers_to_digits, split_out_numbers_to_digits,
+				config.getint('DyNmt', 'models_to_save'), ' --eval' if args['translate'] else '',
+				' --override' if args['override'] else '', (' --seed=%d' % args['seed']) if args['seed'] else '',
+				previous, ' &> /dev/null' if args['silent'] else '')
 	command = command.strip()
 	if args['train']:
 		os.system(command)
@@ -64,7 +67,7 @@ def main(args):
 						current = line[:line.find('/')]
 					if re.match('^[0-9]+\-best\: ', line):
 						translation = line[line.find(':') + 1:].strip()
-						if split_numbers_to_digits:
+						if split_out_numbers_to_digits:
 							translation = merge_digits_to_numbers(translation)
 						f.write(current + ' ||| ' + translation + ' ||| \n')
 	if args['cleanup']:

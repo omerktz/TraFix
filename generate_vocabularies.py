@@ -11,17 +11,18 @@ def parse_vocabulary(path, split_numbers):
 			vocab += new_words
 	return set(vocab)
 
-def generate_vocabs(datasets, out, split_numbers):
+def generate_vocabs(datasets, out, split_ll_numbers, split_hl_numbers):
 	vocab_hl = set()
 	vocab_ll = set()
-	if split_numbers:
-		initial_vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-N', '|']
-		vocab_hl.update(initial_vocab)
+	initial_vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-N', '|']
+	if split_ll_numbers:
 		vocab_ll.update(initial_vocab)
+	if split_hl_numbers:
+		vocab_hl.update(initial_vocab)
 	logging.info('Generating vocabularies for ' + str(datasets))
 	for dataset in datasets:
-		vocab_ll.update(parse_vocabulary(dataset+'.corpus.ll', split_numbers))
-		vocab_hl.update(parse_vocabulary(dataset+'.corpus.hl', split_numbers))
+		vocab_ll.update(parse_vocabulary(dataset+'.corpus.ll', split_ll_numbers))
+		vocab_hl.update(parse_vocabulary(dataset+'.corpus.hl', split_hl_numbers))
 	with open(out+'.vocabs.ll', 'w') as f:
 		f.write(' '.join(list(vocab_ll))+'\n')
 	with open(out+'.vocabs.hl', 'w') as f:

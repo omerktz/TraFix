@@ -20,7 +20,7 @@ def split_numbers_to_digits(tokens):
     return new_tokens
 
 # preprocess the parallel data, return tokenized sequences and vocabularies
-def load_parallel_data(input_seqs_path, output_seqs_path, split_numbers, max_seq_len=None):
+def load_parallel_data(input_seqs_path, output_seqs_path, split_numbers_in, split_numbers_out, max_seq_len=None):
 
     # print 'loading preprocessing model...'
     # nlp = spacy.load('en')
@@ -63,8 +63,9 @@ def load_parallel_data(input_seqs_path, output_seqs_path, split_numbers, max_seq
                 input_tokens = filter(lambda c: c not in [';', ','], input_seq.split())
                 output_tokens = output_seq.split()
 
-                if split_numbers:
+                if split_numbers_in:
                     input_tokens = split_numbers_to_digits(input_tokens)
+                if split_numbers_out:
                     output_tokens = split_numbers_to_digits(output_tokens)
 
                 amount += 1

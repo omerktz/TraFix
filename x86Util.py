@@ -172,8 +172,8 @@ class Instruction:
 			self.defines += ['FLAGS']
 			self.is_symmetric = True
 		elif self.op == 'idivl':
-			self.uses = [code, '%eax', '%edx', 'FLAGS']
-			self.defines = ['%eax', '%edx']
+			self.uses = [code, '%eax', '%edx']
+			self.defines = ['%eax', '%edx', 'FLAGS']
 		elif self.op in ['negl', 'notl']:
 			self.uses = [code]
 			self.defines = [code, 'FLAGS']
@@ -185,9 +185,9 @@ class Instruction:
 			self.uses = parts[:]
 			self.defines = [parts[1]] + ['FLAGS']
 		elif self.op == 'leal':
-			parts = map(lambda x: x.strip(), code.split(' , '))
-			self.defines = [parts[1]]
-			self.uses = re.sub('  ', ' ', re.sub('[\(\)\,]', '', parts[0])).strip().split(' ')
+			parts = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), re.sub('  ', ' ', re.sub('[\(\),]', '', code)).split(' ')))
+			self.defines = [parts[-1]]
+			self.uses = parts[:-1]
 			self.uses.reverse()
 		else:
 			print 'Unknown op: ' + self.code
