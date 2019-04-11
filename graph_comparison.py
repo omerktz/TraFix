@@ -117,7 +117,7 @@ class Graph:
 		for r in tmp_cdg.keys():
 			r_branches = tmp_cdg[r]
 			if len(r_branches) > 0:
-				self.cdg[r] = filter(lambda b: all(map(lambda x: b not in tmp_cdg[x], r_branches)), r_branches)[0]
+				self.cdg[r] = filter(lambda b: all(map(lambda x: (b == x) or (b not in tmp_cdg[x]), r_branches)), r_branches)[0]
 				self.rcdg[self.cdg[r]].add(r)
 
 	def get_all_ops(self):
@@ -318,4 +318,4 @@ if __name__ == "__main__":
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
 	args = parser.parse_args()
 	set_instruction_class(load_external(args.compiler).Instruction)
-	Graph('movl X8 , %edx ; movl X3 , %eax ; addl %edx , %eax ; leal -2 ( %eax ) , %edx ; movl X7 , %eax ; addl 1 , %eax ; movl %eax , X7 ; movl X7 , %eax ; cmpl %eax , %edx ; jle .L0 ; movl 28 , X5 ; jmp .L1 ; .L0 : ; movl X10 , %ebx ; movl 81 , %eax ; idivl %ebx ; movl %eax , %ecx ; movl X4 , %ebx ; leal -1 ( %ebx ) , %eax ; movl %eax , X4 ; movl %ecx , %eax ; idivl %ebx ; leal 76 ( %eax ) , %edx ; movl X1 , %eax ; addl 64 , %eax ; addl %edx , %eax ; movl %eax , X9 ; .L1 : ; movl X9 , %eax ; movl X14 , %ecx ; movl X7 , %edx ; imull %ecx , %edx ; movl X13 , %ebx ; movl X7 , %ecx ; addl %ebx , %ecx ; movl %edx , %ebx ; subl %ecx , %ebx ; idivl %ebx ; movl %eax , X12 ; movl X6 , %ecx ; movl 1272582903 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 3 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl 78 , %eax ; idivl %ecx ; movl %edx , %ebx ; movl X0 , %ecx ; movl 1374389535 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 4 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl %edx , %eax ; imull 50 , %eax , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; imull %ebx , %eax ; movl %eax , X10 ; movl X1 , %eax ; movl %eax , X1 ; movl 70 , X3 ; movl X14 , %ebx ; movl 98 , %eax ; idivl %ebx ; movl %eax , %edx ; movl X13 , %eax ; subl %eax , %edx ; movl %edx , %eax ; leal 6 ( %eax ) , %ecx ; movl X6 , %ebx ; movl 54 , %eax ; idivl %ebx ; movl %edx , %ebx ; movl %ecx , %eax ; idivl %ebx ; movl %eax , X9 ; movl 31 , X13 ; movl 75 , X11 ;').print_graph(view=True)
+	Graph('jmp .L1 ; .L0 : ; movl X5 , %eax ; movl %eax , X9 ; .L1 : ; movl X2 , %eax ; cmpl 8 , %eax ; jle .L0 ;').print_graph(view=True)
