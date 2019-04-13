@@ -534,11 +534,11 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 			try:
 				total_loss += loss.scalar_value()
 				loss.backward()
-			except RuntimeError as e:
+			except RuntimeError as exception:
 				# sometimes the above two instructions fail due to memory allocation failure.
 				# I was unable to find a fix for these failures.
 				# perhaps we can just "skip" the failures.
-				print 'WARNING: Encountered RuntimeError ('+str(e)+')'
+				print 'WARNING: Encountered RuntimeError ('+str(exception)+')'
 				continue
 
 			total_batches += 1
