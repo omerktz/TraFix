@@ -165,7 +165,7 @@ if __name__ == "__main__":
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
 						help="key filename (default: \'%(default)s)\'")
-	parser.add_argument('--type', type=str, default='r5.2xlarge',
+	parser.add_argument('--type', type=str, default='r5a.2xlarge',
 						help="AWS instance type (default: \'%(default)s)\'")
 	parser.add_argument('--gpu-type', type=str, default='p2.xlarge',
 						help="AWS instance type for gpu (default: \'%(default)s)\'")
