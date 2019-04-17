@@ -86,6 +86,8 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     os.chdir(os.path.dirname(__file__))
     bleu_path = output_file_path + '.eval'
     os.system('perl utils/multi-bleu-detok.perl {} < {} > {}'.format(gold_outputs_path, output_file_path, bleu_path))
+    if not os.path.isfile(bleu_path):
+        return float(0)
     with codecs.open(bleu_path, encoding='utf8') as f:
         lines  = f.readlines()
 
