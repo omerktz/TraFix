@@ -61,6 +61,7 @@ class AWShandler:
 
 	def get_client(self):
 		dns = self._ec2client.describe_instances(InstanceIds=[self._instance.id])['Reservations'][0]['Instances'][0]['PublicDnsName']
+		self.log_info('Instance DNS: {0}'.format(dns))
 		self.log_info('Connecting to instance')
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
