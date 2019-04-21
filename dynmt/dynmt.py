@@ -539,7 +539,6 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 				# I was unable to find a fix for these failures.
 				# perhaps we can just "skip" the failures.
 				print 'WARNING: Encountered RuntimeError ('+str(exception)+')'
-				continue
 
 			total_batches += 1
 

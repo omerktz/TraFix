@@ -403,7 +403,7 @@ def parse(code, simplify=False):
     while len(tokens) > 0:
         matches = filter(lambda t: t.check(tokens[0],stack), postOrderTypes)
         if len(matches) == 0:
-            if not isinstance(stack[-1], UniOp):
+            if (len(stack) == 0) or (not isinstance(stack[-1], UniOp)):
                 return (False, None)
             Statement.handle(None, stack, simplify)
         elif matches[0].handle(tokens[0],stack,simplify):
