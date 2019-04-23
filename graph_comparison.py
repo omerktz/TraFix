@@ -153,22 +153,30 @@ class Graph:
 			return
 		g = graphviz.Digraph(name, format='png')
 		g.attr(rankdir='LR')
+		ignored_nodes = set()
 		for i in self.instructions.keys():
 			instruction = self.instructions[i]
 			if isinstance(instruction, VarInstruction):
 				if (self.cdg[i] is not None) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (
 						len(self.rddg[i]) > 0):
-					g.node('n_'+str(i), label=instruction.code[4:], shape='box')
+					g.node('n_'+str(i), label=instruction.code[4:], shape='circle')
 			else:
 				if instruction.code not in ['__entry__', '__exit__']:
-					g.node('n_' + str(i), label=instruction.code, shape='circle')
+					g.node('n_' + str(i), label=instruction.code, shape='box')
+				else:
+					ignored_nodes.add(i)
 		for i in self.ddg.keys():
-			for x in self.ddg[i]:
-				for j in x:
-					g.edge('n_'+str(j), 'n_'+str(i))
+			if i not in ignored_nodes:
+				for x in self.ddg[i]:
+					for j in x:
+						if j not in ignored_nodes:
+							g.edge('n_'+str(j), 'n_'+str(i))
 		for i in self.cdg.keys():
-			if self.cdg[i] is not None:
-				g.edge('n_'+str(self.cdg[i]), 'n_'+str(i), style='dashed')
+			if i not in ignored_nodes:
+				if self.cdg[i] is not None:
+					j = self.cdg[i]
+					if j not in ignored_nodes:
+						g.edge('n_'+str(self.cdg[i]), 'n_'+str(i), style='dashed')
 		if print_source:
 			print g.source
 		if save_source:
