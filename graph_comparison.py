@@ -101,7 +101,8 @@ class Graph:
 				self.immediate_post_dominators[i] = immediates[0]
 			else:
 				self.immediate_post_dominators[i] = None
-		tmp_cdg = dict([(i, set()) for i in self.instructions])
+		self.cdg = dict([(i, set()) for i in self.instructions])
+		self.rcdg = dict([(i, set()) for i in self.instructions])
 		branches = filter(lambda i: self.instructions[i].is_branch, self.instructions)
 		for b in branches:
 			immediate_post_dominator = self.immediate_post_dominators[b]
@@ -111,21 +112,15 @@ class Graph:
 				reachable = new_reachable
 				new_reachable = set(filter(lambda c: c != immediate_post_dominator, reachable.union(*map(lambda x: self.childs[x], reachable))))
 			for r in reachable:
-				tmp_cdg[r].add(b)
-		self.cdg = dict([(i, None) for i in self.instructions])
-		self.rcdg = dict([(i, set()) for i in self.instructions])
-		for r in tmp_cdg.keys():
-			r_branches = tmp_cdg[r]
-			if len(r_branches) > 0:
-				self.cdg[r] = filter(lambda b: all(map(lambda x: (b == x) or (b not in tmp_cdg[x]), r_branches)), r_branches)[0]
-				self.rcdg[self.cdg[r]].add(r)
+				self.cdg[r].add(b)
+				self.rcdg[b].add(r)
 
 	def get_all_ops(self):
 		return set(filter(lambda x: len(x) > 0, map(lambda s: s.op, self.instructions.values())))
 
 	def get_fixed_point(self, init, gen, kill, merge, predecessors, successors):
-		in_states = init
-		out_states = dict([(i, set()) for i in self.instructions])
+		in_states = init.copy()
+		out_states = init.copy()
 		worklist = set(self.instructions.keys())
 		while len(worklist) > 0:
 			i = worklist.pop()
@@ -157,7 +152,7 @@ class Graph:
 		for i in self.instructions.keys():
 			instruction = self.instructions[i]
 			if isinstance(instruction, VarInstruction):
-				if (self.cdg[i] is not None) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (
+				if (len(self.cdg[i]) > 0) or (len(self.ddg[i]) > 0) or (len(self.rcdg[i]) > 0) or (
 						len(self.rddg[i]) > 0):
 					g.node('n_'+str(i), label=instruction.code[4:], shape='circle')
 			else:
@@ -173,10 +168,9 @@ class Graph:
 							g.edge('n_'+str(j), 'n_'+str(i))
 		for i in self.cdg.keys():
 			if i not in ignored_nodes:
-				if self.cdg[i] is not None:
-					j = self.cdg[i]
+				for j in self.cdg[i]:
 					if j not in ignored_nodes:
-						g.edge('n_'+str(self.cdg[i]), 'n_'+str(i), style='dashed')
+						g.edge('n_'+str(j), 'n_'+str(i), style='dashed')
 		if print_source:
 			print g.source
 		if save_source:
@@ -235,7 +229,7 @@ def compare_graphs(graph1, graph2):
 			numeric_replacements = []
 		cdg1 = graph1.cdg[index1]
 		cdg2 = graph2.cdg[index2]
-		if ((cdg1 is None) and (cdg2 is not None)) or ((cdg1 is not None) and (cdg2 is None)):
+		if len(cdg1) != len(cdg2):
 			return (False, [])
 		rcdg1 = graph1.rcdg[index1]
 		rcdg2 = graph2.rcdg[index2]
@@ -253,11 +247,9 @@ def compare_graphs(graph1, graph2):
 			return (False, [])
 		return (True, numeric_replacements)
 	def generate_all_dependency_pairs(index1, index2):
-		dependency_pairs = set()
 		cdg1 = graph1.cdg[index1]
 		cdg2 = graph2.cdg[index2]
-		if (cdg1 is not None) and (cdg2 is not None):
-			dependency_pairs.add((cdg1, cdg2))
+		dependency_pairs = set(list(itertools.product(cdg1, cdg2)))
 		rcdg1 = graph1.rcdg[index1]
 		rcdg2 = graph2.rcdg[index2]
 		dependency_pairs.update(set(list(itertools.product(rcdg1, rcdg2))))
