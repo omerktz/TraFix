@@ -152,6 +152,11 @@ def main(f, k, compiler, force, config, failed_dataset=None):
 				with open(f + '.corpus.ll', 'r') as fll:
 					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
 						with open(f + '.corpus.replacements', 'r') as freplacements:
+							if failed_dataset is not None:
+								with open(failed_dataset + '.corpus.hl', 'a') as failed_hl:
+									with open(failed_dataset + '.corpus.ll', 'a') as failed_ll:
+										with open(failed_dataset + '.corpus.replacements', 'a') as failed_replacements:
+											pass
 							(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
 													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
 													 failed_dataset=failed_dataset)
