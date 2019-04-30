@@ -81,6 +81,7 @@ class Graph:
 		ddg_kill = dict(map(lambda i: (i, list(itertools.product(self.instructions[i].defines, self.instructions.keys()))), self.instructions))
 		self.reaching_definitions = self.get_fixed_point(ddg_init, ddg_gen, ddg_kill, set.union, self.parents, self.childs)
 		self.ddg = dict(map(lambda i: (i, map(lambda u: map(lambda y: y[1], filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
+		self.ddg_marked = dict(map(lambda i: (i, map(lambda u: map(lambda y: (y[1], bool(re.match("^X[0-9]+$",y[0]))), filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
 		self.rddg = dict([(i, set()) for i in self.instructions])
 		for i in self.ddg.keys():
 			for d in self.ddg[i]:
@@ -140,7 +141,7 @@ class Graph:
 		for i in sorted(self.instructions.keys()):
 			print i, self.instructions[i].code
 
-	def print_graph(self, print_source=False, save_source=False, save_png=False, view=False, name='PDG'):
+	def print_graph(self, print_source=False, save_source=False, save_png=False, view=False, name='PDG', mark_variable_dependecies=False):
 		try:
 			import graphviz
 		except:
@@ -160,12 +161,23 @@ class Graph:
 					g.node('n_' + str(i), label=instruction.code, shape='box')
 				else:
 					ignored_nodes.add(i)
-		for i in self.ddg.keys():
-			if i not in ignored_nodes:
-				for x in self.ddg[i]:
-					for j in x:
-						if j not in ignored_nodes:
-							g.edge('n_'+str(j), 'n_'+str(i))
+		if mark_variable_dependecies:
+			for i in self.ddg_marked.keys():
+				if i not in ignored_nodes:
+					for x in self.ddg_marked[i]:
+						for j in x:
+							if j[0] not in ignored_nodes:
+								if j[1]:
+									g.edge('n_'+str(j[0]), 'n_'+str(i), color='black:invis:black')
+								else:
+									g.edge('n_'+str(j[0]), 'n_'+str(i))
+		else:
+			for i in self.ddg.keys():
+				if i not in ignored_nodes:
+					for x in self.ddg[i]:
+						for j in x:
+							if j not in ignored_nodes:
+								g.edge('n_'+str(j), 'n_'+str(i))
 		for i in self.cdg.keys():
 			if i not in ignored_nodes:
 				for j in self.cdg[i]:
