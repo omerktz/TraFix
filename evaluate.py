@@ -150,16 +150,24 @@ def main(f, k, compiler, force, config, failed_dataset=None):
 			csv.writer(ffail).writerow(['line', 'hl', 'll', 'replacements'])
 			with open(f + '.corpus.hl', 'r') as fhl:
 				with open(f + '.corpus.ll', 'r') as fll:
-					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-						with open(f + '.corpus.replacements', 'r') as freplacements:
-							if failed_dataset is not None:
-								with open(failed_dataset + '.corpus.hl', 'a') as failed_hl:
-									with open(failed_dataset + '.corpus.ll', 'a') as failed_ll:
-										with open(failed_dataset + '.corpus.replacements', 'a') as failed_replacements:
-											pass
-							(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
-													 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
-													 failed_dataset=failed_dataset)
+					with open(f + '.corpus.replacements', 'r') as freplacements:
+						if os.path.exists(f + '.corpus.' + str(k) + '.out'):
+							with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
+								if failed_dataset is not None:
+									with open(failed_dataset + '.corpus.hl', 'a') as failed_hl:
+										with open(failed_dataset + '.corpus.ll', 'a') as failed_ll:
+											with open(failed_dataset + '.corpus.replacements', 'a') as failed_replacements:
+												pass
+								(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
+														 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
+														 failed_dataset=failed_dataset)
+						else:
+							ffail_csv = csv.writer(ffail)
+							hl_lines = [l.strip() for l in fhl.readlines()]
+							ll_lines = [l.strip() for l in fll.readlines()]
+							replacements_lines = [l.strip() for l in freplacements.readlines()]
+							for i in range(len(hl_lines)):
+									ffail_csv.writerow([str(i), hl_lines[i], ll_lines[i], replacements_lines[i]])
 	logging.info(str(nsuccess) + ' statements translated successfully')
 	logging.info(str(nfail) + ' statements failed to translate')
 
