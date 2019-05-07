@@ -86,15 +86,11 @@ def evaluate_bleu(gold, predictions, predictions_file_path=None):
 def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     os.chdir(os.path.dirname(__file__))
     bleu_path = output_file_path + '.eval'
-    return_value = 1
-    i = 0
-    while (return_value != 0) and (i < 10):
-        return_value = os.system('stdbuf -o0 -e0 perl utils/multi-bleu-detok.perl {} < {} > {}'.format(gold_outputs_path, output_file_path, bleu_path))
-        i += 1
-    i = 0
-    while (not os.path.exists(bleu_path)) and (i < 10):
-        i += 1
-        time.sleep(30)
+    eval_blue_script = 'eval_blue'
+    with open(eval_blue_script, 'w') as f:
+        f.write('perl utils/multi-bleu-detok.perl {} < {} > {}'.format(gold_outputs_path, output_file_path, bleu_path))
+    os.chmod(eval_blue_script, 777)
+    os.system('stdbuf -o0 -e0 ./{}'.format(eval_blue_script))
     with codecs.open(bleu_path, encoding='utf8') as f:
         lines = f.readlines()
 
@@ -105,7 +101,8 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
         bleu = 0
 
     #os.remove(bleu_path)
-
+    os.remove(eval_blue_script)
+    
     return float(bleu)
 
 
