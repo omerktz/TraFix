@@ -102,7 +102,7 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
 
     #os.remove(bleu_path)
     os.remove(eval_blue_script)
-    
+
     return float(bleu)
 
 
