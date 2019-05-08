@@ -168,6 +168,7 @@ def main(f, k, compiler, force, config, failed_dataset=None):
 							replacements_lines = [l.strip() for l in freplacements.readlines()]
 							for i in range(len(hl_lines)):
 									ffail_csv.writerow([str(i), hl_lines[i], ll_lines[i], replacements_lines[i]])
+							(nsuccess, nfail) = (0, len(hl_lines))
 	logging.info(str(nsuccess) + ' statements translated successfully')
 	logging.info(str(nfail) + ' statements failed to translate')
 
