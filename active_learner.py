@@ -60,13 +60,10 @@ class ActiveLearner:
 			else:
 				os.remove(self.output_dir)
 		os.makedirs(self.output_dir)
-		os.system('cp {0} {1}'.format(self.codenator_config,
-									  os.path.join(self.output_dir, os.path.basename(self.codenator_config))))
-		os.system(
-			'cp {0} {1}'.format(self.dynmt_config, os.path.join(self.output_dir, os.path.basename(self.dynmt_config))))
+		os.system('cp -r configs {0}'.format(os.path.join(self.output_dir, 'configs')))
 		# update config paths
-		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
-		self.dynmt_config = os.path.join(self.output_dir, os.path.basename(self.dynmt_config))
+		self.codenator_config = os.path.join(self.output_dir, 'configs', os.path.basename(self.codenator_config))
+		self.dynmt_config = os.path.join(self.output_dir, 'configs', os.path.basename(self.dynmt_config))
 		# create work directories
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
