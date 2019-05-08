@@ -275,16 +275,25 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 def do_evaluation(f, k, force, config, fsuccess, ffail, failed_dataset, shallow_evaluation=False):
 	with open(f + '.corpus.hl', 'r') as fhl:
 		with open(f + '.corpus.ll', 'r') as fll:
-			with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-				with open(f + '.corpus.replacements', 'r') as freplacements:
-					if (shallow_evaluation):
-						fs = None
-						ff = None
-					else:
-						fs = csv.writer(fsuccess)
-						ff = csv.writer(ffail)
-					return evaluate(fhl, fll, fout, freplacements, force, config,
-										fs=fs, ff=ff, failed_dataset=failed_dataset, shallow_evaluation=shallow_evaluation)
+			with open(f + '.corpus.replacements', 'r') as freplacements:
+				if os.path.exists(f + '.corpus.' + str(k) + '.out'):
+					with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
+						if failed_dataset is not None:
+							with open(failed_dataset + '.corpus.hl', 'a') as failed_hl:
+								with open(failed_dataset + '.corpus.ll', 'a') as failed_ll:
+									with open(failed_dataset + '.corpus.replacements', 'a') as failed_replacements:
+										pass
+						return evaluate(fhl, fll, fout, freplacements, force, config,
+										fs=None if shallow_evaluation else csv.writer(fsuccess), ff=None if shallow_evaluation else csv.writer(ffail), failed_dataset=failed_dataset, shallow_evaluation=shallow_evaluation)
+				else:
+					if not shallow_evaluation:
+						ffail_csv = csv.writer(ffail)
+						hl_lines = [l.strip() for l in fhl.readlines()]
+						ll_lines = [l.strip() for l in fll.readlines()]
+						replacements_lines = [l.strip() for l in freplacements.readlines()]
+						for i in range(len(hl_lines)):
+								ffail_csv.writerow([str(i), hl_lines[i], ll_lines[i], replacements_lines[i]])
+					return (0, len(hl_lines))
 
 
 def main(f, k, compiler, force, config, failed_dataset=None, shallow_evaluation=False):

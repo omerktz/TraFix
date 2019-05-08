@@ -61,7 +61,7 @@ class AWShandler:
 
 	def get_client(self):
 		dns = self._ec2client.describe_instances(InstanceIds=[self._instance.id])['Reservations'][0]['Instances'][0]['PublicDnsName']
-		self.log_info('dns: ' + dns)
+		self.log_info('Instance DNS: {0}'.format(dns))
 		self.log_info('Connecting to instance')
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
@@ -93,7 +93,7 @@ class AWShandler:
 
 	def update_code(self):
 		self.log_info('Updating code')
-		self.exec_command('cd {0}; git pull origin {1}; chmod +x *.sh'.format(self._main_dir, self._branch))
+		self.exec_command('cd {0}; git pull origin {1}; git clean -fd; chmod +x *.sh'.format(self._main_dir, self._branch))
 
 
 	def download_from_instance(self):
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
 						help="key filename (default: \'%(default)s)\'")
-	parser.add_argument('--type', type=str, default='r5.2xlarge',
+	parser.add_argument('--type', type=str, default='r5a.2xlarge',
 						help="AWS instance type (default: \'%(default)s)\'")
 	parser.add_argument('--gpu-type', type=str, default='p2.xlarge',
 						help="AWS instance type for gpu (default: \'%(default)s)\'")

@@ -48,7 +48,7 @@ def load_parallel_data(input_seqs_path, output_seqs_path, split_numbers_in, spli
     max_input_len = 0
     max_output_len = 0
     amount = 0
-    print 'loading data from files:\n{}\n{}'.format(input_seqs_path, output_seqs_path)
+    print 'loading data from files:\n{} (splitting numbers: {})\n{} (splitting numbers: {})'.format(input_seqs_path, split_numbers_in, output_seqs_path, split_numbers_out)
     with codecs.open(output_seqs_path, encoding='utf8') as output_file:
         with codecs.open(input_seqs_path, encoding='utf8') as input_file:
 

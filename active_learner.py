@@ -55,13 +55,10 @@ class ActiveLearner:
 			else:
 				os.remove(self.output_dir)
 		os.makedirs(self.output_dir)
-		os.system('cp {0} {1}'.format(self.codenator_config,
-									  os.path.join(self.output_dir, os.path.basename(self.codenator_config))))
-		os.system(
-			'cp {0} {1}'.format(self.tf_nmt_config, os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))))
+		os.system('cp -r configs {0}'.format(os.path.join(self.output_dir, 'configs')))
 		# update config paths
-		self.codenator_config = os.path.join(self.output_dir, os.path.basename(self.codenator_config))
-		self.tf_nmt_config = os.path.join(self.output_dir, os.path.basename(self.tf_nmt_config))
+		self.codenator_config = os.path.join(self.output_dir, 'configs', os.path.basename(self.codenator_config))
+		self.dynmt_config = os.path.join(self.output_dir, 'configs', os.path.basename(self.dynmt_config))
 		# create work directories
 		os.makedirs(self.models_path)
 		os.makedirs(self.outputs_path)
@@ -347,7 +344,7 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=50000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
 	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")

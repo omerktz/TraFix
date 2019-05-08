@@ -64,7 +64,8 @@ def process(lines):
 				continue
 		if x86_config.getboolean('Process', 'ReplaceLabels'):
 			for label in labels.keys():
-				line = re.sub('\.L'+label, '.L'+labels[label], line)
+				line = re.sub('\.L'+label, '.Label'+labels[label], line)
+			line = re.sub('\.Label', '.L', line)
 		if re.match("^s[ha][rl]l %e.x$", line):
 			line = line[:5]+'1 , '+line[5:]
 		line = re.sub(':', ' :', line)

@@ -74,6 +74,7 @@ import BiLSTMEncoder
 import AttentionBasedDecoder
 import MaxPoolEncoder
 import LastBiLSTMStateEncoder
+import sys
 
 # to run on headless server
 matplotlib.use('Agg')
@@ -105,6 +106,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	# print arguments for current run
 	for param in arguments:
 		print param + '=' + str(arguments[param])
+		sys.stdout.flush()
 
 	# load vocabularies
 	input_vocabulary, output_vocabulary = \
@@ -170,6 +172,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 
 	print 'input vocab size: {}'.format(len(input_vocabulary))
 	print 'output vocab size: {}'.format(len(output_vocabulary))
+	sys.stdout.flush()
 
 	with open('{}.vocabs.in'.format(results_file_path), 'w') as fout:
 		for x in input_vocabulary:
@@ -180,12 +183,15 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 
 	if os.path.isfile(model_file_name) and not override:
 		print 'loading existing model from {}'.format(model_file_name)
+		sys.stdout.flush()
 		model, params = load_best_model(input_vocabulary, output_vocabulary, prev_model, input_dim, hidden_dim,
 										layers, old_input_vocabulary=old_input_vocabulary,
 										old_output_vocabulary=old_output_vocabulary)
 		print 'loaded existing model successfully'
+		sys.stdout.flush()
 	else:
 		print 'could not find existing model or explicit override was requested. started training from scratch...'
+		sys.stdout.flush()
 		model, params = build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, layers)
 
 	# initialize the encoder object
@@ -193,12 +199,15 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 	if arguments['--max']:
 		encoder = MaxPoolEncoder.MaxPoolEncoder(x2int, params)
 		print 'using MaxPoolEncoder...'
+		sys.stdout.flush()
 	if arguments['--last-state']:
 		encoder = LastBiLSTMStateEncoder.LastBiLSTMStateEncoder(x2int, params)
 		print 'using LastStateEncoder...'
+		sys.stdout.flush()
 	if not encoder:
 		encoder = BiLSTMEncoder.BiLSTMEncoder(x2int, params)
 		print 'using BiLSTMEncoder...'
+		sys.stdout.flush()
 
 	if arguments['--diverse']:
 		diverse = True
@@ -217,8 +226,10 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 		print 'last epoch is {}'.format(last_epoch)
 		print 'best epoch is {}'.format(best_epoch)
 		print 'finished training'
+		sys.stdout.flush()
 	else:
 		print 'evaluating on test set...'
+		sys.stdout.flush()
 
 		# evaluate using an ensemble
 		if ensemble:
@@ -236,6 +247,7 @@ def main(train_inputs_path, train_outputs_path, dev_inputs_path, dev_outputs_pat
 			amount, accuracy = evaluate(predicted_sequences, test_inputs, test_outputs, print_results=False,
 										predictions_file_path=results_file_path + '.test.predictions')
 			print 'test bleu: {}% '.format(accuracy)
+			sys.stdout.flush()
 
 			final_results = []
 			for i in xrange(len(test_outputs)):
@@ -253,6 +265,7 @@ def predict_with_ensemble_majority(input_vocabulary, output_vocabulary, x2int, y
 								   hidden_dim, input_dim, layers, test_inputs, test_outputs):
 	ensemble_model_names = ensemble.split(',')
 	print 'ensemble paths:\n {}'.format('\n'.join(ensemble_model_names))
+	sys.stdout.flush()
 	ensemble_models = []
 
 	# load ensemble models
@@ -284,11 +297,13 @@ def predict_with_ensemble_majority(input_vocabulary, output_vocabulary, x2int, y
 			string_to_template[prediction_str] = ens[joint_index]
 			print 'template: {} prediction: {}'.format(''.join([e.encode('utf-8') for e in ens[joint_index]]),
 													   prediction_str.encode('utf-8'))
+			sys.stdout.flush()
 
 		# return the most predicted output
 		majority_prediction_string = max(prediction_counter, key=prediction_counter.get)
 		print 'chosen:{} with {} votes\n'.format(majority_prediction_string.encode('utf-8'),
 												 prediction_counter[majority_prediction_string])
+		sys.stdout.flush()
 		majority_predicted_sequences[joint_index] = string_to_template[majority_prediction_string]
 
 	return majority_predicted_sequences
@@ -297,21 +312,26 @@ def predict_with_ensemble_majority(input_vocabulary, output_vocabulary, x2int, y
 def save_best_model(model, model_file_path):
 	tmp_model_path = model_file_path + '_bestmodel.txt'
 	print 'saving to ' + tmp_model_path
+	sys.stdout.flush()
 	model.save(tmp_model_path)
 	print 'saved to {0}'.format(tmp_model_path)
+	sys.stdout.flush()
 
 
 def save_model(model, model_file_path, updates, models_to_save=None):
 	tmp_model_path = model_file_path + '_{}.txt'.format(updates)
 	print 'saving to ' + tmp_model_path
+	sys.stdout.flush()
 	model.save(tmp_model_path)
 	print 'saved to {0}'.format(tmp_model_path)
+	sys.stdout.flush()
 
 	if models_to_save:
 		files = filter(os.path.isfile, glob.glob(model_file_path + '*[0-9].*txt'))
 		files.sort(key=lambda x: os.path.getmtime(x))
 		if len(files) > models_to_save:
 			print 'removing {}'.format(files[0])
+			sys.stdout.flush()
 			os.remove(files[0])
 
 
@@ -337,10 +357,12 @@ def load_best_model(input_vocabulary, output_vocabulary, results_file_path, inpu
 	model, params = build_model(old_input_vocabulary, old_output_vocabulary, input_dim, hidden_dim, layers)
 
 	print 'trying to load model from: {}'.format(tmp_model_path)
+	sys.stdout.flush()
 	model.populate(tmp_model_path)
 
 	if (len(input_vocabulary) != len(old_input_vocabulary)) or (len(output_vocabulary) == len(old_output_vocabulary)):
 		print 'vocabulary extension required... creating new model'
+		sys.stdout.flush()
 		new_model, new_params = build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, layers)
 
 		extend_lookup(params['input_lookup'], new_params['input_lookup'])
@@ -394,6 +416,7 @@ def build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, laye
 	# define all model parameters
 	# TODO: add logic for "smart" parameter allocation according to the user's chosen architecture
 	print 'creating model...'
+	sys.stdout.flush()
 
 	model = dn.ParameterCollection()
 
@@ -438,6 +461,7 @@ def build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, laye
 	params['decoder_rnn'] = dn.LSTMBuilder(layers, 3 * hidden_dim + input_dim, hidden_dim, model)
 
 	print 'finished creating model'
+	sys.stdout.flush()
 
 	return model, params
 
@@ -445,6 +469,7 @@ def build_model(input_vocabulary, output_vocabulary, input_dim, hidden_dim, laye
 def train_model(model, encoder, decoder, params, train_inputs, train_outputs, dev_inputs, dev_outputs, y2int, int2y,
 				epochs, optimization, results_file_path, plot, batch_size, eval_after, min_epochs):
 	print 'training...'
+	sys.stdout.flush()
 
 	np.random.seed(17)
 	random.seed(17)
@@ -506,131 +531,138 @@ def train_model(model, encoder, decoder, params, train_inputs, train_outputs, de
 
 	e = -1
 	for e in xrange(start_epoch, epochs):
+		try:
+			# shuffle the batch start indices in each epoch
+			random.shuffle(train_order)
+			batches_per_epoch = len(train_order)
+			start = time.time()
 
-		# shuffle the batch start indices in each epoch
-		random.shuffle(train_order)
-		batches_per_epoch = len(train_order)
-		start = time.time()
+			# go through batches
+			for i, batch_start_index in enumerate(train_order, start=1):
+				# get batch examples
+				batch_inputs = [x[0] for x in train_data[batch_start_index:batch_start_index + batch_size]]
+				batch_outputs = [x[1] for x in train_data[batch_start_index:batch_start_index + batch_size]]
+				actual_batch_size = len(batch_inputs)
 
-		# go through batches
-		for i, batch_start_index in enumerate(train_order, start=1):
-			# get batch examples
-			batch_inputs = [x[0] for x in train_data[batch_start_index:batch_start_index + batch_size]]
-			batch_outputs = [x[1] for x in train_data[batch_start_index:batch_start_index + batch_size]]
-			actual_batch_size = len(batch_inputs)
+				# skip empty batches
+				if actual_batch_size == 0 or len(batch_inputs[0]) == 0:
+					continue
 
-			# skip empty batches
-			if actual_batch_size == 0 or len(batch_inputs[0]) == 0:
-				continue
+				# compute batch loss
 
-			# compute batch loss
+				# debug prints for batch seq lengths
+				# print 'batch {} seq lens'.format(i)
+				# print [len(s) for s in batch_inputs]
+				loss = compute_batch_loss(encoder, decoder, batch_inputs, batch_outputs, y2int)
 
-			# debug prints for batch seq lengths
-			# print 'batch {} seq lens'.format(i)
-			# print [len(s) for s in batch_inputs]
-			loss = compute_batch_loss(encoder, decoder, batch_inputs, batch_outputs, y2int)
-
-			# forward pass
-			try:
+				# forward pass
 				total_loss += loss.scalar_value()
 				loss.backward()
-			except RuntimeError as e:
-				# sometimes the above two instructions fail due to memory allocation failure.
-				# I was unable to find a fix for these failures.
-				# perhaps we can just "skip" the failures.
-				print 'WARNING: Encountered RuntimeError ('+str(e)+')'
-				continue
 
-			total_batches += 1
+				total_batches += 1
 
-			# update parameters
-			trainer.update()
+				# update parameters
+				trainer.update()
 
-			seen_examples_count += actual_batch_size
+				seen_examples_count += actual_batch_size
 
-			# avg loss per sample
-			avg_train_loss = total_loss / float(i * batch_size + e * train_len)
+				# avg loss per sample
+				avg_train_loss = total_loss / float(i * batch_size + e * train_len)
 
-			# start patience counts only after 20 batches
-			if avg_train_loss < best_avg_train_loss and total_batches > 20:
-				best_avg_train_loss = avg_train_loss
-				train_loss_patience = 0
-			else:
-				train_loss_patience += 1
-				if train_loss_patience > train_loss_patience_threshold:
-					print 'train loss patience exceeded: {}'.format(train_loss_patience)
-					return model, params, e, best_dev_epoch
-
-			if total_batches % 100 == 0 and total_batches > 0:
-				print 'epoch {}: {} batches out of {} ({} examples out of {}) total: {} batches, {} examples. avg \
-loss per example: {}'.format(e,
-							 i,
-							 batches_per_epoch,
-							 i * batch_size,
-							 train_len,
-							 total_batches,
-							 total_batches * batch_size,
-							 avg_train_loss)
-
-				# print sentences per second
-				end = time.time()
-				elapsed_seconds = end - start
-				print '{} sentences per second'.format(seen_examples_count / elapsed_seconds)
-				seen_examples_count = 0
-				start = time.time()
-
-			# checkpoint
-			if total_batches % eval_after == 0:
-
-				print 'starting checkpoint evaluation'
-				dev_bleu, dev_loss = checkpoint_eval(encoder, decoder, params, dev_batch_size, dev_data, dev_inputs,
-													 dev_len, dev_order, dev_outputs, int2y, y2int,
-													 results_file_path=results_file_path)
-
-				log_to_file(log_path, e, total_batches, avg_train_loss, dev_loss, dev_bleu)
-				save_model(model, results_file_path, total_batches, models_to_save=int(arguments['--models-to-save']))
-				if dev_bleu > best_dev_accuracy:
-					best_dev_accuracy = dev_bleu
-					best_dev_epoch = e
-
-					# save best model to disk
-					save_best_model(model, results_file_path)
-					print 'saved new best model'
-					patience = 0
+				# start patience counts only after 20 batches
+				if avg_train_loss < best_avg_train_loss and total_batches > 20:
+					best_avg_train_loss = avg_train_loss
+					train_loss_patience = 0
 				else:
-					patience += 1
+					train_loss_patience += 1
+					if train_loss_patience > train_loss_patience_threshold:
+						print 'train loss patience exceeded: {}'.format(train_loss_patience)
+						sys.stdout.flush()
+						return model, params, e, best_dev_epoch
 
-				if dev_loss < best_dev_loss:
-					best_dev_loss = dev_loss
+				if total_batches % 100 == 0 and total_batches > 0:
+					print 'epoch {}: {} batches out of {} ({} examples out of {}) total: {} batches, {} examples. avg \
+	loss per example: {}'.format(e,
+								 i,
+								 batches_per_epoch,
+								 i * batch_size,
+								 train_len,
+								 total_batches,
+								 total_batches * batch_size,
+								 avg_train_loss)
+					sys.stdout.flush()
 
-				print 'epoch: {0} train loss: {1:.4f} dev loss: {2:.4f} dev bleu: {3:.4f} \
-best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
-					e,
-					avg_train_loss,
-					dev_loss,
-					dev_bleu,
-					best_dev_accuracy,
-					best_dev_epoch,
-					patience)
+					# print sentences per second
+					end = time.time()
+					elapsed_seconds = end - start
+					print '{} sentences per second'.format(seen_examples_count / elapsed_seconds)
+					sys.stdout.flush()
+					seen_examples_count = 0
+					start = time.time()
 
-				if (patience == max_patience) and (e >= min_epochs):
-					print 'out of patience after {0} checkpoints'.format(str(e))
-					# train_progress_bar.finish()
+				# checkpoint
+				if total_batches % eval_after == 0:
+
+					print 'starting checkpoint evaluation'
+					sys.stdout.flush()
+					dev_bleu, dev_loss = checkpoint_eval(encoder, decoder, params, dev_batch_size, dev_data, dev_inputs,
+														 dev_len, dev_order, dev_outputs, int2y, y2int,
+														 results_file_path=results_file_path)
+
+					log_to_file(log_path, e, total_batches, avg_train_loss, dev_loss, dev_bleu)
+					save_model(model, results_file_path, total_batches, models_to_save=int(arguments['--models-to-save']))
+					if dev_bleu > best_dev_accuracy:
+						best_dev_accuracy = dev_bleu
+						best_dev_epoch = e
+
+						# save best model to disk
+						save_best_model(model, results_file_path)
+						print 'saved new best model'
+						sys.stdout.flush()
+						patience = 0
+					else:
+						patience += 1
+
+					if dev_loss < best_dev_loss:
+						best_dev_loss = dev_loss
+
+					print 'epoch: {0} train loss: {1:.4f} dev loss: {2:.4f} dev bleu: {3:.4f} \
+	best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
+						e,
+						avg_train_loss,
+						dev_loss,
+						dev_bleu,
+						best_dev_accuracy,
+						best_dev_epoch,
+						patience)
+					sys.stdout.flush()
+
+					if (patience == max_patience) and (e >= min_epochs):
+						print 'out of patience after {0} checkpoints'.format(str(e))
+						sys.stdout.flush()
+						# train_progress_bar.finish()
+						if plot:
+							plt.cla()
+						print 'checkpoint patience exceeded'
+						sys.stdout.flush()
+						return model, params, e, best_dev_epoch
+
+					# plotting results from checkpoint evaluation
 					if plot:
-						plt.cla()
-					print 'checkpoint patience exceeded'
-					return model, params, e, best_dev_epoch
+						train_loss_y.append(avg_train_loss)
+						checkpoints_x.append(total_batches)
+						dev_accuracy_y.append(dev_bleu)
+						dev_loss_y.append(dev_loss)
 
-				# plotting results from checkpoint evaluation
-				if plot:
-					train_loss_y.append(avg_train_loss)
-					checkpoints_x.append(total_batches)
-					dev_accuracy_y.append(dev_bleu)
-					dev_loss_y.append(dev_loss)
-
-					y_vals = [('train_loss', train_loss_y), ('dev loss', dev_loss_y), ('dev_bleu', dev_accuracy_y)]
-					common.plot_to_file(y_vals, x_name='total batches', x_vals=checkpoints_x,
-										file_path=results_file_path + '_learning_curve.png')
+						y_vals = [('train_loss', train_loss_y), ('dev loss', dev_loss_y), ('dev_bleu', dev_accuracy_y)]
+						common.plot_to_file(y_vals, x_name='total batches', x_vals=checkpoints_x,
+											file_path=results_file_path + '_learning_curve.png')
+		except RuntimeError as exception:
+			# sometimes the above two instructions fail due to memory allocation failure.
+			# I was unable to find a fix for these failures.
+			# perhaps we can just "skip" the failures.
+			print 'WARNING: Skipping epoch due to RuntimeError (' + str(exception) + ')'
+			sys.stdout.flush()
 
 	# update progress bar after completing epoch
 	# train_progress_bar.update(e)
@@ -644,6 +676,7 @@ best dev bleu {4:.4f} (epoch {5}) patience = {6}'.format(
 		str(avg_train_loss),
 		best_dev_epoch,
 		best_train_epoch)
+	sys.stdout.flush()
 
 	return model, params, e, best_dev_epoch
 
@@ -652,15 +685,18 @@ def checkpoint_eval(encoder, decoder, params, batch_size, dev_data, dev_inputs, 
 					y2int, results_file_path=None):
 	# TODO: could be more efficient - now "encoding" (lookup) the dev set twice (for predictions and loss)
 	print 'predicting on dev...'
+	sys.stdout.flush()
 	# get dev predictions
 	dev_predictions = predict_multiple_sequences(params, encoder, decoder, y2int, int2y, dev_inputs)
 	print 'calculating dev bleu...'
+	sys.stdout.flush()
 	# get dev accuracy
 	dev_bleu = evaluate(dev_predictions, dev_inputs, dev_outputs, print_results=True,
 						predictions_file_path=results_file_path + '.dev.predictions')[1]
 
 	# get dev loss
 	print 'computing dev loss...'
+	sys.stdout.flush()
 	total_dev_loss = 0
 	for i, batch_start_index in enumerate(dev_order, start=1):
 
@@ -683,6 +719,7 @@ def checkpoint_eval(encoder, decoder, params, batch_size, dev_data, dev_inputs, 
 			print 'went through {} dev batches out of {} ({} examples out of {})'.format(i, len(dev_order),
 																						 i * batch_size,
 																						 dev_len)
+			sys.stdout.flush()
 
 	avg_dev_loss = total_dev_loss / float(len(dev_inputs))
 
@@ -761,6 +798,7 @@ def compute_batch_loss(encoder, decoder, batch_input_seqs, batch_output_seqs, y2
 
 def predict_multiple_sequences(params, encoder, decoder, y2int, int2y, inputs):
 	print 'predicting...'
+	sys.stdout.flush()
 	predictions = {}
 	data_len = len(inputs)
 	for i, input_seq in enumerate(inputs):
@@ -779,6 +817,7 @@ def predict_multiple_sequences(params, encoder, decoder, y2int, int2y, inputs):
 			print 'input: {}\n'.format(' '.join(input_seq).encode('utf8'))
 			for k, seq in enumerate(nbest):
 				print '{}-best: {}'.format(k, ' '.join(seq[0]).encode('utf8') + '\n')
+			sys.stdout.flush()
 		else:
 			if len(input_seq) == 0:
 				predicted_seq = ''
@@ -786,6 +825,7 @@ def predict_multiple_sequences(params, encoder, decoder, y2int, int2y, inputs):
 				predicted_seq, alphas_mtx = decoder.predict_greedy(encoder, input_seq)
 		if i % 100 == 0 and i > 0:
 			print 'predicted {} examples out of {}'.format(i, data_len)
+			sys.stdout.flush()
 
 		index = ' '.join(input_seq)
 		predictions[index] = predicted_seq
@@ -796,6 +836,7 @@ def predict_multiple_sequences(params, encoder, decoder, y2int, int2y, inputs):
 def evaluate(predicted_sequences, inputs, outputs, print_results=False, predictions_file_path=None):
 	if print_results:
 		print 'evaluating model...'
+		sys.stdout.flush()
 
 	test_data = zip(inputs, outputs)
 	eval_predictions = []
@@ -823,6 +864,7 @@ def evaluate(predicted_sequences, inputs, outputs, print_results=False, predicti
 
 	if print_results:
 		print 'finished evaluating model. bleu: {}\n\n'.format(bleu)
+		sys.stdout.flush()
 
 	return len(predicted_sequences), bleu
 

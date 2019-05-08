@@ -421,13 +421,14 @@ def parse(code, simplify=False):
     while len(tokens) > 0:
         matches = filter(lambda t: t.check(tokens[0],stack), postOrderTypes)
         if len(matches) == 0:
-            if not isinstance(stack[-1], UniOp):
+            if (len(stack) == 0) or (not isinstance(stack[-1], UniOp)):
                 return (False, None)
             Statement.handle(None, stack, simplify)
         elif matches[0].handle(tokens[0],stack,simplify):
             tokens = tokens[1:]
-    if isinstance(stack[-1], UniOp):
-        Statement.handle(None, stack, simplify)
+    if len(stack) > 0:
+        if isinstance(stack[-1], UniOp):
+            Statement.handle(None, stack, simplify)
     while Statement.check(None, stack):
         Statement.handle(None,stack,simplify)
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)

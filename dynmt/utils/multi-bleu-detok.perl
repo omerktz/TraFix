@@ -11,6 +11,7 @@
 # $Id$
 use warnings;
 use strict;
+use IO::Handle;
 
 my $lowercase = 0;
 if ($ARGV[0] eq "-lc") {
@@ -154,6 +155,7 @@ for(my $n=1;$n<=4;$n++) {
 
 if ($length_reference==0){
   printf "BLEU = 0, 0/0/0/0 (BP=0, ratio=0, hyp_len=0, ref_len=0)\n";
+  STDOUT->flush();
   exit(1);
 }
 
@@ -174,6 +176,7 @@ printf "BLEU = %.2f, %.1f/%.1f/%.1f/%.1f (BP=%.3f, ratio=%.3f, hyp_len=%d, ref_l
     $length_translation / $length_reference,
     $length_translation,
     $length_reference;
+STDOUT->flush();
 
 sub my_log {
   return -9999999999 unless $_[0];

@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 # noinspection PyPep8
 from matplotlib import pyplot as plt
-
+import sys
 
 # consts
 UNK = 'UNK'
@@ -76,6 +76,7 @@ def evaluate_bleu(gold, predictions, predictions_file_path=None):
             gold_file.write(u'{}\n'.format(line))
 
     print 'evaluating {} vs. {}'.format(predictions_file_path, gold_path)
+    sys.stdout.flush()
     bleu = evaluate_bleu_from_files(gold_path, predictions_file_path)
     # os.remove(predictions_path)
     # os.remove(gold_path)
@@ -85,14 +86,20 @@ def evaluate_bleu(gold, predictions, predictions_file_path=None):
 def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     os.chdir(os.path.dirname(__file__))
     bleu_path = output_file_path + '.eval'
-    os.system('perl utils/multi-bleu-detok.perl {} < {} > {}'.format(gold_outputs_path, output_file_path, bleu_path))
+    while os.path.exists(bleu_path):
+        os.remove(bleu_path)
+    while not os.path.exists(bleu_path):
+        os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}'.format(gold_outputs_path, output_file_path, bleu_path))
+
     with codecs.open(bleu_path, encoding='utf8') as f:
-        lines  = f.readlines()
+        lines = f.readlines()
 
     if len(lines) > 0:
         var = re.search(r'BLEU\s+=\s+(.+?),', lines[0])
         bleu = var.group(1)
     else:
+        print 'Warning: Bleu file is empty'
+        sys.stdout.flush()
         bleu = 0
 
     os.remove(bleu_path)
