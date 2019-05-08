@@ -148,5 +148,3 @@ def plot_to_file(y_vals, x_name, x_vals, file_path):
             plots.append(p)
         plt.legend(loc='upper left', handles=plots)
     plt.savefig(file_path)
-
-evaluate_bleu_from_files('model0.ll-po.dynmt.dev.predictions.gold', 'model0.ll-po.dynmt.dev.predictions')
