@@ -86,7 +86,8 @@ def evaluate_bleu(gold, predictions, predictions_file_path=None):
 def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     os.chdir(os.path.dirname(__file__))
     bleu_path = output_file_path + '.eval'
-    os.remove(bleu_path)
+    while os.path.exists(bleu_path):
+        os.remove(bleu_path)
     while not os.path.exists(bleu_path):
         os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}'.format(gold_outputs_path, output_file_path, bleu_path))
 
