@@ -7,8 +7,6 @@ import matplotlib
 matplotlib.use('Agg')
 # noinspection PyPep8
 from matplotlib import pyplot as plt
-import subprocess
-import shlex
 
 # consts
 UNK = 'UNK'
