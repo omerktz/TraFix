@@ -83,7 +83,7 @@ def evaluate_bleu(gold, predictions, predictions_file_path=None):
 
 
 def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
-    # os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(__file__))
     bleu_path = output_file_path + '.eval'
     p = subprocess.Popen('perl utils/multi-bleu-detok.perl {} < {}'.format(gold_outputs_path, output_file_path), shell=True, stdout=subprocess.PIPE, bufsize=0)
 
@@ -97,10 +97,11 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
         var = re.search(r'BLEU\s+=\s+(.+?),', lines[0])
         bleu = var.group(1)
     else:
-        print 'Warning: Bleu file is empty'
+        print 'Warning: Bleu output is empty'
         bleu = 0
 
     #os.remove(bleu_path)
+
     return float(bleu)
 
 
