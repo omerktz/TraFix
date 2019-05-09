@@ -8,7 +8,6 @@ matplotlib.use('Agg')
 # noinspection PyPep8
 from matplotlib import pyplot as plt
 import sys
-import time
 
 # consts
 UNK = 'UNK'
@@ -90,8 +89,7 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     while os.path.exists(bleu_path):
         os.remove(bleu_path)
     while not os.path.exists(bleu_path):
-        os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}; sleep 10'.format(gold_outputs_path, output_file_path, bleu_path))
-        time.sleep(10)
+        os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}; sleep 30'.format(gold_outputs_path, output_file_path, bleu_path))
 
     with codecs.open(bleu_path, encoding='utf8') as f:
         lines = f.readlines()
