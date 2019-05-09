@@ -89,7 +89,7 @@ def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
     while os.path.exists(bleu_path):
         os.remove(bleu_path)
     while not os.path.exists(bleu_path):
-        os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}'.format(gold_outputs_path, output_file_path, bleu_path))
+        os.system('perl utils/multi-bleu-detok.perl {0} < {1} >> {2}; echo "Done" >> {2}'.format(gold_outputs_path, output_file_path, bleu_path))
 
     with codecs.open(bleu_path, encoding='utf8') as f:
         lines = f.readlines()
