@@ -1,6 +1,5 @@
 import os
 import codecs
-import re
 import numpy as np
 import matplotlib
 # to run on headless server
@@ -8,6 +7,7 @@ matplotlib.use('Agg')
 # noinspection PyPep8
 from matplotlib import pyplot as plt
 import sys
+import compute_bleu
 
 # consts
 UNK = 'UNK'
@@ -60,51 +60,37 @@ def write_results_files(output_file_path, final_results):
     return predictions_path
 
 # evaluates bleu over two lists of unicode strings (u'')
-def evaluate_bleu(gold, predictions, predictions_file_path=None):
-    if not predictions_file_path:
-        predictions_file_path = os.path.dirname(__file__) + '/predictions.tmp'
-        gold_path = os.path.dirname(__file__) + '/gold.tmp'
+def evaluate_bleu(gold, predictions, predictions_file_path=None, write_files=True):
+    if write_files:
+        if not predictions_file_path:
+            predictions_file_path = os.path.dirname(__file__) + '/predictions.tmp'
+            gold_path = os.path.dirname(__file__) + '/gold.tmp'
+        else:
+            gold_path = predictions_file_path + '.gold'
+
+        with codecs.open(predictions_file_path, 'w', encoding='utf8') as predictions_file:
+            for i, line in enumerate(predictions):
+                predictions_file.write(u'{}\n'.format(line))
+
+        with codecs.open(gold_path, 'w', encoding='utf8') as gold_file:
+            for i, line in enumerate(gold):
+                gold_file.write(u'{}\n'.format(line))
+
+        print 'evaluating {} vs. {}'.format(predictions_file_path, gold_path)
+        sys.stdout.flush()
     else:
-        gold_path = predictions_file_path + '.gold'
-
-    with codecs.open(predictions_file_path, 'w', encoding='utf8') as predictions_file:
-        for i, line in enumerate(predictions):
-            predictions_file.write(u'{}\n'.format(line))
-
-    with codecs.open(gold_path, 'w', encoding='utf8') as gold_file:
-        for i, line in enumerate(gold):
-            gold_file.write(u'{}\n'.format(line))
-
-    print 'evaluating {} vs. {}'.format(predictions_file_path, gold_path)
-    sys.stdout.flush()
-    bleu = evaluate_bleu_from_files(gold_path, predictions_file_path)
+        print 'evaluating predictions vs. gold'
+        sys.stdout.flush()
+        
+    bleu = compute_bleu.compute_bleu_from_lists(gold, predictions)
     # os.remove(predictions_path)
     # os.remove(gold_path)
-    return bleu
+    return float(bleu[0])
 
 
 def evaluate_bleu_from_files(gold_outputs_path, output_file_path):
-    os.chdir(os.path.dirname(__file__))
-    bleu_path = output_file_path + '.eval'
-    while os.path.exists(bleu_path):
-        os.remove(bleu_path)
-    while not os.path.exists(bleu_path):
-        os.system('perl utils/multi-bleu-detok.perl {} < {} >> {}; sleep 30'.format(gold_outputs_path, output_file_path, bleu_path))
-
-    with codecs.open(bleu_path, encoding='utf8') as f:
-        lines = f.readlines()
-
-    if len(lines) > 0:
-        var = re.search(r'BLEU\s+=\s+(.+?),', lines[0])
-        bleu = var.group(1)
-    else:
-        print 'Warning: Bleu file is empty'
-        sys.stdout.flush()
-        bleu = 0
-
-    os.remove(bleu_path)
-
-    return float(bleu)
+    bleu = compute_bleu.compute_bleu_from_files(gold_outputs_path, output_file_path)
+    return float(bleu[0])
 
 
 # get list of word ids for each timestep in the batch, do padding and masking. If batch size is 1 return None as masks
