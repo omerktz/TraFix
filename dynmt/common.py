@@ -60,7 +60,7 @@ def write_results_files(output_file_path, final_results):
     return predictions_path
 
 # evaluates bleu over two lists of unicode strings (u'')
-def evaluate_bleu(gold, predictions, predictions_file_path=None, write_files=True):
+def evaluate_bleu(gold, predictions, predictions_file_path=None, write_files=False):
     if write_files:
         if not predictions_file_path:
             predictions_file_path = os.path.dirname(__file__) + '/predictions.tmp'
