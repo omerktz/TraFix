@@ -56,7 +56,7 @@ class AWShandler:
 											  DisableApiTermination=self._termination_protection,
 											  KeyName=self._key_filename[:self._key_filename.rfind('.')])[0]
 		instance.wait_until_exists()
-		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name.format(getpass.getuser(), self._compiler[:-7], self._index)}])
+		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name.format(getpass.getuser(), self._compiler[:-7], self._index, os.path.dirname(self._config_dir))}])
 		instance.wait_until_running()
 		status = instance.state
 		while (status['Code'] != 16) or (status['Name'] != 'running'):
@@ -179,9 +179,9 @@ if __name__ == "__main__":
 						help="AWS instance type for gpu (default: \'%(default)s)\'")
 	parser.add_argument('-s', '--security', type=str, default='omer-sg',
 						help="AWS security group for instances (default: \'%(default)s)\'")
-	parser.add_argument('--naming', type=str, default='{0}-{1}-{2}',
+	parser.add_argument('--naming', type=str, default='{0}-{1}-{2}-{3}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
-	parser.add_argument('--gpu-naming', type=str, default='{0}-gpu-{1}-{2}',
+	parser.add_argument('--gpu-naming', type=str, default='{0}-gpu-{1}-{2}-{3}',
 						help="naming pattern for instances (default: \'%(default)s)\'")
 	parser.add_argument('-d', '--directory', type=str, default='Codenator',
 						help="name of main directory on instance (default: \'%(default)s)\'")
