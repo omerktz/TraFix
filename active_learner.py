@@ -229,7 +229,7 @@ class ActiveLearner:
 				with open(os.path.join(self.datasets_path, 'test%d.success.%d.csv' % (i, self.num_translations)),
 						  'r') as fin:
 					for l in list(csv.reader(fin))[1:]:
-						csvout.writerow(l[1:])
+						csvout.writerow([l[1], l[2], l[4]])
 			return num_remaining
 
 		logging.info('Evaluating latest results (iteration {0})'.format(i))
@@ -280,7 +280,7 @@ class ActiveLearner:
 			with open(os.path.join(self.datasets_path, 'test%d.fail.%d.csv' % (i, self.num_translations)),
 					  'r') as fin:
 				for l in list(csv.reader(fin))[1:]:
-					csvout.writerow(l[1:])
+					csvout.writerow([l[1], l[2]])
 					num_failures += 1
 		logging.info(
 			'Successfully translated {0} entries out of {1} ({2}%) in {3} iterations'.format(
