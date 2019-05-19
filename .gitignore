@@ -106,3 +106,4 @@ backups/
 *.csv
 *.constants
 experiment_results/
+*.pem
