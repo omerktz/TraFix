@@ -373,7 +373,8 @@ class Statement:
     @staticmethod
     def check(token,stack):
         try:
-            return stack[-1].type in ['ASSIGN', 'BRANCH', 'LOOP']
+            return (stack[-1].type in ['ASSIGN', 'BRANCH', 'LOOP']) or \
+                   ((len(stack) > 1) and (stack[-1].type in ['STATEMENT']))
         except:
             return False
     @staticmethod
@@ -401,19 +402,19 @@ def parse(code, simplify=False):
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:
-        matches = filter(lambda t: t.check(tokens[0],stack), postOrderTypes)
+        matches = filter(lambda t: t.check(tokens[0], stack), postOrderTypes)
         if len(matches) == 0:
             if (len(stack) == 0) or (not isinstance(stack[-1], UniOp)):
                 return (False, None)
             Statement.handle(None, stack, simplify)
-        elif matches[0].handle(tokens[0],stack,simplify):
+        elif matches[0].handle(tokens[0], stack, simplify):
             tokens = tokens[1:]
     if len(stack) > 0:
         if isinstance(stack[-1], UniOp):
             Statement.handle(None, stack, simplify)
     while Statement.check(None, stack):
-        Statement.handle(None,stack,simplify)
+        Statement.handle(None, stack, simplify)
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)
 
 if __name__ == "__main__":
-    print parse('2 X0 * 15 < COND X11 14 X5 X10 * - - 3 / X5 = TRUE IF X7 X10 = X10 X7 + 1 19 X2  - + + X1 18 X2 % / * 4 / X9 =')[1].c()
+    print parse('X6 X5 = X14 X-- 8 X1 =')[1].c()
