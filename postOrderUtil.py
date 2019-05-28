@@ -411,10 +411,15 @@ def parse(code, simplify=False):
     if len(stack) > 0:
         if isinstance(stack[-1], UniOp):
             Statement.handle(None, stack, simplify)
-    while Statement.check(None, stack) or ((len(stack) > 1) and (stack[-1].type in ['STATEMENT'])):
+    while Statement.check(None, stack) or\
+            ((len(stack) > 1) and (stack[-1].type in ['STATEMENT']) and (stack[-2].type in ['STATEMENT'])):
         Statement.handle(None, stack, simplify)
-    return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)
+    success = (len(stack) == 1) and (stack[0].type in ['STATEMENT'])
+    return (success, stack[0] if success else None)
 
 if __name__ == "__main__":
-    print parse('X6 X5 = X14 X-- 8 X1 =')[1].c()
-    print parse('7 X6 <= COND X4 X13 = TRUE 5 X7 = FALSE IF')[1].c()
+    def print_result(result):
+        print '[{0}]\t{1}'.format(result[0], result[1].c() if result[0] else None)
+    print_result(parse('X6 X5 = X14 X-- 8 X1 ='))
+    print_result(parse('7 X6 <= COND X4 X13 = TRUE 5 X7 = FALSE IF'))
+    print_result(parse('9 X11 > COND X1 X1 = TRUE X1 X8 ='))
