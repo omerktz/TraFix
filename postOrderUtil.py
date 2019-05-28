@@ -373,8 +373,7 @@ class Statement:
     @staticmethod
     def check(token,stack):
         try:
-            return (stack[-1].type in ['ASSIGN', 'BRANCH', 'LOOP']) or \
-                   ((len(stack) > 1) and (stack[-1].type in ['STATEMENT']))
+            return (stack[-1].type in ['ASSIGN', 'BRANCH', 'LOOP'])
         except:
             return False
     @staticmethod
@@ -412,9 +411,10 @@ def parse(code, simplify=False):
     if len(stack) > 0:
         if isinstance(stack[-1], UniOp):
             Statement.handle(None, stack, simplify)
-    while Statement.check(None, stack):
+    while Statement.check(None, stack) or ((len(stack) > 1) and (stack[-1].type in ['STATEMENT'])):
         Statement.handle(None, stack, simplify)
     return ((len(stack) == 1) and (stack[0].type in ['STATEMENT']), stack[0] if len(stack) > 0 else None)
 
 if __name__ == "__main__":
     print parse('X6 X5 = X14 X-- 8 X1 =')[1].c()
+    print parse('7 X6 <= COND X4 X13 = TRUE 5 X7 = FALSE IF')[1].c()
