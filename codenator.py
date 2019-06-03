@@ -47,11 +47,15 @@ config.read(args.c)
 
 load_compiler(args.compiler)
 
-def choose_by_weight(values, weights):
+def choose_by_weight(values, weights, degrade=None, nesting_level=0):
 	if len(values) == 1:
 		return values[0]
-	sum_weights = float(sum(weights))
-	return npr.choice(values, p=map(lambda x: x/sum_weights, weights))
+	if degrade is not None:
+		nested_weights = map(lambda i: weights[i] / pow(degrade[i], nesting_level), xrange(len(weights)))
+	else:
+		nested_weights = weights
+	sum_weights = float(sum(nested_weights))
+	return npr.choice(values, p=map(lambda x: x/sum_weights, nested_weights))
 
 
 class Expr:
@@ -329,8 +333,7 @@ _exprs = [Number, Var, BinaryOp, UnaryOp]
 def get_expr(nesting_level=0):
 	weights = map(lambda e: config.getfloat(e.__name__, 'Weight'), _exprs)
 	degrade = map(lambda e: config.getfloat(e.__name__, 'Degrade'), _exprs)
-	nested_weights = map(lambda i: weights[i]/pow(degrade[i], nesting_level), xrange(len(weights)))
-	expression = choose_by_weight(_exprs, nested_weights)
+	expression = choose_by_weight(_exprs, weights, degrade, nesting_level)
 	return expression(nesting_level=nesting_level)
 
 
@@ -342,11 +345,11 @@ class Statements:
 		statements_limit = min(max_statements, Statements._max_statements)
 		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(statements_limit))
 		num_statements = choose_by_weight(range(1, statements_limit + 1), weights)
-		self._inner = map(lambda i: Statements.generate_statement(types)(nesting_level=nesting_level), xrange(num_statements))
+		self._inner = map(lambda i: Statements.generate_statement(types, nesting_level=nesting_level)(nesting_level=nesting_level), xrange(num_statements))
 
 	@staticmethod
-	def generate_statement(types):
-		return choose_by_weight(types, map(lambda x: config.getfloat(x.__name__, 'Weight'), types))
+	def generate_statement(types, nesting_level=0):
+		return choose_by_weight(types, map(lambda x: config.getfloat(x.__name__, 'Weight'), types), map(lambda x: config.getfloat(x.__name__, 'Degrade'), types), nesting_level)
 
 	def collect_vars(self):
 		return reduce(lambda y, z: y.union(z), map(lambda x: x.collect_vars(), self._inner), set())
