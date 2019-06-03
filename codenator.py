@@ -222,13 +222,14 @@ class Assignment:
 
 class Condition:
 	_Relations = ['>', '>=', '<', '<=', '==', '!=']
+	_InitialNestingLevel = config.getint('Condition', 'InitialNstingLevel')
 
 	def __init__(self):
-		self._op1 = get_expr()
+		self._op1 = get_expr(nesting_level=Condition._InitialNestingLevel)
 		self._act = npr.choice(Condition._Relations)
-		self._op2 = get_expr()
+		self._op2 = get_expr(nesting_level=Condition._InitialNestingLevel)
 		while self._op2 == self._op1 or (isinstance(self._op1, Number) and isinstance(self._op2, Number)):
-			self._op2 = get_expr()
+			self._op2 = get_expr(nesting_level=Condition._InitialNestingLevel)
 
 	def __str__(self):
 		res = ''
