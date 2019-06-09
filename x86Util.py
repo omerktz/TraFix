@@ -1,3 +1,8 @@
+"""
+This compiler interface was implemented for GCC version 5.4.0.
+The cleanup stage (part of the process method) might not work properly for other versions of GCC.
+"""
+
 import os
 import re
 import ConfigParser
