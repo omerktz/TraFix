@@ -140,7 +140,6 @@ def instance_wrapper((args, i)):
 		logging.getLogger("boto3").setLevel(logging.WARNING)
 		logging.getLogger("botocore").setLevel(logging.WARNING)
 
-	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	hide_logs()
 	naming = '{0}-{1}'.format(getpass.getuser(), args.compiler[:-7])
 	if args.tensorflow:
