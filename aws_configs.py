@@ -12,7 +12,7 @@ from utils.colored_logger_with_timestamp import init_colorful_root_logger
 
 class AWShandler:
 	def __init__(self, compiler, output, index, image, username, key, security_group, termination_protection,
-				 instance_name, main_dir, retries, branch, config_dir, instance_type, gpu):
+				 instance_name, main_dir, retries, branch, config_dir, instance_type, gpu, tf):
 		self._index = index
 		self._ami_id = image
 		self._instance_username = username
@@ -35,6 +35,7 @@ class AWShandler:
 		else:
 			self._config_dir = None
 		self._gpu = gpu
+		self._tf = tf
 
 		self._ec2 = boto3.resource('ec2')
 		self._ec2client = boto3.client('ec2')
@@ -50,13 +51,13 @@ class AWShandler:
 		if self._gpu:
 			self.log_info('Creating GPU instance')
 		else:
-			self.log_info('Creating instance')
+			self.log_info('Creating CPU instance')
 		instance = self._ec2.create_instances(ImageId=self._ami_id, MinCount=1, MaxCount=1, EbsOptimized=True,
 											  InstanceType=self._instance_type, SecurityGroups=[self._security_group],
 											  DisableApiTermination=self._termination_protection,
 											  KeyName=self._key_filename[:self._key_filename.rfind('.')])[0]
 		instance.wait_until_exists()
-		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name.format(getpass.getuser(), self._compiler[:-7], self._index, os.path.dirname(self._config_dir))}])
+		instance.create_tags(Tags=[{'Key': 'Name', 'Value': self._instance_name + '-{0}'.format(self._index)}])
 		instance.wait_until_running()
 		status = instance.state
 		while (status['Code'] != 16) or (status['Name'] != 'running'):
@@ -94,8 +95,8 @@ class AWShandler:
 
 	def exec_instance(self):
 		self.log_info('Executing experiment')
-		activate_gpu_workspace = 'source activate tensorflow_p27; '
-		self.exec_command('cd {0}; {3}./runExperiment.sh output{1} log{1} {2} -s 1'.format(self._main_dir, self._index, self._compiler, activate_gpu_workspace if self._gpu else ''))
+		activate_tf_workspace = 'source activate tensorflow_p27; '
+		self.exec_command('cd {0}; {3}./runExperiment.sh output{1} log{1} {2} -s 1'.format(self._main_dir, self._index, self._compiler, activate_tf_workspace if self._tf else ''))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
@@ -147,14 +148,25 @@ def instance_wrapper((args, i)):
 
 	init_colorful_root_logger(logging.getLogger(''), vars(args))
 	hide_logs()
-	if args.gpu:
-		AWShandler(args.compiler, args.output, i, image=args.gpu_image, username=args.username, key=args.key, retries=args.retries,
-			   instance_type=args.gpu_type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.gpu_naming, main_dir=args.directory, branch=args.gpu_branch, config_dir=args.configs, gpu=True).launch_instance()
+	naming = '{0}-{1}'.format(getpass.getuser(), args.compiler[:-7])
+	if args.tensorflow:
+		image = args.tf_image
+		naming += '-tf'
+		tf = True
+	if args.dynet:
+		image = args.dy_image
+		naming += '-dy'
+		tf = False
+	if args.gpu and args.tensorflow:
+		gpu = True
+		type = args.gpu_type
+		naming += '-gpu'
 	else:
-		AWShandler(args.compiler, args.output, i, image=args.image, username=args.username, key=args.key, retries=args.retries,
-			   instance_type=args.type, security_group=args.security, termination_protection=args.protection,
-			   instance_name=args.naming, main_dir=args.directory, branch=args.branch, config_dir=args.configs, gpu=False).launch_instance()
+		gpu = False
+		type = args.type
+	AWShandler(args.compiler, args.output, i, image=image, username=args.username, key=args.key, retries=args.retries,
+		   instance_type=type, security_group=args.security, termination_protection=args.protection, gpu=gpu, tf=tf,
+		   instance_name=naming+args.naming, main_dir=args.directory, branch=args.branch, config_dir=args.configs).launch_instance()
 
 
 if __name__ == "__main__":
@@ -164,45 +176,51 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="Number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="File containing implementation of 'compiler' function")
-	parser.add_argument('--gpu', help="Use gpu instance", action='store_true')
-	parser.add_argument('--image', type=str, default='ami-08016dab96d85a8d1',
-						help="AWS image id (default: \'%(default)s\')")
-	parser.add_argument('--gpu-image', type=str, default='ami-0c51d7776ce4f70dc',
-						help="AWS image id for gpu (default: \'%(default)s\')")
+	parser.add_argument('--dynet', action='store_const', const=True, help='Use DyNet implementation')
+	parser.add_argument('--tensorflow', action='store_const', const=True, help='Use TensorFlow implementation')
+	parser.add_argument('--gpu', action='store_true', const=True, help="Use gpu instance")
+	parser.add_argument('--dy-image', type=str, default='ami-08016dab96d85a8d1',
+						help="AWS image id for DyNet implementation (default: \'%(default)s\')")
+	parser.add_argument('--tf-image', type=str, default='ami-0c51d7776ce4f70dc',
+						help="AWS image id for TensorFlow implementation (default: \'%(default)s\')")
 	parser.add_argument('-u', '--username', type=str, default='ubuntu',
 						help="instance user name (default: \'%(default)s\')")
 	parser.add_argument('-k', '--key', type=str, default='omer1.pem',
-						help="key filename (default: \'%(default)s)\'")
+						help="key filename (default: \'%(default)s)\')")
 	parser.add_argument('--type', type=str, default='r5.2xlarge',
-						help="AWS instance type (default: \'%(default)s)\'")
+						help="AWS instance type for cpu (default: \'%(default)s)\')")
 	parser.add_argument('--gpu-type', type=str, default='p2.xlarge',
-						help="AWS instance type for gpu (default: \'%(default)s)\'")
+						help="AWS instance type for gpu (default: \'%(default)s)\')")
 	parser.add_argument('-s', '--security', type=str, default='omer-sg',
-						help="AWS security group for instances (default: \'%(default)s)\'")
-	parser.add_argument('--naming', type=str, default='{0}-{1}-{2}-{3}',
-						help="naming pattern for instances (default: \'%(default)s)\'")
-	parser.add_argument('--gpu-naming', type=str, default='{0}-gpu-{1}-{2}-{3}',
-						help="naming pattern for instances (default: \'%(default)s)\'")
+						help="AWS security group for instances (default: \'%(default)s)\')")
+	parser.add_argument('--naming', type=str, default='',
+						help="suffix to naming pattern for instances (default: empty string)")
 	parser.add_argument('-d', '--directory', type=str, default='Codenator',
-						help="name of main directory on instance (default: \'%(default)s)\'")
+						help="name of main directory on instance (default: \'%(default)s)\')")
 	parser.add_argument('-p', '--protection', type=bool, default=False,
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
-	parser.add_argument('--branch', type=str, default='master',
+	parser.add_argument('--branch', type=str, default='experimental',
 						help="repository branch to use (default: \'%(default)s\')")
-	parser.add_argument('--gpu-branch', type=str, default='tf_usage',
-						help="repository branch to use for gpu (default: \'%(default)s\')")
 	parser.add_argument('-c', '--configs', type=str,
 						help="folder containing configurations to push to instance")
 	parser.add_argument('-v', '--verbose', action='store_const', const=True, help='Be verbose')
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
 
+	if (args.dynet and args.tensorflow) or ((not args.dynet) and (not args.tensorflow)):
+		logging.error('Must use either --dynet or --tensorflow (but not both)')
+		sys.exit(1)
+
 	if os.path.exists(args.output):
 		shutil.rmtree(args.output)
 	os.makedirs(args.output)
 
+	if args.dynet and args.gpu:
+		logging.warn('DyNet implementation does not support gpu. Ignoring --gpu')
+
+	logging.info('Executing {0} instances using {1} implementation'.format(args.count, 'DyNet' if args.dynet else ('TensorFlow-GPU' if args.gpu else 'TensorFlow')))
 	pool = multiprocessing.Pool(processes=args.count)
 	pool.map(instance_wrapper, map(lambda i: (args, i), range(args.count)))
 	pool.close()
