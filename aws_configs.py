@@ -96,7 +96,8 @@ class AWShandler:
 	def exec_instance(self):
 		self.log_info('Executing experiment')
 		activate_tf_workspace = 'source activate tensorflow_p27; '
-		self.exec_command('cd {0}; {3}./runExperiment.sh output{1} log{1} {2} -s 1'.format(self._main_dir, self._index, self._compiler, activate_tf_workspace if self._tf else ''))
+		framework = '--tensorflow' if self._tf else '--dynet'
+		self.exec_command('cd {0}; {3}./runExperiment.sh output{1} log{1} {2} {4} -s 1'.format(self._main_dir, self._index, self._compiler, activate_tf_workspace if self._tf else '', framework))
 		# exec_command('cd {0} && echo 1 > log{1} && tar -czf output{1}.tar.gz log{1}'.format(self._main_dir, self._index))
 
 	def update_code(self):
