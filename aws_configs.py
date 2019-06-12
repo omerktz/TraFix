@@ -177,9 +177,9 @@ if __name__ == "__main__":
 	parser.add_argument('count', type=int, help="Number of instances")
 	parser.add_argument('output', type=str, help="Output directory")
 	parser.add_argument('compiler', type=str, help="File containing implementation of 'compiler' function")
-	parser.add_argument('--dynet', action='store_const', const=True, help='Use DyNet implementation')
-	parser.add_argument('--tensorflow', action='store_const', const=True, help='Use TensorFlow implementation')
-	parser.add_argument('--gpu', action='store_true', const=True, help="Use gpu instance")
+	parser.add_argument('--dynet', action='store_true', help='Use DyNet implementation')
+	parser.add_argument('--tensorflow', action='store_true', help='Use TensorFlow implementation')
+	parser.add_argument('--gpu', action='store_true', help="Use gpu instance")
 	parser.add_argument('--dy-image', type=str, default='ami-08016dab96d85a8d1',
 						help="AWS image id for DyNet implementation (default: \'%(default)s\')")
 	parser.add_argument('--tf-image', type=str, default='ami-0c51d7776ce4f70dc',
