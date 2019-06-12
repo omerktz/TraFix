@@ -210,6 +210,8 @@ if __name__ == "__main__":
 	parser.add_argument('--debug', action='store_const', const=True, help='Enable debug prints')
 	args = parser.parse_args()
 
+	init_colorful_root_logger(logging.getLogger(''), vars(args))
+
 	if (args.dynet and args.tensorflow) or ((not args.dynet) and (not args.tensorflow)):
 		logging.error('Must use either --dynet or --tensorflow (but not both)')
 		sys.exit(1)
