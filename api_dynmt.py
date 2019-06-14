@@ -19,13 +19,13 @@ def main(args):
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} ' \
 								  '--batch-size={6} --eval-after={7} --max-patience={8} --beam-size={9} --max-pred={10} ' \
 								  '--max-len={11} --min-epochs={12} --lstm-layers={13} --split-numbers-in={14} ' \
-								  '--split-numbers-out={15} --models-to-save={16}{17}{18}' \
+								  '--split-numbers-out={15} --models-to-save={16}{17}{18}{19}' \
 		.format(train, validation, test, model, vocabs, config.getint('NMT', 'epochs'),
 				config.getint('NMT', 'batch_size'), config.getint('NMT', 'eval_after'),
 				config.getint('NMT', 'max_patience'), 1 if args['train'] else args['num_translations'],
 				config.getint('NMT', 'max_pred'), config.getint('NMT', 'max_len'), config.getint('NMT', 'min_epochs'),
 				config.getint('NMT', 'lstm_layers'), split_in_numbers_to_digits, split_out_numbers_to_digits,
-				config.getint('NMT', 'models_to_save'), ' --eval' if args['translate'] else '',
+				config.getint('NMT', 'models_to_save'), previous, ' --eval' if args['translate'] else '',
 				(' --seed=%d' % args['seed']) if args['seed'] else '')
 	command = command.strip()
 	if args['train']:
