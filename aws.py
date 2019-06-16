@@ -95,7 +95,7 @@ class AWShandler:
 
 	def update_code(self):
 		self.log_info('Updating code')
-		self.exec_command('cd {0}; git pull origin {1}; git clean -fd; chmod +x *.sh'.format(self._main_dir, self._branch))
+		self.exec_command('cd {0}; git fetch; git reset --hard origin/{1}; git clean -fd; chmod +x *.sh'.format(self._main_dir, self._branch))
 
 
 	def download_from_instance(self):
