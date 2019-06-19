@@ -64,7 +64,7 @@ def prepare_tmp_dataset(input, split_digits, filter_tokens=[]):
                     else:
                         new_parts += [p]
                 fout.write(' '.join(new_parts) + '\n')
-    return StrWrapper(temp_file)
+    return temp_file
 
 def get_initializer(init_op, seed=None, init_weight=None):
   """Create an initializer. init_weight is only for uniform."""
