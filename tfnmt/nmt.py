@@ -336,7 +336,7 @@ def _add_argument(hparams, key, value, update=True):
 
 def create_hparams(flags):
 	"""Create training hparams."""
-	return tf.contrib.training.HParam(
+	return tf.contrib.training.HParams(
 		# Data
 		src=flags.src,
 		tgt=flags.tgt,

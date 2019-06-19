@@ -144,12 +144,15 @@ class ActiveLearner:
 		# train
 		if (i == 0) and self.initial_model:
 			logging.info('Using initial model (iteration {0})'.format(i))
-			os.system('cp {0} {1}'.format(self.initial_model,
-										  os.path.join(self.models_path, 'model0.dynmt_bestmodel.txt')))
-			os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.in',
-										  os.path.join(self.models_path, 'model0.dynmt.vocabs.in')))
-			os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.out',
-										  os.path.join(self.models_path, 'model0.dynmt.vocabs.out')))
+			if self.framework == Framework.DyNet:
+				os.system('cp {0} {1}'.format(self.initial_model,
+											  os.path.join(self.models_path, 'model0.dynmt_bestmodel.txt')))
+				os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.in',
+											  os.path.join(self.models_path, 'model0.dynmt.vocabs.in')))
+				os.system('cp {0} {1}'.format(self.initial_model+'.vocabs.out',
+											  os.path.join(self.models_path, 'model0.dynmt.vocabs.out')))
+			if self.framework == Framework.TensorFlow:
+				print 'Not yet implemented!'
 		else:
 			logging.info('Training model (iteration {0})'.format(i))
 			with open(os.path.join(self.outputs_path, 'train%d' % i), 'w', 0) as f:
