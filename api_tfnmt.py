@@ -7,7 +7,7 @@ import ConfigParser
 def main(args):
 	nmt_config = ConfigParser.ConfigParser()
 	tf_config = ConfigParser.ConfigParser()
-	tfnmt = 'tfnmt.tfnmt'
+	tfnmt = 'tfnmt.nmt'
 	nmt_config.read(args['nmt_config'])
 	tf_config.read(args['framework_config'])
 	model = os.path.abspath(args['model_path'] + '.tfnmt')
@@ -21,7 +21,7 @@ def main(args):
 		old_vocabs = args['previous_vocabs']
 		# update the vocabulary of new model
 		os.system(
-			'python -m nmt.scripts.update_vocab --model_dir {0} --output_dir {1} --src_vocab {2} --tgt_vocab {3} --new_src_vocab {4} --new_tgt_vocab {5} --mode replace'.format(
+			'python -m tfnmt.scripts.update_vocab --model_dir {0} --output_dir {1} --src_vocab {2} --tgt_vocab {3} --new_src_vocab {4} --new_tgt_vocab {5} --mode replace'.format(
 				args['previous_model'] + '.tfnmt', model, old_vocabs + '.' + src_suffix, old_vocabs + '.' + tgt_suffix,
 				vocabs + '.' + src_suffix, vocabs + '.' + tgt_suffix))
 	if args['train']:

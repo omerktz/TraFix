@@ -128,12 +128,12 @@ class ActiveLearner:
 										 os.path.join(self.datasets_path, 'vocabs0'),
 										 self.split_ll_numbers_to_digits, self.split_hl_numbers_to_digits)
 		if self.framework == Framework.TensorFlow:
-			os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs0.ll'),
 				os.path.join(self.datasets_path, 'train0.corpus.ll'),
 				os.path.join(self.datasets_path, 'validate0.corpus.ll'),
 				os.path.join(self.datasets_path, 'test0.corpus.ll')))
-			os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs0.hl'),
 				os.path.join(self.datasets_path, 'train0.corpus.hl'),
 				os.path.join(self.datasets_path, 'validate0.corpus.hl'),
@@ -208,12 +208,12 @@ class ActiveLearner:
 										 os.path.join(self.datasets_path, 'vocabs%d' % i),
 										 self.split_ll_numbers_to_digits, self.split_hl_numbers_to_digits)
 		if self.framework == Framework.TensorFlow:
-			os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs%d.ll' % i),
 				os.path.join(self.datasets_path, 'train%d.corpus.ll' % i),
 				os.path.join(self.datasets_path, 'validate%d.corpus.ll' % i),
 				os.path.join(self.datasets_path, 'test0.corpus.ll')))
-			os.system('python -m nmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs%d.hl' % i),
 				os.path.join(self.datasets_path, 'train%d.corpus.hl' % i),
 				os.path.join(self.datasets_path, 'validate%d.corpus.hl' % i),
