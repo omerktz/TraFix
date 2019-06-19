@@ -20,9 +20,9 @@ import collections
 import os
 import time
 import numpy as np
-import six
 import tensorflow as tf
 import re
+import six
 
 from tensorflow.python.ops import lookup_ops
 from .utils import iterator_utils
@@ -40,8 +40,17 @@ __all__ = [
 # If a vocab size is greater than this value, put the embedding on cpu instead
 VOCAB_SIZE_THRESHOLD_CPU = 50000
 
+
+class StrWrapper(str):
+    def __init__(self, value):
+        str.__init__(self, value)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+    def __enter__(self):
+        return self
+
 def prepare_tmp_dataset(input, split_digits, filter_tokens=[]):
-    temp_file = input + '.temp'
+    temp_file = "%s.%s" % (input, 'temp')
     with open(input, 'r') as fin:
         with open(temp_file, 'w') as fout:
             for l in fin.readlines():
@@ -63,7 +72,7 @@ def prepare_tmp_dataset(input, split_digits, filter_tokens=[]):
                     else:
                         new_parts += [p]
                 fout.write(' '.join(new_parts) + '\n')
-    return temp_file
+    return StrWrapper(temp_file)
 
 def get_initializer(init_op, seed=None, init_weight=None):
   """Create an initializer. init_weight is only for uniform."""

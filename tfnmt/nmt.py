@@ -319,9 +319,9 @@ def add_arguments(parser):
 						help="number of intra_op_parallelism_threads")
 
 	# Splitting numbers to digits
-	parser.add_argument('--split_numbers_in', action='store_const', const=True,
+	parser.add_argument('--split_numbers_in', type=bool, default=False,
 						help='whether or not the model should split input numbers to digits')
-	parser.add_argument('--split_numbers_out', action='store_const', const=True,
+	parser.add_argument('--split_numbers_out', type=bool, default=False,
 						help='whether or not the model should split output numbers to digits')
 
 
