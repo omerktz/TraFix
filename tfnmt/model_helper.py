@@ -41,16 +41,8 @@ __all__ = [
 VOCAB_SIZE_THRESHOLD_CPU = 50000
 
 
-class StrWrapper(str):
-    def __init__(self, value):
-        str.__init__(self, value)
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-    def __enter__(self):
-        return self
-
 def prepare_tmp_dataset(input, split_digits, filter_tokens=[]):
-    temp_file = "%s.%s" % (input, 'temp')
+    temp_file = "%s.%s" % (input, 'processed')
     with open(input, 'r') as fin:
         with open(temp_file, 'w') as fout:
             for l in fin.readlines():
@@ -125,13 +117,11 @@ def create_train_model(
     src_vocab_table, tgt_vocab_table = vocab_utils.create_vocab_tables(
         src_vocab_file, tgt_vocab_file, hparams.share_vocab)
 
-    with prepare_tmp_dataset(src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ',']) as tmp_src_file:
-        src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_src_file))
-        os.remove(tmp_src_file)
-    with prepare_tmp_dataset(tgt_file, split_digits=hparams.split_numbers_out) as tmp_tgt_file:
-        tgt_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_tgt_file))
-        os.remove(tmp_tgt_file)
-    skip_count_placeholder = tf.placeholder(shape=(), dtype=tf.int64)
+    tmp_src_file = prepare_tmp_dataset(src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+    src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_src_file))
+    tmp_tgt_file = prepare_tmp_dataset(tgt_file, split_digits=hparams.split_numbers_out)
+    tgt_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_tgt_file))
+     skip_count_placeholder = tf.placeholder(shape=(), dtype=tf.int64)
 
     iterator = iterator_utils.get_iterator(
         src_dataset,

@@ -704,14 +704,14 @@ def run_main(flags, default_hparams, train_fn, inference_fn, target_session=""):
 		# Evaluation
 		ref_file = flags.inference_ref_file
 		if ref_file and tf.gfile.Exists(trans_file):
-			with prepare_tmp_dataset(ref_file, split_digits=hparams.split_numbers_out) as tmp_ref_file:
-				for metric in hparams.metrics:
-					score = evaluation_utils.evaluate(
-						tmp_ref_file,
-						trans_file,
-						metric,
-						hparams.subword_option)
-					utils.print_out("  %s: %.1f" % (metric, score))
+			tmp_ref_file = prepare_tmp_dataset(ref_file, split_digits=hparams.split_numbers_out)
+			for metric in hparams.metrics:
+				score = evaluation_utils.evaluate(
+					tmp_ref_file,
+					trans_file,
+					metric,
+					hparams.subword_option)
+				utils.print_out("  %s: %.1f" % (metric, score))
 	else:
 		# Train
 		train_fn(hparams, target_session=target_session)

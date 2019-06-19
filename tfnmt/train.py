@@ -96,32 +96,29 @@ def run_internal_eval(eval_model,
   dev_src_file = "%s.%s" % (hparams.dev_prefix, hparams.src)
   dev_tgt_file = "%s.%s" % (hparams.dev_prefix, hparams.tgt)
 
-  with prepare_tmp_dataset(dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ',']) as tmp_dev_src_file:
-      with prepare_tmp_dataset(dev_tgt_file, split_digits=hparams.split_numbers_out) as tmp_dev_tgt_file:
-          dev_eval_iterator_feed_dict[eval_model.src_file_placeholder] = tmp_dev_src_file
-          dev_eval_iterator_feed_dict[eval_model.tgt_file_placeholder] = tmp_dev_tgt_file
+  tmp_dev_src_file = prepare_tmp_dataset(dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+  tmp_dev_tgt_file = prepare_tmp_dataset(dev_tgt_file, split_digits=hparams.split_numbers_out)
+  dev_eval_iterator_feed_dict[eval_model.src_file_placeholder] = tmp_dev_src_file
+  dev_eval_iterator_feed_dict[eval_model.tgt_file_placeholder] = tmp_dev_tgt_file
 
-          dev_ppl = _internal_eval(loaded_eval_model, global_step, eval_sess,
-                                   eval_model.iterator, dev_eval_iterator_feed_dict,
-                                   summary_writer, "dev")
-          os.remove(tmp_dev_tgt_file)
-          os.remove(tmp_dev_src_file)
+  dev_ppl = _internal_eval(loaded_eval_model, global_step, eval_sess,
+                           eval_model.iterator, dev_eval_iterator_feed_dict,
+                           summary_writer, "dev")
 
   test_ppl = None
   if use_test_set and hparams.test_prefix:
     test_src_file = "%s.%s" % (hparams.test_prefix, hparams.src)
     test_tgt_file = "%s.%s" % (hparams.test_prefix, hparams.tgt)
-    with prepare_tmp_dataset(test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ',']) as tmp_test_src_file:
-        with prepare_tmp_dataset(test_tgt_file, split_digits=hparams.split_numbers_out) as tmp_test_tgt_file:
-            test_eval_iterator_feed_dict[
-                eval_model.src_file_placeholder] = tmp_test_src_file
-            test_eval_iterator_feed_dict[
-                eval_model.tgt_file_placeholder] = tmp_test_tgt_file
-            test_ppl = _internal_eval(loaded_eval_model, global_step, eval_sess,
-                                      eval_model.iterator, test_eval_iterator_feed_dict,
-                                      summary_writer, "test")
-            os.remove(tmp_test_tgt_file)
-            os.remove(tmp_test_src_file)
+    tmp_test_src_file = prepare_tmp_dataset(test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+    tmp_test_tgt_file = prepare_tmp_dataset(test_tgt_file, split_digits=hparams.split_numbers_out)
+    test_eval_iterator_feed_dict[
+        eval_model.src_file_placeholder] = tmp_test_src_file
+    test_eval_iterator_feed_dict[
+        eval_model.tgt_file_placeholder] = tmp_test_tgt_file
+    test_ppl = _internal_eval(loaded_eval_model, global_step, eval_sess,
+                              eval_model.iterator, test_eval_iterator_feed_dict,
+                              summary_writer, "test")
+
   return dev_ppl, test_ppl
 
 
@@ -170,51 +167,48 @@ def run_external_eval(infer_model,
   dev_src_file = "%s.%s" % (hparams.dev_prefix, hparams.src)
   dev_tgt_file = "%s.%s" % (hparams.dev_prefix, hparams.tgt)
 
-  with prepare_tmp_dataset(dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ',']) as tmp_dev_src_file:
-      with prepare_tmp_dataset(dev_tgt_file, split_digits=hparams.split_numbers_out) as tmp_dev_tgt_file:
-          dev_infer_iterator_feed_dict[
-              infer_model.src_placeholder] = inference.load_data(tmp_dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
-          dev_infer_iterator_feed_dict[
-              infer_model.batch_size_placeholder] = hparams.infer_batch_size
-          dev_scores = _external_eval(
-              loaded_infer_model,
-              global_step,
-              infer_sess,
-              hparams,
-              infer_model.iterator,
-              dev_infer_iterator_feed_dict,
-              tmp_dev_tgt_file,
-              "dev",
-              summary_writer,
-              save_on_best=save_best_dev,
-              avg_ckpts=avg_ckpts)
-          os.remove(tmp_dev_tgt_file)
-          os.remove(tmp_dev_src_file)
+  tmp_dev_src_file = prepare_tmp_dataset(dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+  tmp_dev_tgt_file = prepare_tmp_dataset(dev_tgt_file, split_digits=hparams.split_numbers_out)
+  dev_infer_iterator_feed_dict[
+      infer_model.src_placeholder] = inference.load_data(tmp_dev_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+  dev_infer_iterator_feed_dict[
+      infer_model.batch_size_placeholder] = hparams.infer_batch_size
+  dev_scores = _external_eval(
+      loaded_infer_model,
+      global_step,
+      infer_sess,
+      hparams,
+      infer_model.iterator,
+      dev_infer_iterator_feed_dict,
+      tmp_dev_tgt_file,
+      "dev",
+      summary_writer,
+      save_on_best=save_best_dev,
+      avg_ckpts=avg_ckpts)
 
   test_scores = None
   if use_test_set and hparams.test_prefix:
     test_src_file = "%s.%s" % (hparams.test_prefix, hparams.src)
     test_tgt_file = "%s.%s" % (hparams.test_prefix, hparams.tgt)
-    with prepare_tmp_dataset(test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ',']) as tmp_test_src_file:
-        with prepare_tmp_dataset(test_tgt_file, split_digits=hparams.split_numbers_out) as tmp_test_tgt_file:
-            test_infer_iterator_feed_dict[
-                infer_model.src_placeholder] = inference.load_data(tmp_test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
-            test_infer_iterator_feed_dict[
-                infer_model.batch_size_placeholder] = hparams.infer_batch_size
-            test_scores = _external_eval(
-                loaded_infer_model,
-                global_step,
-                infer_sess,
-                hparams,
-                infer_model.iterator,
-                test_infer_iterator_feed_dict,
-                tmp_test_tgt_file,
-                "test",
-                summary_writer,
-                save_on_best=False,
-                avg_ckpts=avg_ckpts)
-            os.remove(tmp_test_tgt_file)
-            os.remove(tmp_test_src_file)
+    tmp_test_src_file = prepare_tmp_dataset(test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+    tmp_test_tgt_file = prepare_tmp_dataset(test_tgt_file, split_digits=hparams.split_numbers_out)
+    test_infer_iterator_feed_dict[
+        infer_model.src_placeholder] = inference.load_data(tmp_test_src_file, split_digits=hparams.split_numbers_in, filter_tokens=[';', ','])
+    test_infer_iterator_feed_dict[
+        infer_model.batch_size_placeholder] = hparams.infer_batch_size
+    test_scores = _external_eval(
+        loaded_infer_model,
+        global_step,
+        infer_sess,
+        hparams,
+        infer_model.iterator,
+        test_infer_iterator_feed_dict,
+        tmp_test_tgt_file,
+        "test",
+        summary_writer,
+        save_on_best=False,
+        avg_ckpts=avg_ckpts)
+
   return dev_scores, test_scores, global_step
 
 

@@ -80,8 +80,6 @@ def load_data(inference_input_file, split_digits, filter_tokens=[], hparams=None
   if hparams and hparams.inference_indices:
     inference_data = [inference_data[i] for i in hparams.inference_indices]
 
-  os.remove(tmp_inference_input_file)
-
   return inference_data
 
 
