@@ -121,7 +121,8 @@ def create_train_model(
     src_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_src_file))
     tmp_tgt_file = prepare_tmp_dataset(tgt_file, split_digits=hparams.split_numbers_out)
     tgt_dataset = tf.data.TextLineDataset(tf.gfile.Glob(tmp_tgt_file))
-     skip_count_placeholder = tf.placeholder(shape=(), dtype=tf.int64)
+
+    skip_count_placeholder = tf.placeholder(shape=(), dtype=tf.int64)
 
     iterator = iterator_utils.get_iterator(
         src_dataset,
