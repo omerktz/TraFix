@@ -34,7 +34,7 @@ __all__ = [
     "create_eval_model", "create_infer_model",
     "create_emb_for_encoder_and_decoder", "create_rnn_cell", "gradient_clip",
     "create_or_load_model", "load_model", "avg_checkpoints",
-    "compute_perplexity"
+    "compute_perplexity", "prepare_tmp_dataset"
 ]
 
 # If a vocab size is greater than this value, put the embedding on cpu instead
