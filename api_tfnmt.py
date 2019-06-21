@@ -35,7 +35,7 @@ def main(args):
 			max_gradient_norm = tf_config.getint('TensorFlow', 'max_gradient_norm')
 		train_command = ('python -m ' + tfnmt + ' --vocab_prefix={0} --train_prefix={1} --dev_prefix={2} --out_dir={3} ' \
 				'--num_train_steps=10000000 --steps_per_stats={4} --num_layers={5} --num_units={6} --metrics=bleu ' \
-				'--src={7} --tgt={8} --attention=luong --batch_size={9} --max_gradient_norm={10} --optimizer={11} ' \
+				'--src={7} --tgt={8} --attention={20} --batch_size={9} --max_gradient_norm={10} --optimizer={11} ' \
 				'--encoder_type=bi --num_keep_ckpts={12} --learning_rate={13} --steps_per_valid={14} --patience={15} '\
 				'--src_max_len={16} --tgt_max_len={17} --split_numbers_in={18} --split_numbers_out={19}').format(
 			vocabs, train_dataset, validation_dataset, model, nmt_config.getint('NMT', 'eval_after'),
@@ -44,16 +44,17 @@ def main(args):
 			tf_config.get('TensorFlow', 'optimizer'), nmt_config.getint('NMT', 'models_to_save'),
 			learning_rate, nmt_config.getint('NMT', 'eval_after'), nmt_config.getint('NMT', 'max_patience'),
 			nmt_config.getint('NMT', 'max_len'), nmt_config.getint('NMT', 'max_pred'),
-			split_in_numbers_to_digits, split_out_numbers_to_digits).strip()
+			split_in_numbers_to_digits, split_out_numbers_to_digits, tf_config.get('TensorFlow', 'attention')).strip()
 		os.system(train_command)
 	if args['translate']:
 		test = os.path.abspath(args['test_dataset'])
 		tmp_output = test + '.translated'
 		trans_command = ('python -m ' + tfnmt + ' --out_dir={0} --inference_input_file={1} --inference_output_file={2} ' \
-						'--num_translations_per_input={3} --infer_mode=beam_search --beam_width={3} --attention=luong ' \
+						'--num_translations_per_input={3} --infer_mode=beam_search --beam_width={3} --attention={7} ' \
 						'--tgt_max_len_infer={4} --split_numbers_in={5} --split_numbers_out={6}').format(
 			model, test + '.corpus.'+src_suffix, tmp_output, str(args['num_translations']),
-			nmt_config.getint('NMT', 'max_pred'), split_in_numbers_to_digits, split_out_numbers_to_digits).strip()
+			nmt_config.getint('NMT', 'max_pred'), split_in_numbers_to_digits, split_out_numbers_to_digits,
+			tf_config.get('TensorFlow', 'attention')).strip()
 		os.system(trans_command)
 		with open(tmp_output) as fp:
 			with open(test + '.corpus.' + str(args['num_translations']) + '.out', "w+") as w:
