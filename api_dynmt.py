@@ -1,52 +1,32 @@
-import re
+from digits_utils import merge_digits_to_numbers
+import os
+import ConfigParser
 
-def merge_digits_to_numbers(line):
-	tokens = line.split(' ')
-	new_tokens = []
-	number = ''
-	for i in range(len(tokens)):
-		token = tokens[i]
-		if token == '-N':
-			number = '-'
-		elif token in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
-			number += token
-		else:
-			if len(number) > 0:
-				new_tokens += [number]
-				number = ''
-			if token != '|':
-				new_tokens += [token]
-	if len(number) > 0:
-		new_tokens += [number]
-	return ' '.join(new_tokens)
 
 def main(args):
-	import os
-	import ConfigParser
 	config = ConfigParser.ConfigParser()
 	dynmt = os.path.abspath('dynmt/dynmt.py')
-	config.read(args['config'])
+	config.read(args['nmt_config'])
 	train = os.path.abspath(args['training_dataset'])
 	validation = os.path.abspath(args['validation_dataset'])
 	test = os.path.abspath(args['test_dataset'])
 	vocabs = os.path.abspath(args['vocabs'])
-	model = os.path.abspath(args['model_path'] + '.ll-po.dynmt')
-	previous = (' --previous-model=%s' % os.path.abspath(args['previous'] + '.ll-hl.dynmt')) if args['previous'] is not None else ''
-	split_in_numbers_to_digits = config.getboolean('DyNmt', 'split_ll_numbers_to_digits')
-	split_out_numbers_to_digits = config.getboolean('DyNmt', 'split_hl_numbers_to_digits')
+	model = os.path.abspath(args['model_path'] + '.dynmt')
+	previous = (' --previous-model=%s' % os.path.abspath(args['previous_model'] + '.dynmt')) if args['previous_model'] is not None else ''
+	split_in_numbers_to_digits = config.getboolean('NMT', 'split_ll_numbers_to_digits')
+	split_out_numbers_to_digits = config.getboolean('NMT', 'split_hl_numbers_to_digits')
 	command = 'python ' + dynmt + ' --dynet-autobatch 0 {0}.corpus.ll {0}.corpus.hl {1}.corpus.ll {1}.corpus.hl ' \
 								  '{2}.corpus.ll {2}.corpus.hl {3} {4}.vocabs.ll {4}.vocabs.hl --epochs={5} ' \
 								  '--batch-size={6} --eval-after={7} --max-patience={8} --beam-size={9} --max-pred={10} ' \
 								  '--max-len={11} --min-epochs={12} --lstm-layers={13} --split-numbers-in={14} ' \
-								  '--split-numbers-out={15} --models-to-save={16}{17}{18}{19}{20}{21}' \
-		.format(train, validation, test, model, vocabs, args['epochs'] if (args['epochs'] is not None) else config.getint('DyNmt', 'epochs'),
-				config.getint('DyNmt', 'batch_size'), config.getint('DyNmt', 'eval_after'),
-				config.getint('DyNmt', 'max_patience'), 1 if args['train'] else args['num_translations'],
-				config.getint('DyNmt', 'max_pred'), config.getint('DyNmt', 'max_len'), config.getint('DyNmt', 'min_epochs'),
-				config.getint('DyNmt', 'lstm_layers'), split_in_numbers_to_digits, split_out_numbers_to_digits,
-				config.getint('DyNmt', 'models_to_save'), ' --eval' if args['translate'] else '',
-				' --override' if args['override'] else '', (' --seed=%d' % args['seed']) if args['seed'] else '',
-				previous, ' &> /dev/null' if args['silent'] else '')
+								  '--split-numbers-out={15} --models-to-save={16}{17}{18}{19}' \
+		.format(train, validation, test, model, vocabs, config.getint('NMT', 'epochs'),
+				config.getint('NMT', 'batch_size'), config.getint('NMT', 'eval_after'),
+				config.getint('NMT', 'max_patience'), 1 if args['train'] else args['num_translations'],
+				config.getint('NMT', 'max_pred'), config.getint('NMT', 'max_len'), config.getint('NMT', 'min_epochs'),
+				config.getint('NMT', 'lstm_layers'), split_in_numbers_to_digits, split_out_numbers_to_digits,
+				config.getint('NMT', 'models_to_save'), previous, ' --eval' if args['translate'] else '',
+				(' --seed=%d' % args['seed']) if args['seed'] else '')
 	command = command.strip()
 	if args['train']:
 		os.system(command)
@@ -70,14 +50,6 @@ def main(args):
 						if split_out_numbers_to_digits:
 							translation = merge_digits_to_numbers(translation)
 						f.write(current + ' ||| ' + translation + ' ||| \n')
-	if args['cleanup']:
-		import glob
-		files = filter(os.path.isfile, glob.glob(model + '*[0-9].*txt'))
-		for f in files:
-			os.remove(f)
-		files = filter(os.path.isfile, glob.glob(model + '*[0-9].*png'))
-		for f in files:
-			os.remove(f)
 
 
 if __name__ == "__main__":
@@ -94,14 +66,13 @@ if __name__ == "__main__":
 	parser.add_argument('--translate', help="translate using an existing model", action='count')
 	parser.add_argument('-n', '--num_translations', type=int, default=5,
 						help="number of translations for each input (default: %(default)s)")
-	parser.add_argument('-c', '--config', type=str, default='configs/dynmt.config',
+	parser.add_argument('-c', '--nmt_config', type=str, default='configs/nmt.config',
 						help="configuration file (default: \'%(default)s\')")
-	parser.add_argument('--cleanup', help="remove all intermediate files after training", action='count')
-	parser.add_argument('--silent', help="hide all output", action='count')
-	parser.add_argument('--override', help="override existing model", action='count')
+	parser.add_argument('-t', '--framework_config', type=str, help="Ignored!")
 	parser.add_argument('-s', '--seed', type=int, help="random seed")
-	parser.add_argument('-e', '--epochs', type=int, help="number of epochs to train")
-	parser.add_argument('-p', '--previous', type=str, help="previous model to use as baseline")
+	parser.add_argument('-p', '--previous_model', type=str, help="previous model to use as baseline")
+	parser.add_argument('-v', '--previous_vocabs', type=str, help="Ignored!")
+	parser.add_argument('-i', '--iteration_num', type=int, default=0, help="Ignored!")
 	args = parser.parse_args()
 
 	if (args.train and args.translate) or not (args.train or args.translate):

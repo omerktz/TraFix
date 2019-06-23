@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+from multiprocessing import Pool
 from subprocess import Popen
 from itertools import product
 import time
@@ -27,7 +28,7 @@ def run((nums, length, seed)):
 	with open('timingResults/outputs/dynmt_train_{0}_{1}.out'.format(nums, length), 'w') as f:
 		train_start = time.time()
 		Popen(
-			'time python api_dynmt.py timingResults/datasets/train_{0}_{1} timingResults/datasets/validate_{0}_{1} timingResults/datasets/test_{0}_{1} timingResults/datasets/vocabs_{0}_{1} -m timingResults/models/model_{0}_{1} -po -c configs/dynmt.config --train --cleanup --seed {2}'.format(
+			'time python api_dynmt.py timingResults/datasets/train_{0}_{1} timingResults/datasets/validate_{0}_{1} timingResults/datasets/test_{0}_{1} timingResults/datasets/vocabs_{0}_{1} -m timingResults/models/model_{0}_{1} -po -c configs/nmt.config --train --cleanup --seed {2}'.format(
 				nums, length, seed).split(' '), stdout=f, stderr=f).wait()
 		train_end = time.time()
 	with open('timingResults/outputs/dynmt_train_{0}_{1}.out'.format(nums, length), 'r') as f:
@@ -41,7 +42,7 @@ def run((nums, length, seed)):
 	with open('timingResults/outputs/dynmt_translate_{0}_{1}.out'.format(nums, length), 'w') as f:
 		translate_start = time.time()
 		Popen(
-			'time python api_dynmt.py timingResults/datasets/train_{0}_{1} timingResults/datasets/validate_{0}_{1} timingResults/datasets/test_{0}_{1} timingResults/datasets/vocabs_{0}_{1} -m timingResults/models/model_{0}_{1} -po -c configs/dynmt.config --translate --cleanup --seed {2}'.format(
+			'time python api_dynmt.py timingResults/datasets/train_{0}_{1} timingResults/datasets/validate_{0}_{1} timingResults/datasets/test_{0}_{1} timingResults/datasets/vocabs_{0}_{1} -m timingResults/models/model_{0}_{1} -po -c configs/nmt.config --translate --cleanup --seed {2}'.format(
 				nums, length, seed).split(' '), stdout=f, stderr=f).wait()
 		translate_end = time.time()
 	with open('timingResults/outputs/dynmt_translate_{0}_{1}.out'.format(nums, length), 'r') as f:

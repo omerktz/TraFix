@@ -144,6 +144,11 @@ def main(f, k, compiler, force, config, failed_dataset=None):
 	logging.info('Compiler provided by '+args.compiler)
 	load_compiler(compiler)
 	gc.set_instruction_class(hl2ll.Instruction)
+	if failed_dataset is not None:
+		logging.info('Writing failed translations to {}'.format(failed_dataset))
+		os.system('touch {0}.corpus.hl'.format(failed_dataset))
+		os.system('touch {0}.corpus.ll'.format(failed_dataset))
+		os.system('touch {0}.corpus.replacements'.format(failed_dataset))
 	with open(f + '.success.' + str(k) + '.csv', 'w') as fsuccess:
 		with open(f + '.fail.' + str(k) + '.csv', 'w') as ffail:
 			csv.writer(fsuccess).writerow(['line', 'hl', 'll', 'replacements', 'out'])
@@ -153,11 +158,6 @@ def main(f, k, compiler, force, config, failed_dataset=None):
 					with open(f + '.corpus.replacements', 'r') as freplacements:
 						if os.path.exists(f + '.corpus.' + str(k) + '.out'):
 							with open(f + '.corpus.' + str(k) + '.out', 'r') as fout:
-								if failed_dataset is not None:
-									with open(failed_dataset + '.corpus.hl', 'a') as failed_hl:
-										with open(failed_dataset + '.corpus.ll', 'a') as failed_ll:
-											with open(failed_dataset + '.corpus.replacements', 'a') as failed_replacements:
-												pass
 								(nsuccess, nfail) = evaluate(fhl, fll, fout, freplacements, force, config,
 														 fs=csv.writer(fsuccess), ff=csv.writer(ffail),
 														 failed_dataset=failed_dataset)
