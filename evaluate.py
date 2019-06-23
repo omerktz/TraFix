@@ -81,6 +81,7 @@ def evaluateProg(i, hl, ll, out, replacements, config, failed_dataset=None):
 		ll = apply_number_replacements_wrapper(ll, replacements, config)
 	if ll in lls:
 		return (i, hl, ll, replacements, cs[lls.index(ll)], 0)  # success
+	logging.debug('Comparing graphs for input ' + str(i))
 	graph_comparisons = map(lambda l: gc.compare_codes(l, ll), lls)
 	successful_comparisons = filter(lambda j: graph_comparisons[j][0], range(len(graph_comparisons)))
 	if len(successful_comparisons) > 0:

@@ -130,10 +130,11 @@ class Op(Expr):
 
 
 class BinaryOp(Op):
-	_Ops = ['+', '-', '*', '/', '%']
+	_Ops = ast.literal_eval(config.get('BinaryOp', 'Ops'))
+	_OpsWeights = ast.literal_eval(config.get('BinaryOp', 'OpsWeights'))
 
 	def __init__(self, nesting_level=0):
-		self._act = npr.choice(BinaryOp._Ops)
+		self._act = choose_by_weight(BinaryOp._Ops, BinaryOp._OpsWeights)
 		self._op1 = get_expr(nesting_level+1)
 		while isinstance(self._op1, Number) and \
 				(((self._op1._num == 0) and (self._act != '-')) or \
@@ -143,7 +144,11 @@ class BinaryOp(Op):
 		while (self._op2 == self._op1) or \
 				(isinstance(self._op1, Number) and isinstance(self._op2, Number)) or \
 				(isinstance(self._op2, Number) and ((self._op2._num == 0) or \
-													((self._op2._num == 1) and (self._act in ['*', '/', '%'])))):
+													((self._op2._num == 1) and (self._act in ['*', '/', '%'])))) or \
+				(isinstance(self._op2, Number) and (self._act in ['<<', '>>']) and
+				 									((self._op2._num > 32) or (self._op2._num < 1))) and \
+				((self._act in ['&', '|', '^']) and (isinstance(self._op2, Number) and (self._op2._num == 0)) or \
+				 									(isinstance(self._op1, Number) and (self._op1._num == 0))):
 			self._op2 = get_expr(nesting_level+1)
 
 	def __str__(self):
@@ -157,10 +162,10 @@ class BinaryOp(Op):
 			res += '( ' + str(self._op2) + ' )'
 		else:
 			res += str(self._op2)
-		return res
+		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return self._op1.po() + ' ' + self._op2.po() + ' ' + self._act
+		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act)
 
 	def __eq__(self, other):
 		if not isinstance(other, BinaryOp):
@@ -171,13 +176,15 @@ class BinaryOp(Op):
 		return self._op1.collect_vars().union(self._op2.collect_vars())
 
 
-class UnaryOp(Op):
-	_Ops = ['++', '--']
+class StatementUnaryOp(Op):
+	_Ops = ast.literal_eval(config.get('StatementUnaryOp', 'Ops'))
+	_OpsWeights = ast.literal_eval(config.get('StatementUnaryOp', 'OpsWeights'))
+	_PositionRatio = config.getfloat('StatementUnaryOp', 'PositionRatio')
 
 	def __init__(self, nesting_level=0):
 		self._op = Var()
-		self._act = npr.choice(UnaryOp._Ops)
-		self._position = npr.choice([True, False])
+		self._act = choose_by_weight(StatementUnaryOp._Ops, StatementUnaryOp._OpsWeights)
+		self._position = (npr.random() > StatementUnaryOp._PositionRatio)
 
 	def __str__(self):
 		res = ''
@@ -186,13 +193,36 @@ class UnaryOp(Op):
 		res += str(self._op)
 		if not self._position:
 			res += ' ' + self._act
-		return res
+		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return self._op.po() + ' ' + ('' if self._position else 'X') + self._act + ('X' if self._position else '')
+		return re.sub('\s+', ' ', self._op.po() + ' ' + ('' if self._position else 'X') + self._act + ('X' if self._position else ''))
 
 	def __eq__(self, other):
-		if not isinstance(other, UnaryOp):
+		if not isinstance(other, StatementUnaryOp):
+			return False
+		return (other._act == self._act) and (other._op == self._op)
+
+	def collect_vars(self):
+		return self._op.collect_vars()
+
+
+class OtherUnaryOp(Op):
+	_Ops = ast.literal_eval(config.get('OtherUnaryOp', 'Ops'))
+	_OpsWeights = ast.literal_eval(config.get('OtherUnaryOp', 'OpsWeights'))
+
+	def __init__(self, nesting_level=0):
+		self._op = get_expr()
+		self._act = choose_by_weight(OtherUnaryOp._Ops, OtherUnaryOp._OpsWeights)
+
+	def __str__(self):
+		return re.sub('\s+', ' ', self._act + ' ( ' + str(self._op) + ' )').strip()
+
+	def po(self):
+		return re.sub('\s+', ' ', self._op.po() + ' ' + self._act + 'X')
+
+	def __eq__(self, other):
+		if not isinstance(other, OtherUnaryOp):
 			return False
 		return (other._act == self._act) and (other._op == self._op)
 
@@ -206,10 +236,10 @@ class Assignment:
 		self._target = Var()
 
 	def __str__(self):
-		return str(self._target) + ' = ' + str(self._source)
+		return re.sub('\s+', ' ', str(self._target) + ' = ' + str(self._source)).strip()
 
 	def po(self):
-		return self._source.po() + ' ' + self._target.po() + ' = '
+		return re.sub('\s+', ' ', self._source.po() + ' ' + self._target.po() + ' = ')
 
 	def __eq__(self, other):
 		if not isinstance(other, Assignment):
@@ -222,7 +252,8 @@ class Assignment:
 
 class Condition:
 	_Relations = ['>', '>=', '<', '<=', '==', '!=']
-	_InitialNestingLevel = config.getint('Condition', 'InitialNstingLevel')
+	_InitialNestingLevel = config.getint('Condition', 'InitialNestingLevel')
+	_NegateRatio = config.getfloat('Condition', 'NegateRatio')
 
 	def __init__(self):
 		self._op1 = get_expr(nesting_level=Condition._InitialNestingLevel)
@@ -230,9 +261,12 @@ class Condition:
 		self._op2 = get_expr(nesting_level=Condition._InitialNestingLevel)
 		while self._op2 == self._op1 or (isinstance(self._op1, Number) and isinstance(self._op2, Number)):
 			self._op2 = get_expr(nesting_level=Condition._InitialNestingLevel)
+		self._negate = (npr.random() < Condition._NegateRatio)
 
 	def __str__(self):
 		res = ''
+		if self._negate:
+			res += '! ( '
 		if isinstance(self._op1, Op):
 			res += '( ' + str(self._op1) + ' )'
 		else:
@@ -242,10 +276,12 @@ class Condition:
 			res += '( ' + str(self._op2) + ' )'
 		else:
 			res += str(self._op2)
-		return res
+		if self._negate:
+			res += ' )'
+		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + ' COND '
+		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + (' NOT ' if self._negate else '') + ' COND ')
 
 	def __eq__(self, other):
 		if not isinstance(other, Condition):
@@ -291,11 +327,11 @@ class Branch:
 		res = 'if ( ' + str(self._cond) + ' ) { ' + str(self._if) + ' } '
 		if self._else:
 			res += 'else { ' + str(self._else) + ' } '
-		return res
+		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return self._cond.po() + self._if.po() + 'TRUE ' + (
-			(self._else.po() + 'FALSE ') if self._else else '') + ' IF '
+		return re.sub('\s+', ' ', self._cond.po() + self._if.po() + 'TRUE ' + (
+			(self._else.po() + 'FALSE ') if self._else else '') + ' IF ')
 
 	def collect_vars(self):
 		return self._if.collect_vars().union(self._else.collect_vars() if self._else else set()).union(self._cond.collect_vars())
@@ -321,16 +357,16 @@ class Loop:
 		return True
 
 	def __str__(self):
-		return 'while ( ' + str(self._cond) + ' ) { ' + str(self._body) + ' } '
+		return re.sub('\s+', ' ', 'while ( ' + str(self._cond) + ' ) { ' + str(self._body) + ' } ').strip()
 
 	def po(self):
-		return self._cond.po() + self._body.po() + ' WHILE '
+		return re.sub('\s+', ' ', self._cond.po() + self._body.po() + ' WHILE ')
 
 	def collect_vars(self):
 		return self._body.collect_vars().union(self._cond.collect_vars())
 
 
-_exprs = [Number, Var, BinaryOp, UnaryOp]
+_exprs = [Number, Var, BinaryOp, StatementUnaryOp, OtherUnaryOp]
 def get_expr(nesting_level=0):
 	weights = map(lambda e: config.getfloat(e.__name__, 'Weight'), _exprs)
 	degrade = map(lambda e: config.getfloat(e.__name__, 'Degrade'), _exprs)
@@ -342,7 +378,7 @@ class Statements:
 	_max_statements = config.getint('Statements', 'MaxStatements')
 	_statements_weights = ast.literal_eval(config.get('Statements', 'Weights'))
 
-	def __init__(self, types=filter(lambda x: x is not None, [Assignment, Branch, Loop, UnaryOp if config.getboolean('UnaryOp', 'AllowAsStatement') else None]), nesting_level=0, max_statements=_max_statements):
+	def __init__(self, types=filter(lambda x: x is not None, [Assignment, Branch, Loop, StatementUnaryOp if config.getboolean('StatementUnaryOp', 'AllowAsStatement') else None]), nesting_level=0, max_statements=_max_statements):
 		statements_limit = min(max_statements, Statements._max_statements)
 		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(statements_limit))
 		num_statements = choose_by_weight(range(1, statements_limit + 1), weights)
@@ -431,6 +467,14 @@ def generate_statements():
 		while not done:
 			try:
 				s = Statements()
+				# # verify postOrderUtil works:
+				# import postOrderUtil
+				# po_res = postOrderUtil.parse(s.po())
+				# if (not po_res[0]) or (po_res[1].c().strip() != str(s).strip()):
+				# 	print 'Error'
+				# 	print '\t', s.po()
+				# 	print '\t', str(s)
+				# 	print '\t', ('False' if not po_res[0] else po_res[1].c())
 				hl_line = re.sub('[ \t]+', ' ', preprocess_hl(s)).strip()
 				if hl_line not in exclude:
 					done = True
