@@ -49,7 +49,7 @@ def main(args):
 			learning_rate, nmt_config.getint('NMT', 'eval_after'), nmt_config.getint('NMT', 'max_patience'),
 			nmt_config.getint('NMT', 'max_len'), nmt_config.getint('NMT', 'max_pred'),
 			split_in_numbers_to_digits, split_out_numbers_to_digits, tf_config.get('TensorFlow', 'attention'),
-			math.ceil(nmt_config.getint('NMT', 'epochs')*steps_per_epoch)).strip()
+			int(math.ceil(nmt_config.getint('NMT', 'epochs')*steps_per_epoch))).strip()
 		os.system(train_command)
 	if args['translate']:
 		test = os.path.abspath(args['test_dataset'])
