@@ -6,9 +6,12 @@ import tempfile
 from distutils.command.install import install
 
 Instruction = None
-def set_instruction_class(instruction_class):
+compiler_api_equivalent_ops = None
+def set_compiler_api(compiler_api):
 	global Instruction
-	Instruction = instruction_class
+	global compiler_api_equivalent_ops
+	Instruction = compiler_api.Instruction
+	compiler_api_equivalent_ops = compiler_api.equivalent_ops
 
 class VarInstruction:
 	def __init__(self, var):
@@ -233,7 +236,14 @@ def compare_graphs(graph1, graph2):
 		return (False, [])
 	if len(graph1.instructions) != len(graph2.instructions):
 		return (False, [])
-	if graph1.get_all_ops() != graph2.get_all_ops():
+	def add_all_equivalent_ops(ops):
+		for op_pair in compiler_api_equivalent_ops:
+			if op_pair[0] in ops:
+				ops.add(op_pair[1])
+			if op_pair[1] in ops:
+				ops.add(op_pair[0])
+		return ops
+	if add_all_equivalent_ops(graph1.get_all_ops()) != add_all_equivalent_ops(graph2.get_all_ops()):
 		return (False, [])
 	def is_matching_instructions(index1, index2):
 		def is_number(x):
@@ -246,7 +256,9 @@ def compare_graphs(graph1, graph2):
 		if isinstance(inst2, VarInstruction):
 			return (False, [])
 		if inst1.op != inst2.op:
-			return (False, [])
+			if ((inst1.op, inst2.op) not in compiler_api_equivalent_ops) and \
+					((inst2.op, inst1.op) not in compiler_api_equivalent_ops):
+				return (False, [])
 		if inst1.is_condition:
 			if inst1.relation != inst2.relation:
 				return (False, [])
@@ -366,6 +378,7 @@ if __name__ == "__main__":
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
 	parser.add_argument('--simplify', action='store_true', help='Simplify graphs')
 	args = parser.parse_args()
-	set_instruction_class(load_external(args.compiler).Instruction)
+	set_compiler_api(load_external(args.compiler))
 	Graph('jmp .L1 ; .L0 : ; movl X5 , %eax ; movl %eax , X9 ; .L1 : ; movl X2 , %eax ; cmpl 8 , %eax ; jle .L0 ;', simplify=args.simplify).print_graph(view=True)
 	# print compare_codes('movl X13 , %eax ; cmpl 62 , %eax ; jne .L0 ; movl X8 , %ebx ; movl X11 , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 2 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl X7 , %eax ; subl %eax , %edx ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X12 ; .L0 : ;', 'movl X13 , %eax ; cmpl 62 , %eax ; jne .L0 ; movl X8 , %ebx ; movl X11 , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 2 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X7 , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X12 ; .L0 : ;', simplify=args.simplify)
+	# print compare_codes('movl X7 , %eax ; addl 1 , %eax ; movl %eax , X7 ;', 'movl X7 , %eax ; leal 1 ( %eax ) , %edx ; movl %edx , X7 ;', simplify=args.simplify)

@@ -144,7 +144,7 @@ def evaluate(fhl, fll, fout, freplacemetns, force, config, fs=None, ff=None, fai
 def main(f, k, compiler, force, config, failed_dataset=None):
 	logging.info('Compiler provided by '+args.compiler)
 	load_compiler(compiler)
-	gc.set_instruction_class(hl2ll.Instruction)
+	gc.set_compiler_api(hl2ll)
 	if failed_dataset is not None:
 		logging.info('Writing failed translations to {}'.format(failed_dataset))
 		os.system('touch {0}.corpus.hl'.format(failed_dataset))
