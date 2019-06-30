@@ -97,6 +97,8 @@ def is_number(n):
 def get_number(n):
 	return n
 
+equivalent_ops = [('addl', 'leal')]
+
 class Instruction:
 	def __init__(self, code, i):
 		self.code = code
