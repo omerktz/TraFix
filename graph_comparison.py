@@ -22,10 +22,12 @@ class VarInstruction:
 		self.is_condition = False
 		self.uses = []
 		self.is_symmetric = False
+		self.can_be_reduced = False
 
 class Graph:
-	def __init__(self, code):
+	def __init__(self, code, simplify=True):
 		self.bad_graph = False
+		self.simplify = simplify
 		# remove garbage
 		cleaned_code = ' __entry__ ; ' + re.sub('i32\*?', '', re.sub('i1', '', code)).replace('  ', ' ') + ' __exit__ ; '
 		# parse code
@@ -80,13 +82,39 @@ class Graph:
 		ddg_gen = dict(map(lambda i: (i, [(d, i) for d in self.instructions[i].defines]), self.instructions))
 		ddg_kill = dict(map(lambda i: (i, list(itertools.product(self.instructions[i].defines, self.instructions.keys()))), self.instructions))
 		self.reaching_definitions = self.get_fixed_point(ddg_init, ddg_gen, ddg_kill, set.union, self.parents, self.childs)
-		self.ddg = dict(map(lambda i: (i, map(lambda u: map(lambda y: y[1], filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
-		self.ddg_marked = dict(map(lambda i: (i, map(lambda u: map(lambda y: (y[1], bool(re.match("^X[0-9]+$",y[0]))), filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions))
+		ddg_tmp = map(lambda i: (i, map(lambda u: map(lambda y: (y[1], bool(re.match("^X[0-9]+$",y[0]))), filter(lambda x: x[0] == u, self.reaching_definitions[i])), self.instructions[i].uses)), self.instructions)
+		reducable_instructions = filter(lambda i: self.instructions[i].can_be_reduced and not any(map(lambda x: re.match("^X[0-9]+$", x), self.instructions[i].defines)), self.instructions.keys())
+		if self.simplify:
+			def compute_new_ddg_tmp(old_ddg_tmp):
+				new_ddg_tmp = []
+				for x in old_ddg_tmp:
+					i = x[0]
+					dependencies = []
+					for dependency_list in x[1]:
+						new_dependency_list = []
+						for dependency in dependency_list:
+							if dependency[0] in reducable_instructions:
+								other_dependencies = dict(old_ddg_tmp)[dependency[0]]
+								for other_dependency_list in other_dependencies:
+									for other_dependency in other_dependency_list:
+										new_dependency_list.append((other_dependency[0], other_dependency[1] or dependency[1]))
+							else:
+								new_dependency_list.append((dependency))
+						dependencies.append(new_dependency_list)
+					new_ddg_tmp.append((i, dependencies))
+				return new_ddg_tmp
+			new_ddg_tmp = compute_new_ddg_tmp(ddg_tmp)
+			while new_ddg_tmp != ddg_tmp:
+				ddg_tmp = new_ddg_tmp[:]
+				new_ddg_tmp = compute_new_ddg_tmp(ddg_tmp)
+		self.ddg = dict(map(lambda x: (x[0], map(lambda y: map(lambda z: z[0], y), x[1])), ddg_tmp))
+		self.ddg_marked = dict(map(lambda x: (x[0], map(lambda y: map(lambda z: z, y), x[1])), ddg_tmp))
 		self.rddg = dict([(i, set()) for i in self.instructions])
 		for i in self.ddg.keys():
-			for d in self.ddg[i]:
-				for x in d:
-					self.rddg[x].add(i)
+			if (not simplify) or (i not in reducable_instructions):
+				for d in self.ddg[i]:
+					for x in d:
+						self.rddg[x].add(i)
 		# compute dominators
 		dom_init = dict([(i, set(self.instructions.keys())) for i in self.instructions])
 		last_instruction = filter(lambda x: len(self.childs[x]) == 0, self.instructions)[0]
@@ -113,8 +141,16 @@ class Graph:
 				reachable = new_reachable
 				new_reachable = set(filter(lambda c: c != immediate_post_dominator, reachable.union(*map(lambda x: self.childs[x], reachable))))
 			for r in reachable:
-				self.cdg[r].add(b)
-				self.rcdg[b].add(r)
+				if (not self.simplify) or (r not in reducable_instructions):
+					self.cdg[r].add(b)
+					self.rcdg[b].add(r)
+		if simplify:
+			for i in reducable_instructions:
+				del self.ddg[i]
+				del self.rddg[i]
+				del self.cdg[i]
+				del self.rcdg[i]
+				del self.instructions[i]
 
 	def get_all_ops(self):
 		return set(filter(lambda x: len(x) > 0, map(lambda s: s.op, self.instructions.values())))
@@ -312,8 +348,8 @@ def compare_graphs(graph1, graph2):
 	return (True, required_replacements)
 
 
-def compare_codes(code1, code2):
-	return compare_graphs(Graph(code1), Graph(code2))
+def compare_codes(code1, code2, simplify=True):
+	return compare_graphs(Graph(code1, simplify=simplify), Graph(code2, simplify=simplify))
 
 
 def load_external(f):
@@ -328,6 +364,8 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description="Parse codes to PDG and compare graphs")
 	parser.add_argument('compiler', type=str, help="file containing implementation of 'Instruction' class")
+	parser.add_argument('--simplify', action='store_true', help='Simplify graphs')
 	args = parser.parse_args()
 	set_instruction_class(load_external(args.compiler).Instruction)
-	Graph('jmp .L1 ; .L0 : ; movl X5 , %eax ; movl %eax , X9 ; .L1 : ; movl X2 , %eax ; cmpl 8 , %eax ; jle .L0 ;').print_graph(view=True)
+	Graph('jmp .L1 ; .L0 : ; movl X5 , %eax ; movl %eax , X9 ; .L1 : ; movl X2 , %eax ; cmpl 8 , %eax ; jle .L0 ;', simplify=args.simplify).print_graph(view=True)
+	# print compare_codes('movl X13 , %eax ; cmpl 62 , %eax ; jne .L0 ; movl X8 , %ebx ; movl X11 , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 2 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; subl %eax , %edx ; movl X7 , %eax ; subl %eax , %edx ; movl %edx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X12 ; .L0 : ;', 'movl X13 , %eax ; cmpl 62 , %eax ; jne .L0 ; movl X8 , %ebx ; movl X11 , %ecx ; movl 780903145 , %edx ; movl %ecx , %eax ; imull %edx ; sarl 2 , %edx ; movl %ecx , %eax ; sarl 31 , %eax ; movl %edx , %ecx ; subl %eax , %ecx ; movl X7 , %eax ; subl %eax , %ecx ; movl %ecx , %eax ; subl %eax , %ebx ; movl %ebx , %eax ; movl %eax , X12 ; .L0 : ;', simplify=args.simplify)

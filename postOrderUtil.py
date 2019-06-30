@@ -44,7 +44,7 @@ class BinOp:
     @staticmethod
     def check(token,stack):
         try:
-            return (token in ['+','-','*','/','%']) and (stack[-1].type in ['NUM','VAR','EXPR']) and (stack[-2].type in ['NUM','VAR','EXPR'])
+            return (token in ['+','-','*','/','%','<<','>>','&','|','^']) and (stack[-1].type in ['NUM','VAR','EXPR']) and (stack[-2].type in ['NUM','VAR','EXPR'])
         except:
             return False
     @staticmethod
@@ -102,7 +102,7 @@ class BinOp:
         elif isinstance(arg1, Var):
             lhs = [arg1.c()]
             rhs = []
-        elif isinstance(arg1, UniOp):
+        elif isinstance(arg1, StatementUniOp):
             lhs = ['( ' + arg1.c() + ' )']
             rhs = []
         else:
@@ -120,7 +120,7 @@ class BinOp:
                 lhs += [arg2]
             elif isinstance(arg2, Var):
                 lhs += [arg2.c()]
-            elif isinstance(arg2, UniOp):
+            elif isinstance(arg2, StatementUniOp):
                 lhs += ['( ' + arg2.c() + ' )']
             else:
                 print 'Error: Unknown operand type to binary operation'
@@ -137,7 +137,7 @@ class BinOp:
                 rhs += [arg2]
             elif isinstance(arg2, Var):
                 rhs += [arg2.c()]
-            elif isinstance(arg2, UniOp):
+            elif isinstance(arg2, StatementUniOp):
                 rhs += ['( ' + arg2.c() + ' )']
             else:
                 print 'Error: Unknown operand type to binary operation'
@@ -195,7 +195,7 @@ class BinOp:
     def __str__(self):
         return self.c()
 
-class UniOp:
+class StatementUniOp:
     type = 'EXPR'
     @staticmethod
     def check(token,stack):
@@ -205,13 +205,33 @@ class UniOp:
             return False
     @staticmethod
     def handle(token,stack,simplify):
-        stack.append(UniOp(token,stack.pop()))
+        stack.append(StatementUniOp(token, stack.pop()))
         return True
     def __init__(self, token, op):
         self.op = token
         self.operand = op
     def c(self):
         return (self.op[:-1]+' ' if self.op in ['++X','--X'] else '')+self.operand.c()+(' '+self.op[1:] if self.op in ['X++','X--'] else '')
+    def __str__(self):
+        return self.c()
+
+class OtherUniOp:
+    type = 'EXPR'
+    @staticmethod
+    def check(token,stack):
+        try:
+            return (token in ['~X']) and (stack[-1].type in ['NUM','VAR','EXPR'])
+        except:
+            return False
+    @staticmethod
+    def handle(token,stack,simplify):
+        stack.append(OtherUniOp(token, stack.pop()))
+        return True
+    def __init__(self, token, op):
+        self.op = token
+        self.operand = op
+    def c(self):
+        return self.op[:-1]+' ( '+self.operand.c()+' )'
     def __str__(self):
         return self.c()
 
@@ -240,28 +260,44 @@ class Cond:
     @staticmethod
     def check(token,stack):
         try:
+            if (token == 'NOT') and (stack[-1].type == 'COND'):
+                return True
             return (token in ['>','>=','<','<=','==','!=']) and (stack[-1].type in ['NUM','VAR','EXPR']) and (stack[-2].type in ['NUM','VAR','EXPR'])
         except:
             return False
     @staticmethod
     def handle(token,stack,simplify):
-        stack.append(Cond(token, stack.pop(), stack.pop()))
+        if token == 'NOT':
+            stack.append(Cond(token, op1=stack.pop()))
+        else:
+            stack.append(Cond(token, op2=stack.pop(), op1=stack.pop()))
         return True
-    def __init__(self, token, op2, op1):
-        self.op = token
-        self.operand1 = op1
-        self.operand2 = op2
+    def __init__(self, token, op1, op2=None):
+        if token == 'NOT':
+            self.op = op1.op
+            self.operand1 = op1.operand1
+            self.operand2 = op1.operand2
+            self.negate = True
+        else:
+            self.op = token
+            self.operand1 = op1
+            self.operand2 = op2
+            self.negate = False
     def c(self):
         res = ''
-        if isinstance(self.operand1, BinOp):
+        if self.negate:
+            res += '! ( '
+        if isinstance(self.operand1, BinOp) or isinstance(self.operand1, StatementUniOp) or isinstance(self.operand1, OtherUniOp):
             res += '( '+self.operand1.c()+' )'
         else:
             res += self.operand1.c()
         res += ' '+self.op+' '
-        if isinstance(self.operand2, BinOp):
+        if isinstance(self.operand2, BinOp) or isinstance(self.operand2, StatementUniOp) or isinstance(self.operand2, OtherUniOp):
             res += '( '+self.operand2.c()+' )'
         else:
             res += self.operand2.c()
+        if self.negate:
+            res += ' )'
         return res
     def __str__(self):
         return self.c()
@@ -381,7 +417,7 @@ class Statement:
         current = stack.pop()
         other = None
         if len(stack) > 0:
-            if stack[-1].type in ['STATEMENT'] or isinstance(stack[-1], UniOp):
+            if stack[-1].type in ['STATEMENT'] or isinstance(stack[-1], StatementUniOp):
                 other = stack.pop()
         stack.append(Statement(current, other))
         return False
@@ -390,26 +426,29 @@ class Statement:
         self.other = other
     def c(self):
         other_c = self.other.c() if self.other else ''
-        if isinstance(self.other, UniOp):
+        if isinstance(self.other, StatementUniOp):
             other_c += ' ; '
-        return other_c+self.inner.c()+' ; '
+        res = other_c+self.inner.c()
+        if not res.strip().endswith(';'):
+            res += ' ; '
+        return res
     def __str__(self):
         return self.c()
 
-postOrderTypes = [Statement,Num,Var,BinOp,UniOp,Assignment,Cond,CondB,TrueB,FalseB,Branch,Loop]
+postOrderTypes = [Statement, Num, Var, BinOp, StatementUniOp, OtherUniOp, Assignment, Cond, CondB, TrueB, FalseB, Branch, Loop]
 def parse(code, simplify=False):
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
     while len(tokens) > 0:
         matches = filter(lambda t: t.check(tokens[0], stack), postOrderTypes)
         if len(matches) == 0:
-            if (len(stack) == 0) or (not isinstance(stack[-1], UniOp)):
+            if (len(stack) == 0) or (not isinstance(stack[-1], StatementUniOp)):
                 return (False, None)
             Statement.handle(None, stack, simplify)
         elif matches[0].handle(tokens[0], stack, simplify):
             tokens = tokens[1:]
     if len(stack) > 0:
-        if isinstance(stack[-1], UniOp):
+        if isinstance(stack[-1], StatementUniOp):
             Statement.handle(None, stack, simplify)
     while Statement.check(None, stack) or\
             ((len(stack) > 1) and (stack[-1].type in ['STATEMENT']) and (stack[-2].type in ['STATEMENT'])):
@@ -422,4 +461,4 @@ if __name__ == "__main__":
         print '[{0}]\t{1}'.format(result[0], result[1].c() if result[0] else None)
     print_result(parse('X6 X5 = X14 X-- 8 X1 ='))
     print_result(parse('7 X6 <= COND X4 X13 = TRUE 5 X7 = FALSE IF'))
-    print_result(parse('9 X11 > COND X1 X1 = TRUE X1 X8 ='))
+    print_result(parse('X3 ++X 82 / X8 =  X12 64 X12 ++X * % 62 X10 / - X4 =  X0 X2 16 ~X X14 X9 / * 25 11 X6 / / + ~X / 6 - 76 * <= NOT COND 15 X6 = TRUE IF  X5 X8 X13 --X X8 + ~X X7 >> % ~X % 74 X4 - * X6 =  X3 ~X X6 ='))

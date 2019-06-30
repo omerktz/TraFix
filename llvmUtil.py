@@ -100,6 +100,7 @@ class Instruction:
 		self.uses = []
 		self.is_symmetric = False
 		self.labels = []
+		can_be_reduced = False
 		self.parse_instruction(code, i)
 
 	def parse_instruction(self, code, i):

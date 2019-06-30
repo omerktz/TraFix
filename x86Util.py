@@ -110,6 +110,7 @@ class Instruction:
 		self.uses = []
 		self.is_symmetric = False
 		self.labels = [i]
+		self.can_be_reduced = False
 		self.parse_instruction(code, i)
 
 	def parse_instruction(self, code, i):
@@ -138,9 +139,10 @@ class Instruction:
 			parts = map(lambda x: x.strip(), code.split(','))
 			self.uses = [parts[0]]
 			self.defines = [parts[1]]
+			self.can_be_reduced = True
 		elif self.op in ['cmova', 'cmovae', 'cmovb', 'cmovbe', 'cmovc', 'cmove', 'cmovg', 'cmovge', 'cmovl', 'cmovle', 'cmovna', 'cmovnae', 'cmovnb', 'cmovnbe', 'cmovnc', 'cmovne', 'cmovng', 'cmovnge', 'cmovnl', 'cmovnle', 'cmovno', 'cmovnp', 'cmovns', 'cmovnz', 'cmovo', 'cmovp', 'cmovpe', 'cmovpo', 'cmovs', 'cmovz']:
 			parts = map(lambda x: x.strip(), code.split(','))
-			self.uses = [parts[0]] + ['FLAGS']
+			self.uses = [parts[0], parts[1], 'FLAGS']
 			self.defines = [parts[1]]
 		elif self.op in ['addl', 'subl', 'adcl', 'sbbl']:
 			self.uses = map(lambda x: x.strip(), code.split(','))
