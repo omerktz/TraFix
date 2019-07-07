@@ -54,7 +54,7 @@ class Vocab(object):
       for line in text:
         line = tf.compat.as_text(line.strip())
         if ignore_numbers:
-          line = re.sub(' \-?[0-9]+ ', ' ', line)
+            line = re.sub('(\-| |^)[0-9]+', '', line)
         if tokenizer:
           tokens = tokenizer.tokenize(line)
         else:

@@ -59,7 +59,7 @@ def prepare_tmp_dataset(input, split_digits, filter_tokens=[]):
                             digits = ['-N'] + digits[1:]
                         if i + 1 < len(parts):
                             if re.match('^\-?[0-9]+$', parts[i + 1]):
-                                digits += ['|']
+                                digits += ['NS']
                         new_parts += digits
                     else:
                         new_parts += [p]

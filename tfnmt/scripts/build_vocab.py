@@ -31,12 +31,11 @@ def main():
   tokenizer = tokenizers.build_tokenizer(args)
 
   special_tokens = ["<unk>"]
-  if args.split_digits:
-      special_tokens += ['-N', '|'] + map(str, range(0, 10))
   if not args.without_sequence_tokens:
     special_tokens.append("<s>")
     special_tokens.append("</s>")
-
+  if args.split_digits:
+      special_tokens += ['-N', 'NS'] + map(str, range(0, 10))
   vocab = Vocab(special_tokens=special_tokens)
   for data_file in args.data:
     vocab.add_from_text(data_file, tokenizer=tokenizer, ignore_numbers=args.split_digits)

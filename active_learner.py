@@ -128,12 +128,12 @@ class ActiveLearner:
 										 os.path.join(self.datasets_path, 'vocabs0'),
 										 self.split_ll_numbers_to_digits, self.split_hl_numbers_to_digits)
 		if self.framework == Framework.TensorFlow:
-			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --split_digits --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs0.ll'),
 				os.path.join(self.datasets_path, 'train0.corpus.ll'),
 				os.path.join(self.datasets_path, 'validate0.corpus.ll'),
 				os.path.join(self.datasets_path, 'test0.corpus.ll')))
-			os.system('python -m tfnmt.scripts.build_vocab --size 50000 --save_vocab {0} {1} {2} {3}'.format(
+			os.system('python -m tfnmt.scripts.build_vocab --split_digits --save_vocab {0} {1} {2} {3}'.format(
 				os.path.join(self.datasets_path, 'vocabs0.hl'),
 				os.path.join(self.datasets_path, 'train0.corpus.hl'),
 				os.path.join(self.datasets_path, 'validate0.corpus.hl'),
