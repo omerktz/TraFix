@@ -376,13 +376,15 @@ def get_expr(nesting_level=0):
 
 class Statements:
 	_max_statements = config.getint('Statements', 'MaxStatements')
-	_statements_weights = ast.literal_eval(config.get('Statements', 'Weights'))
+	_more_statements_probability = ast.literal_eval(config.get('Statements', 'MoreStatementsProbability'))
 
 	def __init__(self, types=filter(lambda x: x is not None, [Assignment, Branch, Loop, StatementUnaryOp if config.getboolean('StatementUnaryOp', 'AllowAsStatement') else None]), nesting_level=0, max_statements=_max_statements):
 		statements_limit = min(max_statements, Statements._max_statements)
-		weights = map(lambda i: float(Statements._statements_weights[i])/pow(i+1, nesting_level), xrange(statements_limit))
-		num_statements = choose_by_weight(range(1, statements_limit + 1), weights)
-		self._inner = map(lambda i: Statements.generate_statement(types, nesting_level=nesting_level)(nesting_level=nesting_level), xrange(num_statements))
+		probability = Statements._more_statements_probability / (nesting_level + 1)
+		# probability = pow(Statements._more_statements_probability, nesting_level + 1)
+		self._inner = []
+		while (len(self._inner) < statements_limit) and (npr.random() <= probability):
+			self._inner.append(Statements.generate_statement(types, nesting_level=nesting_level)(nesting_level=nesting_level))
 
 	@staticmethod
 	def generate_statement(types, nesting_level=0):
