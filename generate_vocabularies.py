@@ -14,7 +14,7 @@ def parse_vocabulary(path, split_numbers):
 def generate_vocabs(datasets, out, split_ll_numbers, split_hl_numbers):
 	vocab_hl = set()
 	vocab_ll = set()
-	initial_vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-N', '|']
+	initial_vocab = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-N', 'NS']
 	if split_ll_numbers:
 		vocab_ll.update(initial_vocab)
 	if split_hl_numbers:

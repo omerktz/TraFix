@@ -15,7 +15,7 @@ def split_numbers_to_digits(tokens):
                 digits = ['-N'] + digits[1:]
             if i+1 < len(tokens):
                 if re.match('^\-?[0-9]+$', tokens[i+1]):
-                    digits += ['|']
+                    digits += ['NS']
             new_tokens += digits
         else:
             new_tokens += [token]

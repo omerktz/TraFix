@@ -14,7 +14,7 @@ def merge_digits_to_numbers(line):
 			if len(number) > 0:
 				new_tokens += [number]
 				number = ''
-			if token != '|':
+			if token != 'NS':
 				new_tokens += [token]
 	if len(number) > 0:
 		new_tokens += [number]
@@ -30,7 +30,7 @@ def split_numbers_to_digits(tokens):
                 digits = ['-N'] + digits[1:]
             if i+1 < len(tokens):
                 if re.match('^\-?[0-9]+$', tokens[i+1]):
-                    digits += ['|']
+                    digits += ['NS']
             new_tokens += digits
         else:
             new_tokens += [token]
