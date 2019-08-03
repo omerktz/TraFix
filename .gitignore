@@ -107,3 +107,4 @@ backups/
 *.constants
 experiment_results/
 *.pem
+tmp*

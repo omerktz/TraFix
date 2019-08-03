@@ -281,15 +281,70 @@ class Condition:
 		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + (' NOT ' if self._negate else '') + ' COND ')
+		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + (
+			' NOT ' if self._negate else '') + ' COND ')
 
 	def __eq__(self, other):
-		if not isinstance(other, Condition):
+		if not isinstance(other, Conditions.Condition):
 			return False
-		return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2)
+		return (other._act == self._act) and (other._op1 == self._op1) and (other._op2 == self._op2) and (other._negate == self._negate)
 
 	def collect_vars(self):
 		return self._op1.collect_vars().union(self._op2.collect_vars())
+
+
+class Conditions:
+	_Concatenators = ['||', '&&']
+	_NegateRatio = config.getfloat('Condition', 'NegateRatio')
+	_MaxConditionsNestingLevel = config.getint('Condition', 'MaxConditionsNestingLevel')
+	_MoreConditionsProbability = config.getfloat('Condition', 'MoreConditionsProbability')
+
+	def __init__(self, nesting_level=0):
+		probability = Conditions._MoreConditionsProbability / (nesting_level + 1)
+		# probability = pow(Statements._more_statements_probability, nesting_level + 1)
+		if (npr.random() > probability) or (nesting_level >= Conditions._MaxConditionsNestingLevel):
+			self._conds = [Condition()]
+			self._concat = None
+			self._negate = False
+		else:
+			self._conds = [Conditions(nesting_level=nesting_level + 1), Conditions(nesting_level=nesting_level + 1)]
+			self._concat = npr.choice(Conditions._Concatenators)
+			self._negate = (npr.random() < Conditions._NegateRatio)
+
+	def __str__(self):
+		if len(self._conds) == 1:
+			return str(self._conds[0])
+		res = ''
+		if self._negate:
+			res += '! ( '
+		res += '( ' + str(self._conds[0]) + ' ) ' + self._concat + ' ( ' + str(self._conds[1]) + ' )'
+		if self._negate:
+			res += ' )'
+		return re.sub('\s+', ' ', res).strip()
+
+	def po(self):
+		res = self._conds[0].po()
+		if len(self._conds) > 1:
+			res += self._conds[1].po() + self._concat
+			if self._negate:
+				res += ' NOT'
+		# 'CONDS' should only appear at the end of the overall condition
+		res = re.sub(' CONDS', '', res)
+		return re.sub('\s+', ' ', res + ' CONDS ')
+
+	def __eq__(self, other):
+		if not isinstance(other, Conditions):
+			return False
+		if len(self._conds) != len(other._conds):
+			return False
+		if len(self._conds) == 1:
+			return self._conds[0].__eq__(other._conds[0])
+		return (self._concat == other._concat) and self._conds[0].__eq__(other._conds[0]) and self._conds[1].__eq__(other._conds[1])
+
+	def collect_vars(self):
+		if len(self._conds) == 1:
+			return self._conds[0].collect_vars()
+		return self._conds[0].collect_vars().union(self._conds[1].collect_vars())
 
 
 class Branch:
@@ -303,7 +358,7 @@ class Branch:
 				max_statements=config.getint('Branch', 'MaxInnerStatements')
 			)
 
-		self._cond = Condition()
+		self._cond = Conditions()
 		self._if = body_generator()
 		if npr.random() > Branch._elseRatio:
 			self._else = body_generator()
@@ -346,7 +401,7 @@ class Loop:
 				max_statements=config.getint('Loop', 'MaxInnerStatements')
 			)
 
-		self._cond = Condition()
+		self._cond = Conditions()
 		self._body = body_generator()
 
 	def __eq__(self, other):
@@ -376,15 +431,17 @@ def get_expr(nesting_level=0):
 
 class Statements:
 	_max_statements = config.getint('Statements', 'MaxStatements')
-	_more_statements_probability = ast.literal_eval(config.get('Statements', 'MoreStatementsProbability'))
+	_more_statements_probability = config.getfloat('Statements', 'MoreStatementsProbability')
 
 	def __init__(self, types=filter(lambda x: x is not None, [Assignment, Branch, Loop, StatementUnaryOp if config.getboolean('StatementUnaryOp', 'AllowAsStatement') else None]), nesting_level=0, max_statements=_max_statements):
 		statements_limit = min(max_statements, Statements._max_statements)
 		probability = Statements._more_statements_probability / (nesting_level + 1)
 		# probability = pow(Statements._more_statements_probability, nesting_level + 1)
 		self._inner = []
-		while (len(self._inner) < statements_limit) and (npr.random() <= probability):
+		while True:
 			self._inner.append(Statements.generate_statement(types, nesting_level=nesting_level)(nesting_level=nesting_level))
+			if (len(self._inner) < statements_limit) and (npr.random() <= probability):
+				break
 
 	@staticmethod
 	def generate_statement(types, nesting_level=0):
@@ -482,6 +539,8 @@ def generate_statements():
 					done = True
 			except RuntimeError:
 				pass
+		# # print hl code
+		# print str(s)
 		exclude.add(hl_line)
 		ll_line = re.sub('[ \t]+', ' ', compiler(s))
 		if config.getboolean('Number', 'Abstract'):

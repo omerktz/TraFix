@@ -302,12 +302,67 @@ class Cond:
     def __str__(self):
         return self.c()
 
+class Conds:
+    type = 'CONDS'
+    @staticmethod
+    def check(token,stack):
+        try:
+            if (token == 'NOT') and (stack[-1].type == 'CONDS'):
+                return True
+            if (token == 'COND') and (stack[-1].type == 'COND'):
+                return True
+            return (token in ['&&', '||']) and (stack[-1].type in ['CONDS']) and (stack[-2].type in ['CONDS'])
+        except:
+            return False
+    @staticmethod
+    def handle(token,stack,simplify):
+        if token in ['NOT', 'COND']:
+            stack.append(Conds(token, op1=stack.pop()))
+        else:
+            stack.append(Conds(token, op2=stack.pop(), op1=stack.pop()))
+        return True
+    def __init__(self, token, op1, op2=None):
+        if token == 'NOT':
+            self.conds = op1.conds
+            self.concat = op1.concat
+            self.negate = True
+        elif token == 'COND':
+            self.conds = [op1]
+            self.concat = None
+            self.negate = False
+        else:
+            self.conds = []
+            if isinstance(op1, Conds) and (len(op1.conds) == 1):
+                self.conds += op1.conds
+            else:
+                self.conds.append(op1)
+            if isinstance(op2, Conds) and (len(op2.conds) == 1):
+                self.conds += op2.conds
+            else:
+                self.conds.append(op2)
+            self.concat = [token]
+            self.negate = False
+    def c(self):
+        if len(self.conds) == 1:
+            return self.conds[0].c()
+        res = ''
+        if self.negate:
+            res += '! ( '
+        res += '( ' + self.conds[0].c() + ' )'
+        for i in range(len(self.concat)):
+            res += ' ' + self.concat[i] + ' ( ' + self.conds[i + 1].c() + ' )'
+        if self.negate:
+            res += ' )'
+        return res
+    def __str__(self):
+        return self.c()
+
 class CondB:
     type = 'CONDB'
     @staticmethod
     def check(token,stack):
         try:
-            return (token == 'COND') and (stack[-1].type == 'COND')
+            return (token == 'CONDS') and (stack[-1].type == 'CONDS')
         except:
             return False
     @staticmethod
@@ -435,7 +490,7 @@ class Statement:
     def __str__(self):
         return self.c()
 
-postOrderTypes = [Statement, Num, Var, BinOp, StatementUniOp, OtherUniOp, Assignment, Cond, CondB, TrueB, FalseB, Branch, Loop]
+postOrderTypes = [Statement, Num, Var, BinOp, StatementUniOp, OtherUniOp, Assignment, Cond, Conds, CondB, TrueB, FalseB, Branch, Loop]
 def parse(code, simplify=False):
     tokens = filter(lambda x: len(x) > 0, code.strip().split(' '))
     stack = []
@@ -460,5 +515,8 @@ if __name__ == "__main__":
     def print_result(result):
         print '[{0}]\t{1}'.format(result[0], result[1].c() if result[0] else None)
     print_result(parse('X6 X5 = X14 X-- 8 X1 ='))
-    print_result(parse('7 X6 <= COND X4 X13 = TRUE 5 X7 = FALSE IF'))
+    print_result(parse('7 X6 <= COND CONDS X4 X13 = TRUE 5 X7 = FALSE IF'))
+    print_result(parse('66 X0 =  16 6 X14 --X - % X14 0 / <= COND CONDS X4 X6 + X2 = X10 X-- X6 = 41 X14 = TRUE IF'))
+    print_result(parse('X0 X4 ++X / 12 < COND X2 X3 <= COND && CONDS X10 90 / 27 X8 / + X12 / X1 = WHILE'))
+	# should fail
     print_result(parse('X3 ++X 82 / X8 =  X12 64 X12 ++X * % 62 X10 / - X4 =  X0 X2 16 ~X X14 X9 / * 25 11 X6 / / + ~X / 6 - 76 * <= NOT COND 15 X6 = TRUE IF  X5 X8 X13 --X X8 + ~X X7 >> % ~X % 74 X4 - * X6 =  X3 ~X X6 ='))
