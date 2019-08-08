@@ -260,33 +260,19 @@ class Cond:
     @staticmethod
     def check(token,stack):
         try:
-            if (token == 'NOT') and (stack[-1].type == 'COND'):
-                return True
             return (token in ['>','>=','<','<=','==','!=']) and (stack[-1].type in ['NUM','VAR','EXPR']) and (stack[-2].type in ['NUM','VAR','EXPR'])
         except:
             return False
     @staticmethod
     def handle(token,stack,simplify):
-        if token == 'NOT':
-            stack.append(Cond(token, op1=stack.pop()))
-        else:
-            stack.append(Cond(token, op2=stack.pop(), op1=stack.pop()))
+        stack.append(Cond(token, op2=stack.pop(), op1=stack.pop()))
         return True
     def __init__(self, token, op1, op2=None):
-        if token == 'NOT':
-            self.op = op1.op
-            self.operand1 = op1.operand1
-            self.operand2 = op1.operand2
-            self.negate = True
-        else:
-            self.op = token
-            self.operand1 = op1
-            self.operand2 = op2
-            self.negate = False
+        self.op = token
+        self.operand1 = op1
+        self.operand2 = op2
     def c(self):
         res = ''
-        if self.negate:
-            res += '! ( '
         if isinstance(self.operand1, BinOp) or isinstance(self.operand1, StatementUniOp) or isinstance(self.operand1, OtherUniOp):
             res += '( '+self.operand1.c()+' )'
         else:
@@ -296,8 +282,6 @@ class Cond:
             res += '( '+self.operand2.c()+' )'
         else:
             res += self.operand2.c()
-        if self.negate:
-            res += ' )'
         return res
     def __str__(self):
         return self.c()
@@ -332,25 +316,26 @@ class Conds:
             self.negate = False
         else:
             self.conds = []
-            if isinstance(op1, Conds) and (len(op1.conds) == 1):
+            if isinstance(op1, Conds) and (len(op1.conds) == 1) and not op1.negate:
                 self.conds += op1.conds
             else:
                 self.conds.append(op1)
-            if isinstance(op2, Conds) and (len(op2.conds) == 1):
+            if isinstance(op2, Conds) and (len(op2.conds) == 1) and not op2.negate:
                 self.conds += op2.conds
             else:
                 self.conds.append(op2)
             self.concat = [token]
             self.negate = False
     def c(self):
-        if len(self.conds) == 1:
-            return self.conds[0].c()
         res = ''
         if self.negate:
             res += '! ( '
-        res += '( ' + self.conds[0].c() + ' )'
-        for i in range(len(self.concat)):
-            res += ' ' + self.concat[i] + ' ( ' + self.conds[i + 1].c() + ' )'
+        if len(self.conds) == 1:
+            res += self.conds[0].c()
+        else:
+            res += '( ' + self.conds[0].c() + ' )'
+            for i in range(len(self.concat)):
+                res += ' ' + self.concat[i] + ' ( ' + self.conds[i + 1].c() + ' )'
         if self.negate:
             res += ' )'
         return res
