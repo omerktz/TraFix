@@ -275,7 +275,7 @@ class Condition:
 		return re.sub('\s+', ' ', res).strip()
 
 	def po(self):
-		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + ' COND ')
+		return re.sub('\s+', ' ', self._op1.po() + ' ' + self._op2.po() + ' ' + self._act + ' ')
 
 	def __eq__(self, other):
 		if not isinstance(other, Conditions.Condition):
