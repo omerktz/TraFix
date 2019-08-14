@@ -203,3 +203,24 @@ class Instruction:
 			print 'Unknown op: ' + self.code
 			# import sys
 			# sys.exit(2)
+
+if __name__ == "__main__":
+	class hl_wrapper:
+		def __init__(self, hl):
+			self.hl = hl
+			self.vars = set(filter(lambda x: re.findall("^X[0-9]+$", x.strip()), hl.split(' ')))
+
+		def __str__(self):
+			return self.hl
+
+		def collect_vars(self):
+			return self.vars
+	import sys
+	fin = sys.argv[1]
+	fout = sys.argv[2]
+	with open(fin, 'r') as finput:
+		lines = map(lambda l: l.strip(), finput.readlines())
+	x86_lines = map(lambda x: compiler(hl_wrapper(x)), lines)
+	with open(fout + '.corpus.ll', 'w') as foutput:
+		for x in x86_lines:
+			foutput.write(x + '\n')
