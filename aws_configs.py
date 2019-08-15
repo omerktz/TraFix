@@ -201,7 +201,7 @@ if __name__ == "__main__":
 						help="apply termination protection (default: %(default)s)")
 	parser.add_argument('-r', '--retries', type=int, default=5,
 						help="number of attempts to connect to instance (default: %(default)s)")
-	parser.add_argument('--branch', type=str, default='experimental',
+	parser.add_argument('--branch', type=str, default='master',
 						help="repository branch to use (default: \'%(default)s\')")
 	parser.add_argument('-c', '--configs', type=str,
 						help="folder containing configurations to push to instance")
