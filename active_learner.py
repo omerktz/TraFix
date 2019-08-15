@@ -337,11 +337,11 @@ if __name__ == "__main__":
 						help="Required percentage (between 0 and 1) of inputs successfully translated before termination (default: %(default)s)", )
 	parser.add_argument('-t', '--validation-size', type=int, default=1000,
 						help="Number of samples in validation dataset (default: %(default)s)")
-	parser.add_argument('-i', '--train-size-initial', type=int, default=50000,
+	parser.add_argument('-i', '--train-size-initial', type=int, default=10000,
 						help="Initial number of samples in training dataset (default: %(default)s)")
-	parser.add_argument('-n', '--train-size-increment', type=int, default=10000,
+	parser.add_argument('-n', '--train-size-increment', type=int, default=5000,
 						help="Number of samples to add to training dataset at each round (default: %(default)s)")
-	parser.add_argument('-x', '--train-set-drop', type=int, default=20,
+	parser.add_argument('-x', '--train-set-drop', type=int, default=50,
 						help="Percentage of training dataset to drop at each round (default: %(default)s, value should be between 0 and 100)")
 	parser.add_argument('-m', '--initial-model', type=str,
 						help="trained model to to use as basis for current active learner")
