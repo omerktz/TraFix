@@ -102,7 +102,6 @@ dynet/*.counts
 dynet/*.csv
 dynet/output/
 backups/
-*.corpus.*
 *.csv
 *.constants
 experiment_results/

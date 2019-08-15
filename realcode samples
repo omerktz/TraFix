@@ -1,3 +1,5 @@
+taken from OpenSSL 1.0.2s (28 May 2019)
+
 1:
 X3 = (X1 + (X4 << 3)) & -1;
 if (X3 < X1)
