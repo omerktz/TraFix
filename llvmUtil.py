@@ -1,5 +1,5 @@
 """
-This compiler interface was implemented for Calng version 3.8.0.
+This compiler interface was implemented for Clang version 3.8.0.
 The cleanup stage (part of the process method) might not work properly for other versions of Clang.
 """
 
