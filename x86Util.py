@@ -142,6 +142,10 @@ class Instruction:
 			self.uses = [parts[0]]
 			self.defines = [parts[1]]
 			self.can_be_reduced = True
+		elif self.op in ['movzbl', 'movzwl']:
+			parts = map(lambda x: x.strip(), code.split(','))
+			self.uses = ['%e' + parts[0][1] + 'x']
+			self.defines = [parts[1]]
 		elif self.op in ['cmova', 'cmovae', 'cmovb', 'cmovbe', 'cmovc', 'cmove', 'cmovg', 'cmovge', 'cmovl', 'cmovle', 'cmovna', 'cmovnae', 'cmovnb', 'cmovnbe', 'cmovnc', 'cmovne', 'cmovng', 'cmovnge', 'cmovnl', 'cmovnle', 'cmovno', 'cmovnp', 'cmovns', 'cmovnz', 'cmovo', 'cmovp', 'cmovpe', 'cmovpo', 'cmovs', 'cmovz']:
 			parts = map(lambda x: x.strip(), code.split(','))
 			self.uses = [parts[0], parts[1], 'FLAGS']
